@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, ChevronDown } from "lucide-react";
-import { DropdownMenu } from "radix-ui";
+import { useState } from "react";
+import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X } from "lucide-react";
 
 const menuItems = [
 	{ icon: CalendarDays, label: "Calendar", href: "/calendar" },
@@ -13,6 +13,8 @@ const menuItems = [
 ] as const;
 
 export function Navbar() {
+	const [isOpen, setIsOpen] = useState(false);
+
 	return (
 		<header className="sticky top-0 z-50 border-b border-white/5">
 			<div className="glass-strong">
@@ -30,43 +32,46 @@ export function Navbar() {
 						</div>
 					</div>
 
-					<DropdownMenu.Root>
-						<DropdownMenu.Trigger asChild>
-							<button
-								className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/10 focus:outline-none"
-								aria-label="Open menu"
-							>
-								<ChevronDown className="ml-0.5 size-3 text-muted-foreground" />
-							</button>
-						</DropdownMenu.Trigger>
-
-						<DropdownMenu.Portal>
-							<DropdownMenu.Content
-								align="end"
-								sideOffset={8}
-								className="z-50 min-w-[160px] overflow-hidden rounded-xl border border-white/10 bg-[#111] p-1 shadow-xl shadow-black/40 backdrop-blur-xl"
-							>
-								{menuItems.map((item, i) => {
-									if ("divider" in item) {
-										return <DropdownMenu.Separator key={i} className="my-1 h-px bg-white/10" />;
-									}
-									const Icon = item.icon;
-									return (
-										<DropdownMenu.Item
-											key={item.label}
-											className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-white/10 hover:text-foreground focus:bg-white/10 focus:text-foreground"
-											onSelect={() => {}}
-										>
-											<Icon className="size-4" />
-											{item.label}
-										</DropdownMenu.Item>
-									);
-								})}
-							</DropdownMenu.Content>
-						</DropdownMenu.Portal>
-					</DropdownMenu.Root>
+					{/* Hamburger menu button - only visible on mobile */}
+					<button
+						onClick={() => setIsOpen(!isOpen)}
+						className="flex md:hidden items-center justify-center size-10 rounded-lg transition-colors hover:bg-white/10 focus:outline-none"
+						aria-label={isOpen ? "Close menu" : "Open menu"}
+						aria-expanded={isOpen}
+					>
+						{isOpen ? (
+							<X className="size-6 text-foreground" />
+						) : (
+							<Menu className="size-6 text-foreground" />
+						)}
+					</button>
 				</div>
 			</div>
+
+			{/* Full-width mobile dropdown menu */}
+			{isOpen && (
+				<div className="md:hidden border-t border-white/5 glass-strong">
+					<nav className="flex flex-col w-full">
+						{menuItems.map((item, i) => {
+							if ("divider" in item) {
+								return <div key={i} className="my-1 h-px bg-white/10" />;
+							}
+							const Icon = item.icon;
+							return (
+								<a
+									key={item.label}
+									href={item.href}
+									onClick={() => setIsOpen(false)}
+									className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground active:bg-white/15"
+								>
+									<Icon className="size-5" />
+									{item.label}
+								</a>
+							);
+						})}
+					</nav>
+				</div>
+			)}
 		</header>
 	);
 }
