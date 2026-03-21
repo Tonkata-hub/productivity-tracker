@@ -204,18 +204,21 @@ export function CalendarView() {
 						))}
 					</div>
 
-					{/* Desktop: 7 column grid with hover effects */}
-					<div className="hidden gap-2 lg:grid lg:grid-cols-7">
-						{weekData.map((dayData, index) => (
-							<DayCard
-								key={dayData.date}
-								dayData={dayData}
-								onToggleTask={handleToggleTask}
-								index={index}
-								totalCards={weekData.length}
-								stackMode="desktop"
-							/>
-						))}
+					{/* Desktop: Horizontal scroll with larger fixed-width cards */}
+					<div className="hidden lg:block overflow-x-auto scrollbar-none">
+						<div className="flex gap-3 pb-2" style={{ minWidth: "max-content" }}>
+							{weekData.map((dayData, index) => (
+								<div key={dayData.date} className="w-[220px] shrink-0">
+									<DayCard
+										dayData={dayData}
+										onToggleTask={handleToggleTask}
+										index={index}
+										totalCards={weekData.length}
+										stackMode="desktop"
+									/>
+								</div>
+							))}
+						</div>
 					</div>
 				</div>
 

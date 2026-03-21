@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X } from "lucide-react";
 
@@ -16,11 +16,39 @@ const signOutItem = { icon: LogOut, label: "Sign out", href: "/signout" };
 export function Navbar() {
 	const [isOpen, setIsOpen] = useState(false);
 	const pathname = usePathname();
+	const navRef = useRef<HTMLElement>(null);
 
 	const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
+	// Close menu when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (navRef.current && !navRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		};
+
+		if (isOpen) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isOpen]);
+
 	return (
-		<header className="sticky top-0 z-50 border-b border-white/5">
+		<>
+			{/* Backdrop overlay for mobile menu */}
+			<div
+				className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+					isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+				}`}
+				onClick={() => setIsOpen(false)}
+				aria-hidden="true"
+			/>
+
+			<header ref={navRef} className="sticky top-0 z-50 border-b border-white/5">
 			<div className="glass-strong">
 				<div className="flex h-14 items-center justify-between px-4">
 					<div className="flex items-center gap-3">
@@ -89,7 +117,7 @@ export function Navbar() {
 
 			{/* Full-width mobile dropdown menu with animation */}
 			<div
-				className={`md:hidden border-t border-white/5 glass-strong overflow-hidden transition-all duration-300 ease-in-out ${
+				className={`md:hidden border-t border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-300 ease-in-out ${
 					isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
 				}`}
 			>
@@ -125,5 +153,6 @@ export function Navbar() {
 				</nav>
 			</div>
 		</header>
+		</>
 	);
 }
