@@ -27,10 +27,7 @@ export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode }:
 
 	return (
 		<div
-			className={cn(
-				"group relative transition-all duration-500 ease-out",
-				stackMode === "desktop" && "hover:translate-y-[-4px]"
-			)}
+			className="group relative"
 			style={{ zIndex: totalCards - index }}
 			role="region"
 			aria-label={`Tasks for ${dayName}, ${dayNumber}`}

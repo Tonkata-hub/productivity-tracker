@@ -11,149 +11,138 @@ const today = getDateOffset(0)
 const yesterday = getDateOffset(-1)
 const twoDaysAgo = getDateOffset(-2)
 const threeDaysAgo = getDateOffset(-3)
+const fourDaysAgo = getDateOffset(-4)
+const fiveDaysAgo = getDateOffset(-5)
 const tomorrow = getDateOffset(1)
 const inTwoDays = getDateOffset(2)
-const inThreeDays = getDateOffset(3)
+const inFourDays = getDateOffset(4)
 
 export const mockTasks: Task[] = [
-  // DAILY RECURRING TASKS - Various completion patterns
+  // ── DAILY RECURRING TASKS ──────────────────────────────────────────────────
   {
     id: '1',
     title: 'Morning meditation',
     type: 'daily',
-    completedDates: [today, yesterday, twoDaysAgo], // Completed consistently
+    // Strong streak — completed every day this week
+    completedDates: [today, yesterday, twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo],
   },
   {
     id: '2',
-    title: 'Exercise routine',
+    title: 'Exercise',
     type: 'daily',
-    completedDates: [yesterday, threeDaysAgo], // Missed some days (today not completed)
+    // Mostly consistent, skipped yesterday and today
+    completedDates: [twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo],
   },
   {
     id: '3',
     title: 'Read for 30 minutes',
     type: 'daily',
-    completedDates: [], // Never completed - new task
+    // Every other day pattern
+    completedDates: [yesterday, threeDaysAgo, fiveDaysAgo],
   },
   {
     id: '4',
     title: 'Review daily goals',
     type: 'daily',
-    completedDates: [today, twoDaysAgo], // Completed today, missed yesterday
+    // Completed today and a few recent days, missed some
+    completedDates: [today, yesterday, threeDaysAgo],
   },
   {
     id: '5',
     title: 'Drink 8 glasses of water',
     type: 'daily',
-    completedDates: [today, yesterday, twoDaysAgo, threeDaysAgo], // Perfect streak
+    // Perfect streak all week
+    completedDates: [today, yesterday, twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo],
   },
   {
     id: '6',
-    title: 'Journal entry',
+    title: 'Evening journal',
     type: 'daily',
-    completedDates: [threeDaysAgo], // Only completed once, long ago
+    // Sporadic — only managed it twice this week
+    completedDates: [twoDaysAgo, fiveDaysAgo],
   },
 
-  // ONE-TIME TASKS - Various states
+  // ── ONE-TIME TASKS ─────────────────────────────────────────────────────────
+
+  // Monday (5 days ago) — completed on time
   {
     id: '7',
-    title: 'Complete project proposal',
+    title: 'Send weekly status report',
     type: 'one-time',
-    dueDate: tomorrow,
-    completedDates: [], // Due tomorrow, not completed
+    dueDate: fiveDaysAgo,
+    completedDates: [fiveDaysAgo],
   },
+
+  // Tuesday (4 days ago) — OVERDUE #1
   {
     id: '8',
-    title: 'Call dentist for appointment',
+    title: 'Submit expense report',
     type: 'one-time',
-    dueDate: today,
-    completedDates: [], // Due today, not completed yet
+    dueDate: fourDaysAgo,
+    completedDates: [],
   },
+
+  // Wednesday (3 days ago) — completed on time
   {
     id: '9',
-    title: 'Submit tax documents',
+    title: 'Prepare team meeting agenda',
     type: 'one-time',
-    dueDate: yesterday,
-    completedDates: [], // OVERDUE - past due date, not completed
+    dueDate: threeDaysAgo,
+    completedDates: [threeDaysAgo],
   },
+
+  // Thursday (2 days ago) — OVERDUE #2
   {
     id: '10',
-    title: 'Buy birthday gift',
+    title: 'Schedule dentist appointment',
     type: 'one-time',
-    dueDate: inTwoDays,
-    completedDates: [], // Due in future
+    dueDate: twoDaysAgo,
+    completedDates: [],
   },
+
+  // Friday (yesterday) — OVERDUE #3
   {
     id: '11',
-    title: 'Schedule car maintenance',
-    type: 'one-time',
-    dueDate: twoDaysAgo,
-    completedDates: [], // OVERDUE - significantly past due
-  },
-  {
-    id: '12',
-    title: 'Finish online course',
-    type: 'one-time',
-    dueDate: inThreeDays,
-    completedDates: [], // Due in future
-  },
-  {
-    id: '13',
-    title: 'Send weekly report',
+    title: 'Reply to client proposal email',
     type: 'one-time',
     dueDate: yesterday,
-    completedDates: [yesterday], // Completed on time
+    completedDates: [],
   },
+
+  // Today — due today, not yet done
   {
-    id: '14',
-    title: 'Update resume',
-    type: 'one-time',
-    dueDate: twoDaysAgo,
-    completedDates: [twoDaysAgo], // Completed on due date
-  },
-  {
-    id: '15',
-    title: 'Book flight tickets',
+    id: '12',
+    title: 'Review pull requests',
     type: 'one-time',
     dueDate: today,
-    completedDates: [today], // Completed today (on due date)
+    completedDates: [],
   },
 
-  // ONE-TIME TASKS WITHOUT DUE DATE
+  // Tomorrow — upcoming
   {
-    id: '16',
-    title: 'Organize digital photos',
+    id: '13',
+    title: 'Call insurance provider',
     type: 'one-time',
-    completedDates: [], // No due date, not completed
-  },
-  {
-    id: '17',
-    title: 'Learn a new recipe',
-    type: 'one-time',
-    completedDates: [yesterday], // No due date, completed
-  },
-  {
-    id: '18',
-    title: 'Clean out garage',
-    type: 'one-time',
-    completedDates: [], // No due date, not completed
+    dueDate: tomorrow,
+    completedDates: [],
   },
 
-  // EDGE CASE: Very long task title
+  // In 2 days — upcoming
   {
-    id: '19',
-    title: 'Research and compile comprehensive market analysis report for Q4 strategic planning meeting',
+    id: '14',
+    title: 'Buy groceries for dinner party',
     type: 'one-time',
     dueDate: inTwoDays,
     completedDates: [],
   },
 
-  // EDGE CASE: Short task title
+  // In 4 days — upcoming
   {
-    id: '20',
-    title: 'Nap',
-    type: 'daily',
-    completedDates: [today],
+    id: '15',
+    title: 'Finalize Q2 project spec',
+    type: 'one-time',
+    dueDate: inFourDays,
+    completedDates: [],
   },
 ]
 
