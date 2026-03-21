@@ -1,20 +1,54 @@
 "use client";
 
-import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, ChevronDown } from "lucide-react";
-import { DropdownMenu } from "radix-ui";
+import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X } from "lucide-react";
 
 const menuItems = [
 	{ icon: CalendarDays, label: "Calendar", href: "/calendar" },
 	{ icon: BarChart2, label: "Analytics", href: "/analytics" },
 	{ icon: Settings, label: "Settings", href: "/settings" },
 	{ icon: HelpCircle, label: "Help", href: "/help" },
-	{ divider: true },
-	{ icon: LogOut, label: "Sign out", href: "/signout" },
 ] as const;
 
+const signOutItem = { icon: LogOut, label: "Sign out", href: "/signout" };
+
 export function Navbar() {
+	const [isOpen, setIsOpen] = useState(false);
+	const pathname = usePathname();
+	const navRef = useRef<HTMLElement>(null);
+
+	const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
+	// Close menu when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (navRef.current && !navRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		};
+
+		if (isOpen) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isOpen]);
+
 	return (
-		<header className="sticky top-0 z-50 border-b border-white/5">
+		<>
+			{/* Backdrop overlay for mobile menu */}
+			<div
+				className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+					isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+				}`}
+				onClick={() => setIsOpen(false)}
+				aria-hidden="true"
+			/>
+
+			<header ref={navRef} className="sticky top-0 z-50 border-b border-white/5">
 			<div className="glass-strong">
 				<div className="flex h-14 items-center justify-between px-4">
 					<div className="flex items-center gap-3">
@@ -30,43 +64,95 @@ export function Navbar() {
 						</div>
 					</div>
 
-					<DropdownMenu.Root>
-						<DropdownMenu.Trigger asChild>
-							<button
-								className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/10 focus:outline-none"
-								aria-label="Open menu"
-							>
-								<ChevronDown className="ml-0.5 size-3 text-muted-foreground" />
-							</button>
-						</DropdownMenu.Trigger>
+					{/* Desktop navigation - horizontal layout */}
+					<nav className="hidden md:flex items-center gap-1">
+						{menuItems.map((item) => {
+							const Icon = item.icon;
+							const active = isActive(item.href);
+							return (
+								<a
+									key={item.label}
+									href={item.href}
+									className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+										active
+											? "text-mars-red bg-mars-red/10"
+											: "text-muted-foreground hover:bg-white/10 hover:text-foreground"
+									}`}
+								>
+									<Icon className="size-4" />
+									{item.label}
+								</a>
+							);
+						})}
+						<div className="w-px h-6 bg-white/10 mx-2" />
+						<a
+							href={signOutItem.href}
+							className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
+						>
+							<LogOut className="size-4" />
+							{signOutItem.label}
+						</a>
+					</nav>
 
-						<DropdownMenu.Portal>
-							<DropdownMenu.Content
-								align="end"
-								sideOffset={8}
-								className="z-50 min-w-[160px] overflow-hidden rounded-xl border border-white/10 bg-[#111] p-1 shadow-xl shadow-black/40 backdrop-blur-xl"
-							>
-								{menuItems.map((item, i) => {
-									if ("divider" in item) {
-										return <DropdownMenu.Separator key={i} className="my-1 h-px bg-white/10" />;
-									}
-									const Icon = item.icon;
-									return (
-										<DropdownMenu.Item
-											key={item.label}
-											className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-white/10 hover:text-foreground focus:bg-white/10 focus:text-foreground"
-											onSelect={() => {}}
-										>
-											<Icon className="size-4" />
-											{item.label}
-										</DropdownMenu.Item>
-									);
-								})}
-							</DropdownMenu.Content>
-						</DropdownMenu.Portal>
-					</DropdownMenu.Root>
+					{/* Hamburger menu button - only visible on mobile */}
+					<button
+						onClick={() => setIsOpen(!isOpen)}
+						className="relative flex md:hidden items-center justify-center size-10 rounded-lg transition-colors hover:bg-white/10 focus:outline-none"
+						aria-label={isOpen ? "Close menu" : "Open menu"}
+						aria-expanded={isOpen}
+					>
+						<Menu
+							className={`absolute size-6 text-foreground transition-all duration-300 ease-in-out ${
+								isOpen ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
+							}`}
+						/>
+						<X
+							className={`absolute size-6 text-foreground transition-all duration-300 ease-in-out ${
+								isOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
+							}`}
+						/>
+					</button>
 				</div>
 			</div>
+
+			{/* Full-width mobile dropdown menu with animation */}
+			<div
+				className={`md:hidden border-t border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-300 ease-in-out ${
+					isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+				}`}
+			>
+				<nav className="flex flex-col w-full">
+					{menuItems.map((item) => {
+						const Icon = item.icon;
+						const active = isActive(item.href);
+						return (
+							<a
+								key={item.label}
+								href={item.href}
+								onClick={() => setIsOpen(false)}
+								className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+									active
+										? "text-mars-red bg-mars-red/10"
+										: "text-muted-foreground hover:bg-white/10 hover:text-foreground active:bg-white/15"
+								}`}
+							>
+								<Icon className="size-5" />
+								{item.label}
+							</a>
+						);
+					})}
+					<div className="my-1 h-px bg-white/10" />
+					<a
+						href={signOutItem.href}
+						onClick={() => setIsOpen(false)}
+						className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground active:bg-white/15"
+					>
+						<LogOut className="size-5" />
+						{signOutItem.label}
+					</a>
+				</nav>
+			</div>
 		</header>
+		</>
 	);
 }
