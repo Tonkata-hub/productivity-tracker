@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X } from "lucide-react";
+import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X, PlusCircle } from "lucide-react";
 
 const menuItems = [
 	{ icon: CalendarDays, label: "Calendar", href: "/calendar" },
+	{ icon: PlusCircle, label: "Add Task", href: "/add-task" },
 	{ icon: BarChart2, label: "Analytics", href: "/analytics" },
 	{ icon: Settings, label: "Settings", href: "/settings" },
 	{ icon: HelpCircle, label: "Help", href: "/help" },
