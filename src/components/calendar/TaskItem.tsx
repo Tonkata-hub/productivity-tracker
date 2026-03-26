@@ -4,15 +4,21 @@ import { useState } from "react";
 import { TaskWithStatus } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Repeat, Clock, AlertCircle } from "lucide-react";
+import { Repeat, Clock, AlertCircle, Flag, Calendar } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 interface TaskItemProps {
 	task: TaskWithStatus;
 	onToggle?: (taskId: string) => void;
-	compact?: boolean;
 }
 
-export function TaskItem({ task, onToggle, compact = false }: TaskItemProps) {
+const priorityConfig = {
+	high: { label: "High", className: "text-mars-red" },
+	medium: { label: "Medium", className: "text-amber-400" },
+	low: { label: "Low", className: "text-muted-foreground" },
+};
+
+export function TaskItem({ task, onToggle }: TaskItemProps) {
 	const [isPressed, setIsPressed] = useState(false);
 
 	const handleToggle = () => {
@@ -21,10 +27,12 @@ export function TaskItem({ task, onToggle, compact = false }: TaskItemProps) {
 		onToggle?.(task.id);
 	};
 
+	const hasMeta = task.priority || task.due_date || task.isOverdue || task.isDueToday;
+
 	return (
 		<div
 			className={cn(
-				"group relative flex cursor-pointer items-start gap-3 rounded-xl p-2.5 transition-all duration-200",
+				"group relative flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-all duration-200",
 				"bg-white/3 hover:bg-white/6",
 				"border border-transparent hover:border-white/5",
 				isPressed && "scale-[0.98] bg-white/8",
@@ -34,7 +42,7 @@ export function TaskItem({ task, onToggle, compact = false }: TaskItemProps) {
 			onClick={handleToggle}
 		>
 			{/* Checkbox with custom styling */}
-			<div className="relative shrink-0 pt-0.5">
+			<div className="relative shrink-0">
 				<Checkbox
 					checked={task.isCompleted}
 					onCheckedChange={handleToggle}
@@ -63,23 +71,31 @@ export function TaskItem({ task, onToggle, compact = false }: TaskItemProps) {
 						{task.title}
 					</span>
 
-					{/* Meta badges */}
-					{!compact && (
-						<div className="flex flex-wrap items-center gap-1.5">
-							{/* Task type indicator */}
-							{task.type === "daily" ? (
-								<span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-									<Repeat className="size-2.5" />
-									Daily
+					{/* Meta info row - priority, due date, status badges */}
+					{hasMeta && (
+						<div className="flex flex-wrap items-center gap-2">
+							{/* Priority */}
+							{task.priority && (
+								<span
+									className={cn(
+										"inline-flex items-center gap-1 text-[10px] font-medium",
+										priorityConfig[task.priority].className
+									)}
+								>
+									<Flag className="size-2.5" />
+									{priorityConfig[task.priority].label}
 								</span>
-							) : task.due_date ? (
-								<span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-									<Clock className="size-2.5" />
-									Scheduled
-								</span>
-							) : null}
+							)}
 
-							{/* Overdue badge - only place with red accent */}
+							{/* Due date for one-time tasks */}
+							{task.due_date && task.type === "one_time" && (
+								<span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+									<Calendar className="size-2.5" />
+									{format(parseISO(task.due_date), "MMM d")}
+								</span>
+							)}
+
+							{/* Overdue badge */}
 							{task.isOverdue && !task.isCompleted && (
 								<span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
 									<AlertCircle className="size-2.5" />
@@ -98,16 +114,14 @@ export function TaskItem({ task, onToggle, compact = false }: TaskItemProps) {
 				</div>
 			</div>
 
-			{/* Type icon for compact mode */}
-			{compact && (
-				<div className="shrink-0">
-					{task.type === "daily" ? (
-						<Repeat className="size-3 text-muted-foreground" />
-					) : (
-						<Clock className="size-3 text-muted-foreground" />
-					)}
-				</div>
-			)}
+			{/* Type icon - always visible, vertically centered */}
+			<div className="shrink-0 self-center">
+				{task.type === "daily" ? (
+					<Repeat className="size-4 text-muted-foreground" />
+				) : (
+					<Clock className="size-4 text-muted-foreground" />
+				)}
+			</div>
 		</div>
 	);
 }
