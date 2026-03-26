@@ -72,7 +72,7 @@ export function TaskItem({ task, onToggle, compact = false }: TaskItemProps) {
 									<Repeat className="size-2.5" />
 									Daily
 								</span>
-							) : task.dueDate ? (
+							) : task.due_date ? (
 								<span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
 									<Clock className="size-2.5" />
 									Scheduled

@@ -129,12 +129,7 @@ export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode }:
 						<span className="text-xs text-muted-foreground/50">No tasks scheduled</span>
 					) : (
 						tasks.map((task) => (
-							<TaskItem
-								key={task.id}
-								task={task}
-								onToggle={handleToggle}
-								compact={stackMode === "desktop"}
-							/>
+							<TaskItem key={task.id} task={task} onToggle={handleToggle} compact={true} />
 						))
 					)}
 				</div>

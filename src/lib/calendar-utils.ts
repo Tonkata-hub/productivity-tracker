@@ -25,20 +25,19 @@ export function formatDateISO(date: Date): string {
 
 export function getTaskStatusForDate(task: Task, dateISO: string): TaskWithStatus {
   const today = formatDateISO(new Date())
-  const isCompleted = task.completedDates.includes(dateISO)
 
+  let isCompleted = false
   let isOverdue = false
   let isDueToday = false
 
-  if (task.type === 'one-time' && task.dueDate) {
-    // For one-time tasks: overdue if past due date and not completed
-    isOverdue = task.dueDate < today && !task.completedDates.includes(task.dueDate)
-    isDueToday = task.dueDate === today
+  if (task.type === 'one_time') {
+    isCompleted = task.is_completed
+    isDueToday = task.due_date === today
+    isOverdue = !!task.due_date && task.due_date < today && !task.is_completed
   } else if (task.type === 'daily') {
-    // For daily tasks: "overdue" if not completed on a past date (including today)
-    if (dateISO <= today && !isCompleted) {
-      isOverdue = dateISO < today // Only mark past days as overdue, not today
-    }
+    // For daily tasks completion will come from task_completions table later
+    isCompleted = false
+    isOverdue = dateISO < today
   }
 
   return {
@@ -55,15 +54,11 @@ export function getTasksForDate(tasks: Task[], dateISO: string): TaskWithStatus[
 
   for (const task of tasks) {
     if (task.type === 'daily') {
-      // Daily tasks appear on every day
       result.push(getTaskStatusForDate(task, dateISO))
-    } else if (task.type === 'one-time') {
-      // One-time tasks appear on their due date or completion date
+    } else if (task.type === 'one_time') {
       const shouldShow =
-        task.dueDate === dateISO ||
-        task.completedDates.includes(dateISO) ||
-        // Also show overdue tasks on today
-        (dateISO === today && task.dueDate && task.dueDate < today && !task.completedDates.some(d => d <= today))
+        task.due_date === dateISO ||
+        (dateISO === today && task.due_date && task.due_date < today && !task.is_completed)
 
       if (shouldShow) {
         result.push(getTaskStatusForDate(task, dateISO))
@@ -99,8 +94,8 @@ export function filterTasks(
   switch (filter) {
     case 'daily':
       return tasks.filter(t => t.type === 'daily')
-    case 'one-time':
-      return tasks.filter(t => t.type === 'one-time')
+    case 'one_time':
+      return tasks.filter(t => t.type === 'one_time')
     case 'completed':
       return tasks.filter(t => t.isCompleted)
     case 'incomplete':

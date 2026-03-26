@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Task } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 import { mockTasks } from "@/lib/mock-data";
 import { getWeekDates, generateWeekData, formatDateISO, filterTasks } from "@/lib/calendar-utils";
 import { WeekNavigation } from "./WeekNavigation";
@@ -10,7 +11,23 @@ import { DayCard } from "./DayCard";
 import { cn } from "@/lib/utils";
 
 export function CalendarView() {
-	const [tasks, setTasks] = useState<Task[]>(mockTasks);
+	const [tasks, setTasks] = useState<Task[]>([]);
+
+	useEffect(() => {
+		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") {
+			setTasks(mockTasks);
+			return;
+		}
+		async function fetchTasks() {
+			const { data, error } = await supabase.from("tasks").select("*");
+			if (error) {
+				console.error("Failed to fetch tasks:", error);
+				return;
+			}
+			setTasks(data as Task[]);
+		}
+		fetchTasks();
+	}, []);
 	const [weekOffset, setWeekOffset] = useState(0);
 	const [activeFilter, setActiveFilter] = useState("all");
 	const [currentDayIndex, setCurrentDayIndex] = useState(0);
@@ -82,18 +99,15 @@ export function CalendarView() {
 		setWeekOffset((prev) => prev + 1);
 	}, []);
 
-	// Toggle task completion
-	const handleToggleTask = useCallback((taskId: string, date: string) => {
+	// Toggle task completion (one_time only — daily requires task_completions table)
+	const handleToggleTask = useCallback((taskId: string, _date: string) => {
 		setTasks((prevTasks) =>
 			prevTasks.map((task) => {
-				if (task.id !== taskId) return task;
-
-				const isCompleted = task.completedDates.includes(date);
+				if (task.id !== taskId || task.type !== "one_time") return task;
 				return {
 					...task,
-					completedDates: isCompleted
-						? task.completedDates.filter((d) => d !== date)
-						: [...task.completedDates, date],
+					is_completed: !task.is_completed,
+					completed_at: task.is_completed ? null : new Date().toISOString(),
 				};
 			})
 		);

@@ -1,6 +1,5 @@
 import { Task } from './types'
 
-// Helper to get ISO date strings relative to today
 const getDateOffset = (days: number): string => {
   const date = new Date()
   date.setDate(date.getDate() + days)
@@ -20,136 +19,178 @@ const inFourDays = getDateOffset(4)
 export const mockTasks: Task[] = [
   // ── DAILY RECURRING TASKS ──────────────────────────────────────────────────
   {
-    id: '1',
+    id: 'mock-1',
     title: 'Morning meditation',
     type: 'daily',
-    // Strong streak — completed every day this week
-    completedDates: [today, yesterday, twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo],
+    priority: null,
+    due_date: null,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: today,
   },
   {
-    id: '2',
+    id: 'mock-2',
     title: 'Exercise',
     type: 'daily',
-    // Mostly consistent, skipped yesterday and today
-    completedDates: [twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo],
+    priority: 'high',
+    due_date: null,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: today,
   },
   {
-    id: '3',
+    id: 'mock-3',
     title: 'Read for 30 minutes',
     type: 'daily',
-    // Every other day pattern
-    completedDates: [yesterday, threeDaysAgo, fiveDaysAgo],
+    priority: null,
+    due_date: null,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: today,
   },
   {
-    id: '4',
+    id: 'mock-4',
     title: 'Review daily goals',
     type: 'daily',
-    // Completed today and a few recent days, missed some
-    completedDates: [today, yesterday, threeDaysAgo],
+    priority: 'medium',
+    due_date: null,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: today,
   },
   {
-    id: '5',
+    id: 'mock-5',
     title: 'Drink 8 glasses of water',
     type: 'daily',
-    // Perfect streak all week
-    completedDates: [today, yesterday, twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo],
+    priority: null,
+    due_date: null,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: today,
   },
   {
-    id: '6',
+    id: 'mock-6',
     title: 'Evening journal',
     type: 'daily',
-    // Sporadic — only managed it twice this week
-    completedDates: [twoDaysAgo, fiveDaysAgo],
+    priority: null,
+    due_date: null,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: today,
   },
 
   // ── ONE-TIME TASKS ─────────────────────────────────────────────────────────
-
-  // Monday (5 days ago) — completed on time
   {
-    id: '7',
+    id: 'mock-7',
     title: 'Send weekly status report',
-    type: 'one-time',
-    dueDate: fiveDaysAgo,
-    completedDates: [fiveDaysAgo],
+    type: 'one_time',
+    priority: 'medium',
+    due_date: fiveDaysAgo,
+    is_completed: true,
+    completed_at: fiveDaysAgo + 'T09:00:00Z',
+    created_at: fiveDaysAgo,
+    updated_at: fiveDaysAgo,
   },
-
-  // Tuesday (4 days ago) — OVERDUE #1
   {
-    id: '8',
+    id: 'mock-8',
     title: 'Submit expense report',
-    type: 'one-time',
-    dueDate: fourDaysAgo,
-    completedDates: [],
+    type: 'one_time',
+    priority: 'high',
+    due_date: fourDaysAgo,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: fourDaysAgo,
   },
-
-  // Wednesday (3 days ago) — completed on time
   {
-    id: '9',
+    id: 'mock-9',
     title: 'Prepare team meeting agenda',
-    type: 'one-time',
-    dueDate: threeDaysAgo,
-    completedDates: [threeDaysAgo],
+    type: 'one_time',
+    priority: null,
+    due_date: threeDaysAgo,
+    is_completed: true,
+    completed_at: threeDaysAgo + 'T10:00:00Z',
+    created_at: fiveDaysAgo,
+    updated_at: threeDaysAgo,
   },
-
-  // Thursday (2 days ago) — OVERDUE #2
   {
-    id: '10',
+    id: 'mock-10',
     title: 'Schedule dentist appointment',
-    type: 'one-time',
-    dueDate: twoDaysAgo,
-    completedDates: [],
+    type: 'one_time',
+    priority: 'low',
+    due_date: twoDaysAgo,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: twoDaysAgo,
   },
-
-  // Friday (yesterday) — OVERDUE #3
   {
-    id: '11',
+    id: 'mock-11',
     title: 'Reply to client proposal email',
-    type: 'one-time',
-    dueDate: yesterday,
-    completedDates: [],
+    type: 'one_time',
+    priority: 'high',
+    due_date: yesterday,
+    is_completed: false,
+    completed_at: null,
+    created_at: fiveDaysAgo,
+    updated_at: yesterday,
   },
-
-  // Today — due today, not yet done
   {
-    id: '12',
+    id: 'mock-12',
     title: 'Review pull requests',
-    type: 'one-time',
-    dueDate: today,
-    completedDates: [],
+    type: 'one_time',
+    priority: 'medium',
+    due_date: today,
+    is_completed: false,
+    completed_at: null,
+    created_at: yesterday,
+    updated_at: today,
   },
-
-  // Tomorrow — upcoming
   {
-    id: '13',
+    id: 'mock-13',
     title: 'Call insurance provider',
-    type: 'one-time',
-    dueDate: tomorrow,
-    completedDates: [],
+    type: 'one_time',
+    priority: null,
+    due_date: tomorrow,
+    is_completed: false,
+    completed_at: null,
+    created_at: today,
+    updated_at: today,
   },
-
-  // In 2 days — upcoming
   {
-    id: '14',
+    id: 'mock-14',
     title: 'Buy groceries for dinner party',
-    type: 'one-time',
-    dueDate: inTwoDays,
-    completedDates: [],
+    type: 'one_time',
+    priority: 'low',
+    due_date: inTwoDays,
+    is_completed: false,
+    completed_at: null,
+    created_at: today,
+    updated_at: today,
   },
-
-  // In 4 days — upcoming
   {
-    id: '15',
+    id: 'mock-15',
     title: 'Finalize Q2 project spec',
-    type: 'one-time',
-    dueDate: inFourDays,
-    completedDates: [],
+    type: 'one_time',
+    priority: 'high',
+    due_date: inFourDays,
+    is_completed: false,
+    completed_at: null,
+    created_at: today,
+    updated_at: today,
   },
 ]
 
 export const filterOptions = [
   { value: 'all', label: 'All Tasks' },
   { value: 'daily', label: 'Daily Only' },
-  { value: 'one-time', label: 'One-Time Only' },
+  { value: 'one_time', label: 'One-Time Only' },
   { value: 'completed', label: 'Completed' },
   { value: 'incomplete', label: 'Incomplete' },
   { value: 'overdue', label: 'Overdue' },
