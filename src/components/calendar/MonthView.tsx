@@ -13,7 +13,7 @@ interface MonthViewProps {
 }
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
-const MAX_DOTS = 5;
+const MAX_DOTS = 6;
 
 export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthViewProps) {
 	const monthDates = useMemo(() => getMonthDates(baseDate), [baseDate]);
@@ -29,12 +29,13 @@ export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthVie
 		return result;
 	}, [monthDates]);
 
-	// Get tasks for each day
+	// Get daily tasks only for each day
 	const dayTasksMap = useMemo(() => {
 		const map = new Map<string, TaskWithStatus[]>();
 		for (const date of monthDates) {
 			const dateISO = formatDateISO(date);
-			map.set(dateISO, getTasksForDate(tasks, dateISO, completions));
+			const allTasks = getTasksForDate(tasks, dateISO, completions);
+			map.set(dateISO, allTasks.filter((t) => t.type === "daily"));
 		}
 		return map;
 	}, [monthDates, tasks, completions]);
