@@ -54,8 +54,8 @@ export default function AddTaskPage() {
           {/* Header */}
           <div className="glass rounded-2xl p-6">
             <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-xl bg-mars-red shadow-lg shadow-mars-red/30">
-                <PlusCircle className="size-6 text-white" />
+              <div className="flex size-12 items-center justify-center rounded-xl bg-white/10 border border-glass-border">
+                <PlusCircle className="size-6 text-foreground" />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-foreground">Add New Task</h1>

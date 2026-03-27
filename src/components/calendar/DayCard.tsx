@@ -11,9 +11,10 @@ interface DayCardProps {
 	index: number;
 	totalCards: number;
 	stackMode: "mobile" | "grid" | "desktop";
+	isHighlighted?: boolean;
 }
 
-export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode }: DayCardProps) {
+export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode, isHighlighted = false }: DayCardProps) {
 	const { date, dayName, dayNumber, isToday, isPast, tasks } = dayData;
 
 	const completedCount = tasks.filter((t) => t.isCompleted).length;
@@ -39,6 +40,8 @@ export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode }:
 					"glass",
 					// Today highlight
 					isToday && "ring-1 ring-mars-red/70",
+					// Highlighted from month view selection
+					isHighlighted && "ring-2 ring-mars-red animate-pulse",
 					// Past days slightly dimmed
 					isPast && !isToday && "opacity-60",
 					// Hover effects
