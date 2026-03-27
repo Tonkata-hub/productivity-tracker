@@ -35,6 +35,9 @@ export function CalendarView() {
 	const [isMonthView, setIsMonthView] = useState(false);
 	const [monthOffset, setMonthOffset] = useState(0);
 	const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
+	const [monthDirection, setMonthDirection] = useState<"up" | "down" | "none">("none");
+	const [weekDirection, setWeekDirection] = useState<"left" | "right" | "none">("none");
+	const [weekAnimKey, setWeekAnimKey] = useState(0);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 	// Calculate current week dates based on offset
@@ -143,18 +146,24 @@ export function CalendarView() {
 
 	// Navigation handlers
 	const handlePreviousWeek = useCallback(() => {
+		setWeekDirection("right");
+		setWeekAnimKey((k) => k + 1);
 		setWeekOffset((prev) => prev - 1);
 	}, []);
 
 	const handleNextWeek = useCallback(() => {
+		setWeekDirection("left");
+		setWeekAnimKey((k) => k + 1);
 		setWeekOffset((prev) => prev + 1);
 	}, []);
 
 	const handlePreviousMonth = useCallback(() => {
+		setMonthDirection("down");
 		setMonthOffset((prev) => prev - 1);
 	}, []);
 
 	const handleNextMonth = useCallback(() => {
+		setMonthDirection("up");
 		setMonthOffset((prev) => prev + 1);
 	}, []);
 
@@ -168,6 +177,7 @@ export function CalendarView() {
 					(currentWeekDate.getFullYear() - today.getFullYear()) * 12 +
 					(currentWeekDate.getMonth() - today.getMonth());
 				setMonthOffset(monthsDiff);
+				setMonthDirection("none");
 			}
 			return !prev;
 		});
@@ -305,12 +315,14 @@ export function CalendarView() {
 
 				{/* Month View */}
 				{isMonthView && (
-					<div className="glass rounded-2xl p-4">
+					<div className="glass rounded-2xl p-4 overflow-hidden">
 						<MonthView
+							key={`${monthBaseDate.getFullYear()}-${monthBaseDate.getMonth()}`}
 							baseDate={monthBaseDate}
 							tasks={tasks}
 							completions={completions}
 							onDayClick={handleMonthDayClick}
+							direction={monthDirection}
 						/>
 					</div>
 				)}
@@ -362,9 +374,12 @@ export function CalendarView() {
 
 				{/* Week cards */}
 				<div
+					key={weekAnimKey}
 					className={cn(
-						"perspective-container transition-all duration-300",
-						isMonthView && "opacity-0 h-0 overflow-hidden"
+						"perspective-container transition-opacity duration-300",
+						isMonthView && "opacity-0 h-0 overflow-hidden",
+						!isMonthView && weekDirection === "left" && "animate-slide-in-left",
+						!isMonthView && weekDirection === "right" && "animate-slide-in-right",
 					)}
 					role="grid"
 					aria-label="Weekly calendar view"

@@ -10,12 +10,14 @@ interface MonthViewProps {
 	tasks: Task[];
 	completions: Set<string>;
 	onDayClick: (date: Date) => void;
+	/** "up" = navigating forward (next month), "down" = backward (prev month), "none" = initial open */
+	direction?: "up" | "down" | "none";
 }
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const MAX_DOTS = 6;
 
-export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthViewProps) {
+export function MonthView({ baseDate, tasks, completions, onDayClick, direction = "none" }: MonthViewProps) {
 	const monthDates = useMemo(() => getMonthDates(baseDate), [baseDate]);
 	const currentMonth = baseDate.getMonth();
 	const todayISO = formatDateISO(new Date());
@@ -40,8 +42,15 @@ export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthVie
 		return map;
 	}, [monthDates, tasks, completions]);
 
+	const gridAnimClass =
+		direction === "up"
+			? "animate-slide-in-up"
+			: direction === "down"
+			? "animate-slide-in-down"
+			: "animate-slide-in-up";
+
 	return (
-		<div className="animate-in fade-in slide-in-from-top-2 duration-300">
+		<div className={cn("overflow-hidden", gridAnimClass)}>
 			{/* Weekday headers */}
 			<div className="grid grid-cols-7 gap-1 mb-2">
 				{WEEKDAY_LABELS.map((label, index) => (
@@ -60,9 +69,6 @@ export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthVie
 					<div
 						key={weekIndex}
 						className="grid grid-cols-7 gap-1"
-						style={{
-							animationDelay: `${weekIndex * 50}ms`,
-						}}
 					>
 						{week.map((date) => {
 							const dateISO = formatDateISO(date);
@@ -71,6 +77,11 @@ export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthVie
 							const dayTasks = dayTasksMap.get(dateISO) || [];
 							const completedTasks = dayTasks.filter((t) => t.isCompleted);
 							const incompleteTasks = dayTasks.filter((t) => !t.isCompleted);
+							const shownCompleted = completedTasks.slice(0, MAX_DOTS);
+							const remaining = MAX_DOTS - shownCompleted.length;
+							const shownIncomplete = incompleteTasks.slice(0, Math.max(0, remaining));
+							const totalShown = shownCompleted.length + shownIncomplete.length;
+							const overflow = dayTasks.length - totalShown;
 
 							return (
 								<button
@@ -101,29 +112,24 @@ export function MonthView({ baseDate, tasks, completions, onDayClick }: MonthVie
 
 									{/* Task dots */}
 									{dayTasks.length > 0 && (
-										<div className="flex flex-wrap justify-center gap-0.5 max-w-[36px]">
-											{/* Show completed dots first (green) */}
-											{completedTasks.slice(0, MAX_DOTS).map((task, i) => (
+										<div className="flex flex-wrap justify-center gap-0.5 max-w-[40px]">
+											{shownCompleted.map((task, i) => (
 												<div
-													key={`completed-${task.id}-${i}`}
+													key={`c-${task.id}-${i}`}
 													className="size-1.5 rounded-full bg-emerald-500"
 													title={task.title}
 												/>
 											))}
-											{/* Then incomplete dots (gray) */}
-											{incompleteTasks
-												.slice(0, Math.max(0, MAX_DOTS - completedTasks.length))
-												.map((task, i) => (
-													<div
-														key={`incomplete-${task.id}-${i}`}
-														className="size-1.5 rounded-full bg-muted-foreground/50"
-														title={task.title}
-													/>
-												))}
-											{/* Show overflow indicator if more than MAX_DOTS */}
-											{dayTasks.length > MAX_DOTS && (
-												<span className="text-[8px] text-muted-foreground leading-none">
-													+{dayTasks.length - MAX_DOTS}
+											{shownIncomplete.map((task, i) => (
+												<div
+													key={`i-${task.id}-${i}`}
+													className="size-1.5 rounded-full bg-muted-foreground/50"
+													title={task.title}
+												/>
+											))}
+											{overflow > 0 && (
+												<span className="text-[8px] leading-[10px] text-muted-foreground">
+													+{overflow}
 												</span>
 											)}
 										</div>
