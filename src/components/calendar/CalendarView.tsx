@@ -11,14 +11,13 @@ import { DayCard } from "./DayCard";
 import { cn } from "@/lib/utils";
 
 export function CalendarView() {
-	const [tasks, setTasks] = useState<Task[]>([]);
+	const [tasks, setTasks] = useState<Task[]>(
+		process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true" ? mockTasks : []
+	);
 	const [completions, setCompletions] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
-		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") {
-			setTasks(mockTasks);
-			return;
-		}
+		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") return;
 		async function fetchTasks() {
 			const { data, error } = await supabase.from("tasks").select("*");
 			if (error) {
