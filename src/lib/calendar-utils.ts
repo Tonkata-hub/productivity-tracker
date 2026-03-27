@@ -134,3 +134,59 @@ export function getWeekRangeLabel(weekDates: Date[]): string {
 
   return `${firstStr} - ${lastStr}`
 }
+
+export function getMonthDates(baseDate: Date = new Date()): Date[] {
+  const dates: Date[] = []
+  const year = baseDate.getFullYear()
+  const month = baseDate.getMonth()
+
+  // Get first day of the month
+  const firstDay = new Date(year, month, 1)
+  // Get the weekday (0 = Sunday, convert to Monday-based: 0 = Monday)
+  let startDayOfWeek = firstDay.getDay()
+  startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1 // Convert to Monday-based
+
+  // Add days from previous month to fill the first week
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    const date = new Date(year, month, -i)
+    dates.push(date)
+  }
+
+  // Add all days of the current month
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  for (let i = 1; i <= daysInMonth; i++) {
+    dates.push(new Date(year, month, i))
+  }
+
+  // Add days from next month to complete the last week
+  const remainingDays = 7 - (dates.length % 7)
+  if (remainingDays < 7) {
+    for (let i = 1; i <= remainingDays; i++) {
+      dates.push(new Date(year, month + 1, i))
+    }
+  }
+
+  return dates
+}
+
+export function getMonthLabel(baseDate: Date): string {
+  return baseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+export function getWeekOffsetForDate(targetDate: Date): number {
+  const today = new Date()
+  const todayMonday = new Date(today)
+  const todayDay = today.getDay()
+  todayMonday.setDate(today.getDate() - (todayDay === 0 ? 6 : todayDay - 1))
+  todayMonday.setHours(0, 0, 0, 0)
+
+  const targetMonday = new Date(targetDate)
+  const targetDay = targetDate.getDay()
+  targetMonday.setDate(targetDate.getDate() - (targetDay === 0 ? 6 : targetDay - 1))
+  targetMonday.setHours(0, 0, 0, 0)
+
+  const diffTime = targetMonday.getTime() - todayMonday.getTime()
+  const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000))
+
+  return diffWeeks
+}

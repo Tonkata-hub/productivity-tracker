@@ -4,10 +4,11 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Task } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { mockTasks } from "@/lib/mock-data";
-import { getWeekDates, generateWeekData, formatDateISO, filterTasks } from "@/lib/calendar-utils";
+import { getWeekDates, generateWeekData, formatDateISO, filterTasks, getWeekOffsetForDate } from "@/lib/calendar-utils";
 import { WeekNavigation } from "./WeekNavigation";
 import { FilterBar } from "./FilterBar";
 import { DayCard } from "./DayCard";
+import { MonthView } from "./MonthView";
 import { cn } from "@/lib/utils";
 
 export function CalendarView() {
@@ -31,6 +32,9 @@ export function CalendarView() {
 	const [weekOffset, setWeekOffset] = useState(0);
 	const [activeFilter, setActiveFilter] = useState("all");
 	const [currentDayIndex, setCurrentDayIndex] = useState(0);
+	const [isMonthView, setIsMonthView] = useState(false);
+	const [monthOffset, setMonthOffset] = useState(0);
+	const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 	// Calculate current week dates based on offset
@@ -39,6 +43,13 @@ export function CalendarView() {
 		baseDate.setDate(baseDate.getDate() + weekOffset * 7);
 		return getWeekDates(baseDate);
 	}, [weekOffset]);
+
+	// Calculate month base date
+	const monthBaseDate = useMemo(() => {
+		const date = new Date();
+		date.setMonth(date.getMonth() + monthOffset);
+		return date;
+	}, [monthOffset]);
 
 	// Fetch completions for visible week
 	useEffect(() => {
@@ -93,7 +104,7 @@ export function CalendarView() {
 
 	// Scroll to today on mount and when week changes
 	useEffect(() => {
-		if (scrollContainerRef.current && isCurrentWeek) {
+		if (scrollContainerRef.current && isCurrentWeek && !highlightedDate) {
 			const container = scrollContainerRef.current;
 			const cardWidth = container.offsetWidth;
 			container.scrollTo({
@@ -101,7 +112,23 @@ export function CalendarView() {
 				behavior: "smooth",
 			});
 		}
-	}, [todayIndex, isCurrentWeek, weekOffset]);
+	}, [todayIndex, isCurrentWeek, weekOffset, highlightedDate]);
+
+	// Scroll to highlighted date when coming from month view
+	useEffect(() => {
+		if (scrollContainerRef.current && highlightedDate) {
+			const highlightIndex = weekData.findIndex((d) => d.date === highlightedDate);
+			if (highlightIndex >= 0) {
+				const container = scrollContainerRef.current;
+				const cardWidth = container.offsetWidth;
+				container.scrollTo({
+					left: highlightIndex * cardWidth,
+					behavior: "smooth",
+				});
+				setCurrentDayIndex(highlightIndex);
+			}
+		}
+	}, [highlightedDate, weekData]);
 
 	// Handle scroll snap to update current day indicator
 	const handleScroll = useCallback(() => {
@@ -121,6 +148,43 @@ export function CalendarView() {
 
 	const handleNextWeek = useCallback(() => {
 		setWeekOffset((prev) => prev + 1);
+	}, []);
+
+	const handlePreviousMonth = useCallback(() => {
+		setMonthOffset((prev) => prev - 1);
+	}, []);
+
+	const handleNextMonth = useCallback(() => {
+		setMonthOffset((prev) => prev + 1);
+	}, []);
+
+	const handleToggleMonthView = useCallback(() => {
+		setIsMonthView((prev) => {
+			if (!prev) {
+				// Switching to month view - sync month with current week
+				const currentWeekDate = weekDates[0];
+				const today = new Date();
+				const monthsDiff =
+					(currentWeekDate.getFullYear() - today.getFullYear()) * 12 +
+					(currentWeekDate.getMonth() - today.getMonth());
+				setMonthOffset(monthsDiff);
+			}
+			return !prev;
+		});
+		setHighlightedDate(null);
+	}, [weekDates]);
+
+	// Handle day click from month view
+	const handleMonthDayClick = useCallback((date: Date) => {
+		const newOffset = getWeekOffsetForDate(date);
+		setWeekOffset(newOffset);
+		setHighlightedDate(formatDateISO(date));
+		setIsMonthView(false);
+
+		// Clear highlight after animation
+		setTimeout(() => {
+			setHighlightedDate(null);
+		}, 2000);
 	}, []);
 
 	// Toggle task completion
@@ -231,16 +295,39 @@ export function CalendarView() {
 						weekDates={weekDates}
 						onPreviousWeek={handlePreviousWeek}
 						onNextWeek={handleNextWeek}
+						isMonthView={isMonthView}
+						onToggleMonthView={handleToggleMonthView}
+						monthBaseDate={monthBaseDate}
+						onPreviousMonth={handlePreviousMonth}
+						onNextMonth={handleNextMonth}
 					/>
 				</div>
 
-				{/* Filters - glass effect */}
-				<div className="glass-subtle rounded-xl p-2">
+				{/* Month View */}
+				{isMonthView && (
+					<div className="glass rounded-2xl p-4">
+						<MonthView
+							baseDate={monthBaseDate}
+							tasks={tasks}
+							completions={completions}
+							onDayClick={handleMonthDayClick}
+						/>
+					</div>
+				)}
+
+				{/* Filters - glass effect (only show in week view) */}
+				<div className={cn(
+					"glass-subtle rounded-xl p-2 transition-all duration-300",
+					isMonthView && "opacity-0 h-0 p-0 overflow-hidden"
+				)}>
 					<FilterBar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 				</div>
 
 				{/* Day indicators for mobile scroll */}
-				<div className="flex justify-center gap-1.5 sm:hidden">
+				<div className={cn(
+					"flex justify-center gap-1.5 sm:hidden transition-all duration-300",
+					isMonthView && "opacity-0 h-0 overflow-hidden"
+				)}>
 					{weekData.map((day, index) => (
 						<button
 							key={day.date}
@@ -274,7 +361,14 @@ export function CalendarView() {
 				</div>
 
 				{/* Week cards */}
-				<div className="perspective-container" role="grid" aria-label="Weekly calendar view">
+				<div
+					className={cn(
+						"perspective-container transition-all duration-300",
+						isMonthView && "opacity-0 h-0 overflow-hidden"
+					)}
+					role="grid"
+					aria-label="Weekly calendar view"
+				>
 					{/* Mobile: Horizontal snap scroll */}
 					<div
 						ref={scrollContainerRef}
@@ -290,6 +384,7 @@ export function CalendarView() {
 									index={index}
 									totalCards={weekData.length}
 									stackMode="mobile"
+									isHighlighted={highlightedDate === dayData.date}
 								/>
 							</div>
 						))}
@@ -305,6 +400,7 @@ export function CalendarView() {
 								index={index}
 								totalCards={weekData.length}
 								stackMode="grid"
+								isHighlighted={highlightedDate === dayData.date}
 							/>
 						))}
 					</div>
@@ -319,6 +415,7 @@ export function CalendarView() {
 								index={index}
 								totalCards={weekData.length}
 								stackMode="desktop"
+								isHighlighted={highlightedDate === dayData.date}
 							/>
 						))}
 					</div>
