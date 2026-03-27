@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 export function CalendarView() {
 	const [tasks, setTasks] = useState<Task[]>([]);
+	const [completions, setCompletions] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
 		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") {
@@ -40,6 +41,30 @@ export function CalendarView() {
 		return getWeekDates(baseDate);
 	}, [weekOffset]);
 
+	// Fetch completions for visible week
+	useEffect(() => {
+		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") return;
+		if (weekDates.length === 0) return;
+
+		const from = formatDateISO(weekDates[0]);
+		const to = formatDateISO(weekDates[weekDates.length - 1]);
+
+		async function fetchCompletions() {
+			const { data, error } = await supabase
+				.from("task_completions")
+				.select("task_id, date")
+				.gte("date", from)
+				.lte("date", to);
+			if (error) {
+				console.error("Failed to fetch completions:", error);
+				return;
+			}
+			const set = new Set(data.map((c: { task_id: string; date: string }) => `${c.task_id}:${c.date}`));
+			setCompletions(set);
+		}
+		fetchCompletions();
+	}, [weekDates]);
+
 	// Check if viewing current week
 	const isCurrentWeek = useMemo(() => {
 		const today = formatDateISO(new Date());
@@ -48,7 +73,7 @@ export function CalendarView() {
 
 	// Generate week data with tasks
 	const weekData = useMemo(() => {
-		const data = generateWeekData(tasks, weekDates);
+		const data = generateWeekData(tasks, weekDates, completions);
 
 		// Apply filter to each day's tasks
 		if (activeFilter !== "all") {
@@ -59,7 +84,7 @@ export function CalendarView() {
 		}
 
 		return data;
-	}, [tasks, weekDates, activeFilter]);
+	}, [tasks, weekDates, activeFilter, completions]);
 
 	// Find today's index for default scroll position
 	const todayIndex = useMemo(() => {
@@ -99,19 +124,86 @@ export function CalendarView() {
 		setWeekOffset((prev) => prev + 1);
 	}, []);
 
-	// Toggle task completion (one_time only — daily requires task_completions table)
-	const handleToggleTask = useCallback((taskId: string, _date: string) => {
-		setTasks((prevTasks) =>
-			prevTasks.map((task) => {
-				if (task.id !== taskId || task.type !== "one_time") return task;
-				return {
-					...task,
-					is_completed: !task.is_completed,
-					completed_at: task.is_completed ? null : new Date().toISOString(),
-				};
-			})
-		);
-	}, []);
+	// Toggle task completion
+	const handleToggleTask = useCallback((taskId: string, date: string) => {
+		const task = tasks.find((t) => t.id === taskId);
+		if (!task) return;
+
+		if (task.type === "daily") {
+			const key = `${taskId}:${date}`;
+			const wasCompleted = completions.has(key);
+
+			// Optimistic update
+			setCompletions((prev) => {
+				const next = new Set(prev);
+				if (wasCompleted) next.delete(key);
+				else next.add(key);
+				return next;
+			});
+
+			if (wasCompleted) {
+				supabase
+					.from("task_completions")
+					.delete()
+					.match({ task_id: taskId, date })
+					.then(({ error }) => {
+						if (error) {
+							console.error("Failed to delete completion:", error);
+							setCompletions((prev) => {
+								const next = new Set(prev);
+								next.add(key);
+								return next;
+							});
+						}
+					});
+			} else {
+				const now = new Date().toISOString();
+				supabase
+					.from("task_completions")
+					.insert({ task_id: taskId, date, completed_at: now })
+					.then(({ error }) => {
+						if (error) {
+							console.error("Failed to insert completion:", error);
+							setCompletions((prev) => {
+								const next = new Set(prev);
+								next.delete(key);
+								return next;
+							});
+						}
+					});
+			}
+		} else if (task.type === "one_time") {
+			const newCompleted = !task.is_completed;
+			const now = new Date().toISOString();
+
+			// Optimistic update
+			setTasks((prev) =>
+				prev.map((t) =>
+					t.id !== taskId
+						? t
+						: { ...t, is_completed: newCompleted, completed_at: newCompleted ? now : null }
+				)
+			);
+
+			supabase
+				.from("tasks")
+				.update({ is_completed: newCompleted, completed_at: newCompleted ? now : null })
+				.eq("id", taskId)
+				.then(({ error }) => {
+					if (error) {
+						console.error("Failed to update task:", error);
+						// Roll back
+						setTasks((prev) =>
+							prev.map((t) =>
+								t.id !== taskId
+									? t
+									: { ...t, is_completed: !newCompleted, completed_at: task.completed_at }
+							)
+						);
+					}
+				});
+		}
+	}, [tasks, completions]);
 
 	// Scroll to specific day (mobile)
 	const scrollToDay = useCallback((index: number) => {

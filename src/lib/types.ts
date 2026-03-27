@@ -13,6 +13,14 @@ export interface Task {
   updated_at: string
 }
 
+export interface TaskCompletion {
+  id: string
+  task_id: string
+  date: string           // ISO date string
+  completed_at: string   // ISO timestamp
+  created_at: string
+}
+
 export interface DayTasks {
   date: string
   dayName: string

@@ -23,7 +23,7 @@ export function formatDateISO(date: Date): string {
   return date.toISOString().split('T')[0]
 }
 
-export function getTaskStatusForDate(task: Task, dateISO: string): TaskWithStatus {
+export function getTaskStatusForDate(task: Task, dateISO: string, completions: Set<string> = new Set()): TaskWithStatus {
   const today = formatDateISO(new Date())
 
   let isCompleted = false
@@ -35,9 +35,7 @@ export function getTaskStatusForDate(task: Task, dateISO: string): TaskWithStatu
     isDueToday = task.due_date === today
     isOverdue = !!task.due_date && task.due_date < today && !task.is_completed
   } else if (task.type === 'daily') {
-    // For daily tasks completion will come from task_completions table later
-    isCompleted = false
-    isOverdue = dateISO < today
+    isCompleted = completions.has(`${task.id}:${dateISO}`)
   }
 
   return {
@@ -48,20 +46,30 @@ export function getTaskStatusForDate(task: Task, dateISO: string): TaskWithStatu
   }
 }
 
-export function getTasksForDate(tasks: Task[], dateISO: string): TaskWithStatus[] {
+export function getTasksForDate(tasks: Task[], dateISO: string, completions: Set<string> = new Set()): TaskWithStatus[] {
   const result: TaskWithStatus[] = []
   const today = formatDateISO(new Date())
 
   for (const task of tasks) {
     if (task.type === 'daily') {
-      result.push(getTaskStatusForDate(task, dateISO))
+      result.push(getTaskStatusForDate(task, dateISO, completions))
     } else if (task.type === 'one_time') {
-      const shouldShow =
-        task.due_date === dateISO ||
-        (dateISO === today && task.due_date && task.due_date < today && !task.is_completed)
+      let shouldShow = false
+
+      if (task.is_completed) {
+        // Show on the day it was actually completed
+        const completedDate = task.completed_at ? task.completed_at.split('T')[0] : task.due_date
+        shouldShow = completedDate === dateISO
+      } else if (task.due_date && task.due_date < today) {
+        // Overdue and not completed: only show on today
+        shouldShow = dateISO === today
+      } else {
+        // Not overdue: show on due date and on today
+        shouldShow = task.due_date === dateISO || dateISO === today
+      }
 
       if (shouldShow) {
-        result.push(getTaskStatusForDate(task, dateISO))
+        result.push(getTaskStatusForDate(task, dateISO, completions))
       }
     }
   }
@@ -69,7 +77,7 @@ export function getTasksForDate(tasks: Task[], dateISO: string): TaskWithStatus[
   return result
 }
 
-export function generateWeekData(tasks: Task[], weekDates: Date[]): DayTasks[] {
+export function generateWeekData(tasks: Task[], weekDates: Date[], completions: Set<string> = new Set()): DayTasks[] {
   const today = formatDateISO(new Date())
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -82,7 +90,7 @@ export function generateWeekData(tasks: Task[], weekDates: Date[]): DayTasks[] {
       isToday: dateISO === today,
       isPast: dateISO < today,
       isFuture: dateISO > today,
-      tasks: getTasksForDate(tasks, dateISO),
+      tasks: getTasksForDate(tasks, dateISO, completions),
     }
   })
 }

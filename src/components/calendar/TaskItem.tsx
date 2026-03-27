@@ -42,7 +42,7 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
 			onClick={handleToggle}
 		>
 			{/* Checkbox with custom styling */}
-			<div className="relative shrink-0">
+			<div className="relative flex shrink-0 items-center self-center">
 				<Checkbox
 					checked={task.isCompleted}
 					onCheckedChange={handleToggle}
