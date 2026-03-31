@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 export function CalendarView() {
 	const [tasks, setTasks] = useState<Task[]>(process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true" ? mockTasks : []);
 	const [completions, setCompletions] = useState<Set<string>>(new Set());
+	const [quantValues, setQuantValues] = useState<Map<string, number>>(new Map());
 
 	useEffect(() => {
 		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") return;
@@ -64,15 +65,25 @@ export function CalendarView() {
 		async function fetchCompletions() {
 			const { data, error } = await supabase
 				.from("task_completions")
-				.select("task_id, date")
+				.select("task_id, date, value")
 				.gte("date", from)
 				.lte("date", to);
 			if (error) {
 				console.error("Failed to fetch completions:", error);
 				return;
 			}
-			const set = new Set(data.map((c: { task_id: string; date: string }) => `${c.task_id}:${c.date}`));
+			const set = new Set<string>();
+			const qmap = new Map<string, number>();
+			for (const c of data as { task_id: string; date: string; value: number | null }[]) {
+				const key = `${c.task_id}:${c.date}`;
+				if (c.value != null) {
+					qmap.set(key, (qmap.get(key) ?? 0) + c.value);
+				} else {
+					set.add(key);
+				}
+			}
 			setCompletions(set);
+			setQuantValues(qmap);
 		}
 		fetchCompletions();
 	}, [weekDates]);
@@ -85,7 +96,7 @@ export function CalendarView() {
 
 	// Generate week data with tasks
 	const weekData = useMemo(() => {
-		const data = generateWeekData(tasks, weekDates, completions);
+		const data = generateWeekData(tasks, weekDates, completions, quantValues);
 
 		// Apply filter to each day's tasks
 		if (activeFilter !== "all") {
@@ -96,7 +107,7 @@ export function CalendarView() {
 		}
 
 		return data;
-	}, [tasks, weekDates, activeFilter, completions]);
+	}, [tasks, weekDates, activeFilter, completions, quantValues]);
 
 	const highlightedDayIndex = useMemo(() => {
 		if (!highlightedDate) return -1;
@@ -285,6 +296,38 @@ export function CalendarView() {
 		[tasks, completions]
 	);
 
+	// Log an amount for a quantitative task
+	const handleLogQuantitative = useCallback((taskId: string, date: string, amount: number) => {
+		const key = `${taskId}:${date}`;
+
+		// Optimistic update
+		setQuantValues((prev) => {
+			const next = new Map(prev);
+			next.set(key, (next.get(key) ?? 0) + amount);
+			return next;
+		});
+
+		if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") return;
+
+		supabase
+			.from("task_completions")
+			.insert({ task_id: taskId, date, value: amount, completed_at: new Date().toISOString() })
+			.then(({ error }) => {
+				if (error) {
+					console.error("Failed to log value:", error);
+					// Roll back
+					setQuantValues((prev) => {
+						const next = new Map(prev);
+						const current = next.get(key) ?? 0;
+						const rolled = current - amount;
+						if (rolled <= 0) next.delete(key);
+						else next.set(key, rolled);
+						return next;
+					});
+				}
+			});
+	}, []);
+
 	// Scroll to specific day (mobile)
 	const scrollToDay = useCallback((index: number) => {
 		if (scrollContainerRef.current) {
@@ -410,6 +453,7 @@ export function CalendarView() {
 								<DayCard
 									dayData={dayData}
 									onToggleTask={handleToggleTask}
+									onLogQuantitative={handleLogQuantitative}
 									index={index}
 									totalCards={weekData.length}
 									stackMode="mobile"
@@ -426,6 +470,7 @@ export function CalendarView() {
 								key={dayData.date}
 								dayData={dayData}
 								onToggleTask={handleToggleTask}
+								onLogQuantitative={handleLogQuantitative}
 								index={index}
 								totalCards={weekData.length}
 								stackMode="grid"
@@ -441,6 +486,7 @@ export function CalendarView() {
 								key={dayData.date}
 								dayData={dayData}
 								onToggleTask={handleToggleTask}
+								onLogQuantitative={handleLogQuantitative}
 								index={index}
 								totalCards={weekData.length}
 								stackMode="desktop"

@@ -29,20 +29,30 @@ export function formatDateISO(date: Date): string {
 export function getTaskStatusForDate(
 	task: Task,
 	dateISO: string,
-	completions: Set<string> = new Set()
+	completions: Set<string> = new Set(),
+	quantValues: Map<string, number> = new Map()
 ): TaskWithStatus {
 	const today = formatDateISO(new Date());
 
 	let isCompleted = false;
 	let isOverdue = false;
 	let isDueToday = false;
+	let currentValue = 0;
 
-	if (task.type === "one_time") {
+	if (task.target_value != null) {
+		// Tracked task: completion is determined by logged amount vs target
+		currentValue = quantValues.get(`${task.id}:${dateISO}`) ?? 0;
+		isCompleted = currentValue >= task.target_value;
+	} else if (task.type === "one_time") {
 		isCompleted = task.is_completed;
-		isDueToday = task.due_date === today;
-		isOverdue = !!task.due_date && task.due_date < today && !task.is_completed;
 	} else if (task.type === "daily") {
 		isCompleted = completions.has(`${task.id}:${dateISO}`);
+	}
+
+	// Date-based flags for one-time tasks (applies whether tracked or not)
+	if (task.type === "one_time") {
+		isDueToday = task.due_date === today;
+		isOverdue = !!task.due_date && task.due_date < today && !isCompleted;
 	}
 
 	return {
@@ -50,20 +60,25 @@ export function getTaskStatusForDate(
 		isCompleted,
 		isOverdue,
 		isDueToday,
+		currentValue,
 	};
 }
 
 export function getTasksForDate(
 	tasks: Task[],
 	dateISO: string,
-	completions: Set<string> = new Set()
+	completions: Set<string> = new Set(),
+	quantValues: Map<string, number> = new Map()
 ): TaskWithStatus[] {
 	const result: TaskWithStatus[] = [];
 	const today = formatDateISO(new Date());
 
 	for (const task of tasks) {
 		if (task.type === "daily") {
-			result.push(getTaskStatusForDate(task, dateISO, completions));
+			// Only show daily tasks from the day they were created onwards (local time)
+			const createdDate = formatDateISO(new Date(task.created_at));
+			if (dateISO < createdDate) continue;
+			result.push(getTaskStatusForDate(task, dateISO, completions, quantValues));
 		} else if (task.type === "one_time") {
 			let shouldShow = false;
 
@@ -80,15 +95,36 @@ export function getTasksForDate(
 			}
 
 			if (shouldShow) {
-				result.push(getTaskStatusForDate(task, dateISO, completions));
+				result.push(getTaskStatusForDate(task, dateISO, completions, quantValues));
 			}
 		}
 	}
 
-	return result;
+	const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+	const getPriority = (t: TaskWithStatus) => priorityOrder[t.priority ?? ""] ?? 3;
+
+	return result.sort((a, b) => {
+		// Overdue first
+		const aOverdue = a.isOverdue && !a.isCompleted ? 0 : 1;
+		const bOverdue = b.isOverdue && !b.isCompleted ? 0 : 1;
+		if (aOverdue !== bOverdue) return aOverdue - bOverdue;
+
+		// Due today second
+		const aToday = a.isDueToday && !a.isCompleted ? 0 : 1;
+		const bToday = b.isDueToday && !b.isCompleted ? 0 : 1;
+		if (aToday !== bToday) return aToday - bToday;
+
+		// Daily before one_time
+		const aType = a.type === "daily" ? 0 : 1;
+		const bType = b.type === "daily" ? 0 : 1;
+		if (aType !== bType) return aType - bType;
+
+		// Within same group, sort by priority
+		return getPriority(a) - getPriority(b);
+	});
 }
 
-export function generateWeekData(tasks: Task[], weekDates: Date[], completions: Set<string> = new Set()): DayTasks[] {
+export function generateWeekData(tasks: Task[], weekDates: Date[], completions: Set<string> = new Set(), quantValues: Map<string, number> = new Map()): DayTasks[] {
 	const today = formatDateISO(new Date());
 	const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -101,7 +137,7 @@ export function generateWeekData(tasks: Task[], weekDates: Date[], completions: 
 			isToday: dateISO === today,
 			isPast: dateISO < today,
 			isFuture: dateISO > today,
-			tasks: getTasksForDate(tasks, dateISO, completions),
+			tasks: getTasksForDate(tasks, dateISO, completions, quantValues),
 		};
 	});
 }
@@ -112,6 +148,8 @@ export function filterTasks(tasks: TaskWithStatus[], filter: string): TaskWithSt
 			return tasks.filter((t) => t.type === "daily");
 		case "one_time":
 			return tasks.filter((t) => t.type === "one_time");
+		case "tracked":
+			return tasks.filter((t) => t.target_value != null);
 		case "completed":
 			return tasks.filter((t) => t.isCompleted);
 		case "incomplete":

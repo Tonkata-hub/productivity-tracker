@@ -4,12 +4,13 @@ import { useState } from "react";
 import { TaskWithStatus } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Repeat, Clock, AlertCircle, Flag, Calendar } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Repeat, Clock, AlertCircle, Flag, Calendar, Plus, Check } from "lucide-react";
+import { format, parseISO, differenceInDays } from "date-fns";
 
 interface TaskItemProps {
 	task: TaskWithStatus;
 	onToggle?: (taskId: string) => void;
+	onLogValue?: (taskId: string, amount: number) => void;
 }
 
 const priorityConfig = {
@@ -18,8 +19,14 @@ const priorityConfig = {
 	low: { label: "Low", className: "text-muted-foreground" },
 };
 
-export function TaskItem({ task, onToggle }: TaskItemProps) {
+function overdueDays(dueDate: string): number {
+	return differenceInDays(new Date(), parseISO(dueDate));
+}
+
+export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
 	const [isPressed, setIsPressed] = useState(false);
+	const [showInput, setShowInput] = useState(false);
+	const [inputValue, setInputValue] = useState("");
 
 	const handleToggle = () => {
 		setIsPressed(true);
@@ -27,7 +34,161 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
 		onToggle?.(task.id);
 	};
 
+	const handleLogSubmit = () => {
+		const amount = parseFloat(inputValue);
+		if (!isNaN(amount) && amount > 0) {
+			onLogValue?.(task.id, amount);
+		}
+		setShowInput(false);
+		setInputValue("");
+	};
+
 	const hasMeta = task.priority || task.due_date || task.isOverdue || task.isDueToday;
+
+	if (task.target_value != null) {
+		const progress = Math.min((task.currentValue / task.target_value) * 100, 100);
+
+		return (
+			<div
+				className={cn(
+					"group relative cursor-pointer rounded-xl p-2.5 transition-all duration-200",
+					"bg-white/3 hover:bg-white/6",
+					"border border-transparent hover:border-white/5",
+					task.isCompleted && "opacity-60"
+				)}
+				role="listitem"
+				onClick={() => setShowInput(true)}
+			>
+				{/* Main row */}
+				<div className="flex items-center gap-3">
+					{/* + button */}
+					<button
+						onClick={(e) => {
+							e.stopPropagation();
+							setShowInput((prev) => !prev);
+							setInputValue("");
+						}}
+						className={cn(
+							"shrink-0 flex size-5 items-center justify-center rounded-md border-2 transition-all duration-200",
+							showInput
+								? "border-mars-red/60 bg-mars-red/20"
+								: "border-white/20 bg-transparent hover:border-white/40"
+						)}
+						aria-label={`Log amount for ${task.title}`}
+					>
+						<Plus className="size-3 text-foreground/70" />
+					</button>
+
+					{/* Content */}
+					<div className="min-w-0 flex-1">
+						<span
+							className={cn(
+								"text-sm font-medium leading-tight transition-all duration-200",
+								task.isCompleted && "line-through text-muted-foreground"
+							)}
+						>
+							{task.title}
+						</span>
+						<div className="mt-0.5">
+							<span className="text-[10px] text-muted-foreground">
+								{task.currentValue} / {task.target_value} {task.unit}
+							</span>
+						</div>
+						{/* Progress bar */}
+						<div className="mt-1.5 h-[2px] overflow-hidden rounded-full bg-white/10">
+							<div
+								className={cn(
+									"h-full transition-all duration-500 ease-out",
+									task.isCompleted ? "bg-mars-red" : "bg-white/30"
+								)}
+								style={{ width: `${progress}%` }}
+							/>
+						</div>
+						{/* Meta info below progress bar */}
+						{hasMeta && (
+							<div className="mt-1.5 flex flex-wrap items-center gap-2">
+								{task.priority && (
+									<span
+										className={cn(
+											"inline-flex items-center gap-1 text-[10px] font-medium",
+											priorityConfig[task.priority].className
+										)}
+									>
+										<Flag className="size-2.5" />
+										{priorityConfig[task.priority].label}
+									</span>
+								)}
+								{task.isOverdue && !task.isCompleted && task.due_date && (
+									<span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
+										<AlertCircle className="size-2.5" />
+										Overdue {overdueDays(task.due_date)}d
+									</span>
+								)}
+								{task.isDueToday && !task.isCompleted && !task.isOverdue && (
+									<span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
+										Due Today
+									</span>
+								)}
+								{task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
+									<span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+										<Calendar className="size-2.5" />
+										{format(parseISO(task.due_date), "MMM d")}
+									</span>
+								)}
+							</div>
+						)}
+					</div>
+
+					{/* Type icon */}
+					{task.type === "daily" ? (
+						<Repeat className="shrink-0 size-4 text-muted-foreground" />
+					) : (
+						<Clock className="shrink-0 size-4 text-muted-foreground" />
+					)}
+				</div>
+
+				{/* Inline log input */}
+				{showInput && (
+					<div className="mt-2 flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+						<input
+							autoFocus
+							type="number"
+							min="0"
+							step="any"
+							value={inputValue}
+							onChange={(e) => setInputValue(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") handleLogSubmit();
+								if (e.key === "Escape") {
+									setShowInput(false);
+									setInputValue("");
+								}
+							}}
+							className="w-24 rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-mars-red/50 focus:ring-1 focus:ring-mars-red/20"
+							placeholder={task.unit ?? "amount"}
+						/>
+						<button
+							onMouseDown={(e) => e.preventDefault()}
+							onClick={handleLogSubmit}
+							className="flex items-center gap-1 rounded-lg bg-mars-red/20 px-2 py-1 text-[10px] font-medium text-mars-red hover:bg-mars-red/30 transition-colors"
+						>
+							<Check className="size-3" />
+							Log
+						</button>
+						<button
+							onClick={() => {
+								setShowInput(false);
+								setInputValue("");
+							}}
+							className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+						>
+							Cancel
+						</button>
+					</div>
+				)}
+			</div>
+		);
+	}
 
 	return (
 		<div
@@ -88,7 +249,7 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
 							)}
 
 							{/* Due date for one-time tasks */}
-							{task.due_date && task.type === "one_time" && (
+							{task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
 								<span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
 									<Calendar className="size-2.5" />
 									{format(parseISO(task.due_date), "MMM d")}
@@ -96,17 +257,17 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
 							)}
 
 							{/* Overdue badge */}
-							{task.isOverdue && !task.isCompleted && (
+							{task.isOverdue && !task.isCompleted && task.due_date && (
 								<span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
 									<AlertCircle className="size-2.5" />
-									Overdue
+									Overdue {overdueDays(task.due_date)}d
 								</span>
 							)}
 
 							{/* Due today badge */}
 							{task.isDueToday && !task.isCompleted && !task.isOverdue && (
-								<span className="inline-flex items-center gap-1 rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
-									Today
+								<span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
+									Due Today
 								</span>
 							)}
 						</div>

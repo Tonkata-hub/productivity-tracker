@@ -11,6 +11,8 @@ export interface Task {
   completed_at: string | null   // ISO timestamp, only meaningful for one_time tasks
   created_at: string
   updated_at: string
+  target_value: number | null   // only for quantitative tasks
+  unit: string | null           // only for quantitative tasks (e.g. 'ml', 'steps')
 }
 
 export interface TaskCompletion {
@@ -19,6 +21,7 @@ export interface TaskCompletion {
   date: string           // ISO date string
   completed_at: string   // ISO timestamp
   created_at: string
+  value: number | null   // only for quantitative tasks (amount logged per entry)
 }
 
 export interface DayTasks {
@@ -35,4 +38,5 @@ export interface TaskWithStatus extends Task {
   isCompleted: boolean
   isOverdue: boolean
   isDueToday: boolean
+  currentValue: number   // 0 for daily/one_time; running sum of logs for quantitative
 }

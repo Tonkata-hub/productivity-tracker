@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { TaskType, TaskPriority } from '@/lib/types'
-import { PlusCircle, CheckCircle2, AlertCircle, CalendarDays, Flag, Type } from 'lucide-react'
+import { PlusCircle, CheckCircle2, AlertCircle, CalendarDays, Flag, Type, BarChart2 } from 'lucide-react'
 
 export default function AddTaskPage() {
   const [title, setTitle] = useState('')
   const [type, setType] = useState<TaskType>('daily')
   const [priority, setPriority] = useState<TaskPriority | ''>('')
   const [dueDate, setDueDate] = useState('')
+  const [targetValue, setTargetValue] = useState('')
+  const [unit, setUnit] = useState('')
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -23,6 +25,8 @@ export default function AddTaskPage() {
       type,
       priority: priority || null,
       due_date: type === 'one_time' ? dueDate || null : null,
+      target_value: targetValue ? Number(targetValue) : null,
+      unit: unit || null,
     })
 
     setIsSubmitting(false)
@@ -35,6 +39,8 @@ export default function AddTaskPage() {
       setType('daily')
       setPriority('')
       setDueDate('')
+      setTargetValue('')
+      setUnit('')
       setStatus('success')
       // Auto-dismiss success message after 3 seconds
       setTimeout(() => setStatus('idle'), 3000)
@@ -145,6 +151,33 @@ export default function AddTaskPage() {
                     {option.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Target Amount (optional, works for any task type) */}
+            <div className="glass rounded-2xl p-4">
+              <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                <BarChart2 className="size-4 text-muted-foreground" />
+                Target Amount
+                <span className="ml-auto text-xs text-muted-foreground font-normal">optional</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  step="any"
+                  className="rounded-xl border border-glass-border bg-white/5 px-4 py-3 text-foreground placeholder-muted-foreground outline-none transition-all focus:border-mars-red/50 focus:ring-2 focus:ring-mars-red/20"
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  placeholder="e.g. 2000"
+                />
+                <input
+                  type="text"
+                  className="rounded-xl border border-glass-border bg-white/5 px-4 py-3 text-foreground placeholder-muted-foreground outline-none transition-all focus:border-mars-red/50 focus:ring-2 focus:ring-mars-red/20"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  placeholder="unit (ml, steps…)"
+                />
               </div>
             </div>
 

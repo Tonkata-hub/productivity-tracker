@@ -8,19 +8,26 @@ import { CheckCircle2, Circle } from "lucide-react";
 interface DayCardProps {
 	dayData: DayTasks;
 	onToggleTask?: (taskId: string, date: string) => void;
+	onLogQuantitative?: (taskId: string, date: string, amount: number) => void;
 	index: number;
 	totalCards: number;
 	stackMode: "mobile" | "grid" | "desktop";
 	isHighlighted?: boolean;
 }
 
-export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode, isHighlighted = false }: DayCardProps) {
+export function DayCard({ dayData, onToggleTask, onLogQuantitative, index, totalCards, stackMode, isHighlighted = false }: DayCardProps) {
 	const { date, dayName, dayNumber, isToday, isPast, tasks } = dayData;
 
 	const completedCount = tasks.filter((t) => t.isCompleted).length;
 	const totalCount = tasks.length;
 	const allCompleted = totalCount > 0 && completedCount === totalCount;
-	const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+	const completionScore = tasks.reduce((sum, t) => {
+		if (t.target_value != null) {
+			return sum + Math.min(t.currentValue / t.target_value, 1);
+		}
+		return sum + (t.isCompleted ? 1 : 0);
+	}, 0);
+	const completionPercentage = totalCount > 0 ? (completionScore / totalCount) * 100 : 0;
 
 	const handleToggle = (taskId: string) => {
 		onToggleTask?.(taskId, date);
@@ -38,8 +45,8 @@ export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode, i
 					"relative overflow-hidden rounded-2xl transition-all duration-300",
 					// Glassmorphism base
 					"glass",
-					// Today highlight
-					isToday && "ring-1 ring-mars-red/70",
+					// Today highlight (not on mobile)
+					isToday && stackMode !== "mobile" && "ring-1 ring-mars-red/70",
 					// Highlighted from month view selection
 					isHighlighted && "ring-2 ring-mars-red animate-pulse",
 					// Past days slightly dimmed
@@ -72,7 +79,7 @@ export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode, i
 						<div
 							className={cn(
 								"flex size-11 items-center justify-center rounded-xl text-lg font-bold transition-all duration-300",
-								isToday ? "bg-mars-red text-white" : "bg-white/5 text-foreground"
+								isToday && stackMode !== "mobile" ? "bg-mars-red text-white" : "bg-white/5 text-foreground"
 							)}
 						>
 							{dayNumber}
@@ -132,7 +139,12 @@ export function DayCard({ dayData, onToggleTask, index, totalCards, stackMode, i
 						<span className="text-xs text-muted-foreground/50">No tasks scheduled</span>
 					) : (
 						tasks.map((task) => (
-							<TaskItem key={task.id} task={task} onToggle={handleToggle} />
+							<TaskItem
+								key={task.id}
+								task={task}
+								onToggle={task.target_value == null ? handleToggle : undefined}
+								onLogValue={task.target_value != null ? (id, amount) => onLogQuantitative?.(id, date, amount) : undefined}
+							/>
 						))
 					)}
 				</div>
