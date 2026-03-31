@@ -325,7 +325,7 @@ export function CalendarView() {
 
 				{/* Month View */}
 				{isMonthView && (
-					<div className="glass rounded-2xl p-4 overflow-hidden">
+					<div className="glass rounded-2xl p-4">
 						<MonthView
 							key={`${monthBaseDate.getFullYear()}-${monthBaseDate.getMonth()}`}
 							baseDate={monthBaseDate}
