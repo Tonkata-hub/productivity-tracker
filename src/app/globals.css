@@ -191,16 +191,16 @@
 	to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-slide-in-up {
+.calendar-animate-slide-in-up {
 	animation: slide-in-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.animate-slide-in-down {
+.calendar-animate-slide-in-down {
 	animation: slide-in-down 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.animate-slide-in-left {
+.calendar-animate-slide-in-left {
 	animation: slide-in-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.animate-slide-in-right {
+.calendar-animate-slide-in-right {
 	animation: slide-in-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 

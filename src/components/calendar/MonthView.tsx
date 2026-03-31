@@ -44,13 +44,15 @@ export function MonthView({ baseDate, tasks, completions, onDayClick, direction 
 
 	const gridAnimClass =
 		direction === "up"
-			? "animate-slide-in-up"
+			? "calendar-animate-slide-in-up"
 			: direction === "down"
-			? "animate-slide-in-down"
-			: "animate-slide-in-up";
+			? "calendar-animate-slide-in-down"
+			: "calendar-animate-slide-in-up";
 
 	return (
-		<div className={cn("overflow-hidden", gridAnimClass)}>
+		<div
+			className={cn("overflow-hidden", gridAnimClass)}
+		>
 			{/* Weekday headers */}
 			<div className="grid grid-cols-7 gap-1 mb-2">
 				{WEEKDAY_LABELS.map((label, index) => (

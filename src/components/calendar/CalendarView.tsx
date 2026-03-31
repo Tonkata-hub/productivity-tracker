@@ -12,9 +12,7 @@ import { MonthView } from "./MonthView";
 import { cn } from "@/lib/utils";
 
 export function CalendarView() {
-	const [tasks, setTasks] = useState<Task[]>(
-		process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true" ? mockTasks : []
-	);
+	const [tasks, setTasks] = useState<Task[]>(process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true" ? mockTasks : []);
 	const [completions, setCompletions] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
@@ -39,6 +37,7 @@ export function CalendarView() {
 	const [weekDirection, setWeekDirection] = useState<"left" | "right" | "none">("none");
 	const [weekAnimKey, setWeekAnimKey] = useState(0);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const hasInitialTodayScrollRun = useRef(false);
 
 	// Calculate current week dates based on offset
 	const weekDates = useMemo(() => {
@@ -79,10 +78,10 @@ export function CalendarView() {
 	}, [weekDates]);
 
 	// Check if viewing current week
-	const isCurrentWeek = useMemo(() => {
-		const today = formatDateISO(new Date());
-		return weekDates.some((d) => formatDateISO(d) === today);
-	}, [weekDates]);
+	// const isCurrentWeek = useMemo(() => {
+	// 	const today = formatDateISO(new Date());
+	// 	return weekDates.some((d) => formatDateISO(d) === today);
+	// }, [weekDates]);
 
 	// Generate week data with tasks
 	const weekData = useMemo(() => {
@@ -99,28 +98,34 @@ export function CalendarView() {
 		return data;
 	}, [tasks, weekDates, activeFilter, completions]);
 
-	// Find today's index for default scroll position
+	const highlightedDayIndex = useMemo(() => {
+		if (!highlightedDate) return -1;
+		return weekData.findIndex((d) => d.date === highlightedDate);
+	}, [highlightedDate, weekData]);
+
+	// Find today's index for default initial scroll position
 	const todayIndex = useMemo(() => {
 		const idx = weekData.findIndex((d) => d.isToday);
 		return idx >= 0 ? idx : 0;
 	}, [weekData]);
 
-	// Scroll to today on mount and when week changes
+	// Scroll to today only once when the week scroller first mounts
 	useEffect(() => {
-		if (scrollContainerRef.current && isCurrentWeek && !highlightedDate) {
-			const container = scrollContainerRef.current;
-			const cardWidth = container.offsetWidth;
-			container.scrollTo({
-				left: todayIndex * cardWidth,
-				behavior: "smooth",
-			});
-		}
-	}, [todayIndex, isCurrentWeek, weekOffset, highlightedDate]);
+		if (hasInitialTodayScrollRun.current || !scrollContainerRef.current || highlightedDate) return;
+
+		const container = scrollContainerRef.current;
+		const cardWidth = container.offsetWidth;
+		container.scrollTo({
+			left: todayIndex * cardWidth,
+			behavior: "smooth",
+		});
+		hasInitialTodayScrollRun.current = true;
+	}, [todayIndex, highlightedDate]);
 
 	// Scroll to highlighted date when coming from month view
 	useEffect(() => {
 		if (scrollContainerRef.current && highlightedDate) {
-			const highlightIndex = weekData.findIndex((d) => d.date === highlightedDate);
+			const highlightIndex = highlightedDayIndex;
 			if (highlightIndex >= 0) {
 				const container = scrollContainerRef.current;
 				const cardWidth = container.offsetWidth;
@@ -128,10 +133,9 @@ export function CalendarView() {
 					left: highlightIndex * cardWidth,
 					behavior: "smooth",
 				});
-				setCurrentDayIndex(highlightIndex);
 			}
 		}
-	}, [highlightedDate, weekData]);
+	}, [highlightedDate, highlightedDayIndex]);
 
 	// Handle scroll snap to update current day indicator
 	const handleScroll = useCallback(() => {
@@ -198,85 +202,88 @@ export function CalendarView() {
 	}, []);
 
 	// Toggle task completion
-	const handleToggleTask = useCallback((taskId: string, date: string) => {
-		const task = tasks.find((t) => t.id === taskId);
-		if (!task) return;
+	const handleToggleTask = useCallback(
+		(taskId: string, date: string) => {
+			const task = tasks.find((t) => t.id === taskId);
+			if (!task) return;
 
-		if (task.type === "daily") {
-			const key = `${taskId}:${date}`;
-			const wasCompleted = completions.has(key);
+			if (task.type === "daily") {
+				const key = `${taskId}:${date}`;
+				const wasCompleted = completions.has(key);
 
-			// Optimistic update
-			setCompletions((prev) => {
-				const next = new Set(prev);
-				if (wasCompleted) next.delete(key);
-				else next.add(key);
-				return next;
-			});
+				// Optimistic update
+				setCompletions((prev) => {
+					const next = new Set(prev);
+					if (wasCompleted) next.delete(key);
+					else next.add(key);
+					return next;
+				});
 
-			if (wasCompleted) {
-				supabase
-					.from("task_completions")
-					.delete()
-					.match({ task_id: taskId, date })
-					.then(({ error }) => {
-						if (error) {
-							console.error("Failed to delete completion:", error);
-							setCompletions((prev) => {
-								const next = new Set(prev);
-								next.add(key);
-								return next;
-							});
-						}
-					});
-			} else {
+				if (wasCompleted) {
+					supabase
+						.from("task_completions")
+						.delete()
+						.match({ task_id: taskId, date })
+						.then(({ error }) => {
+							if (error) {
+								console.error("Failed to delete completion:", error);
+								setCompletions((prev) => {
+									const next = new Set(prev);
+									next.add(key);
+									return next;
+								});
+							}
+						});
+				} else {
+					const now = new Date().toISOString();
+					supabase
+						.from("task_completions")
+						.insert({ task_id: taskId, date, completed_at: now })
+						.then(({ error }) => {
+							if (error) {
+								console.error("Failed to insert completion:", error);
+								setCompletions((prev) => {
+									const next = new Set(prev);
+									next.delete(key);
+									return next;
+								});
+							}
+						});
+				}
+			} else if (task.type === "one_time") {
+				const newCompleted = !task.is_completed;
 				const now = new Date().toISOString();
+
+				// Optimistic update
+				setTasks((prev) =>
+					prev.map((t) =>
+						t.id !== taskId
+							? t
+							: { ...t, is_completed: newCompleted, completed_at: newCompleted ? now : null }
+					)
+				);
+
 				supabase
-					.from("task_completions")
-					.insert({ task_id: taskId, date, completed_at: now })
+					.from("tasks")
+					.update({ is_completed: newCompleted, completed_at: newCompleted ? now : null })
+					.eq("id", taskId)
 					.then(({ error }) => {
 						if (error) {
-							console.error("Failed to insert completion:", error);
-							setCompletions((prev) => {
-								const next = new Set(prev);
-								next.delete(key);
-								return next;
-							});
+							console.error("Failed to update task:", error);
+							// Roll back
+							setTasks((prev) =>
+								prev.map((t) =>
+									t.id !== taskId
+										? t
+										: { ...t, is_completed: !newCompleted, completed_at: task.completed_at }
+								)
+							);
 						}
 					});
 			}
-		} else if (task.type === "one_time") {
-			const newCompleted = !task.is_completed;
-			const now = new Date().toISOString();
-
-			// Optimistic update
-			setTasks((prev) =>
-				prev.map((t) =>
-					t.id !== taskId
-						? t
-						: { ...t, is_completed: newCompleted, completed_at: newCompleted ? now : null }
-				)
-			);
-
-			supabase
-				.from("tasks")
-				.update({ is_completed: newCompleted, completed_at: newCompleted ? now : null })
-				.eq("id", taskId)
-				.then(({ error }) => {
-					if (error) {
-						console.error("Failed to update task:", error);
-						// Roll back
-						setTasks((prev) =>
-							prev.map((t) =>
-								t.id !== taskId
-									? t
-									: { ...t, is_completed: !newCompleted, completed_at: task.completed_at }
-							)
-						);
-					}
-				});
-		}
-	}, [tasks, completions]);
+		},
+		[tasks, completions]
+	);
 
 	// Scroll to specific day (mobile)
 	const scrollToDay = useCallback((index: number) => {
@@ -287,8 +294,11 @@ export function CalendarView() {
 				left: index * cardWidth,
 				behavior: "smooth",
 			});
+			setCurrentDayIndex(index);
 		}
 	}, []);
+
+	const activeDayIndex = highlightedDayIndex >= 0 ? highlightedDayIndex : currentDayIndex;
 
 	return (
 		<div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
@@ -328,25 +338,29 @@ export function CalendarView() {
 				)}
 
 				{/* Filters - glass effect (only show in week view) */}
-				<div className={cn(
-					"glass-subtle rounded-xl p-2 transition-all duration-300",
-					isMonthView && "opacity-0 h-0 p-0 overflow-hidden"
-				)}>
+				<div
+					className={cn(
+						"glass-subtle rounded-xl p-2 transition-all duration-300",
+						isMonthView && "opacity-0 h-0 p-0 overflow-hidden"
+					)}
+				>
 					<FilterBar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 				</div>
 
 				{/* Day indicators for mobile scroll */}
-				<div className={cn(
-					"flex justify-center gap-1.5 sm:hidden transition-all duration-300",
-					isMonthView && "opacity-0 h-0 overflow-hidden"
-				)}>
+				<div
+					className={cn(
+						"flex justify-center gap-1.5 sm:hidden transition-all duration-300",
+						isMonthView && "opacity-0 h-0 overflow-hidden"
+					)}
+				>
 					{weekData.map((day, index) => (
 						<button
 							key={day.date}
 							onClick={() => scrollToDay(index)}
 							className={cn(
 								"flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-all duration-200",
-								currentDayIndex === index ? "bg-white/10" : "opacity-50 hover:opacity-80"
+								activeDayIndex === index ? "bg-white/10" : "opacity-50 hover:opacity-80"
 							)}
 							aria-label={`Go to ${day.dayName}`}
 						>
@@ -361,7 +375,7 @@ export function CalendarView() {
 							<div
 								className={cn(
 									"size-1.5 rounded-full transition-all",
-									currentDayIndex === index
+									activeDayIndex === index
 										? day.isToday
 											? "bg-mars-red"
 											: "bg-foreground"
@@ -378,8 +392,8 @@ export function CalendarView() {
 					className={cn(
 						"perspective-container transition-opacity duration-300",
 						isMonthView && "opacity-0 h-0 overflow-hidden",
-						!isMonthView && weekDirection === "left" && "animate-slide-in-left",
-						!isMonthView && weekDirection === "right" && "animate-slide-in-right",
+						!isMonthView && weekDirection === "left" && "calendar-animate-slide-in-left",
+						!isMonthView && weekDirection === "right" && "calendar-animate-slide-in-right"
 					)}
 					role="grid"
 					aria-label="Weekly calendar view"
