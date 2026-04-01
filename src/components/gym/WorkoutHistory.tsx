@@ -100,7 +100,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
 
   if (workouts.length === 0) {
     return (
-      <div className="mx-auto max-w-lg px-4 pt-6">
+      <div className="mx-auto max-w-lg px-4 pt-6 calendar-animate-slide-in-up">
         <div className="glass rounded-2xl flex flex-col items-center justify-center gap-3 p-12 text-center">
           <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center">
             <Calendar className="size-5 text-muted-foreground/40" />
@@ -114,28 +114,32 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
   return (
     <>
       <div className="mx-auto max-w-lg px-4 pt-4 space-y-5">
-        {Object.entries(grouped).map(([monthYear, monthWorkouts]) => (
-          <div key={monthYear}>
+        {Object.entries(grouped).map(([monthYear, monthWorkouts], groupIdx) => (
+          <div
+            key={monthYear}
+            className="calendar-animate-slide-in-up"
+            style={{ animationDelay: `${groupIdx * 60}ms` }}
+          >
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">
               {monthYear}
             </p>
             <div className="glass rounded-2xl overflow-hidden divide-y divide-border">
               {monthWorkouts.map(workout => {
                 const date = new Date(workout.started_at)
+                const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
                 return (
                   <button
                     key={workout.id}
                     onClick={() => openSheet(workout.id)}
                     className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/3 transition-colors group"
                   >
-                    {/* Date */}
+                    {/* Primary: name (if set) or date */}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">
-                        {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {workout.name || dateStr}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                        {' · '}{workout.total_sets} sets · {Math.round(workout.total_volume_kg)} kg
+                        {workout.name ? dateStr + ' · ' : ''}{workout.total_sets} sets · {Math.round(workout.total_volume_kg)} kg
                       </p>
                     </div>
 
@@ -190,11 +194,16 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Workout</p>
                     {sheetWorkout && (
-                      <p className="text-base font-semibold text-foreground mt-0.5">
-                        {new Date(sheetWorkout.started_at).toLocaleDateString('en-US', {
-                          weekday: 'long', month: 'long', day: 'numeric'
-                        })}
-                      </p>
+                      <>
+                        {sheetWorkout.name && (
+                          <p className="text-base font-semibold text-foreground mt-0.5">{sheetWorkout.name}</p>
+                        )}
+                        <p className={cn('text-foreground mt-0.5', sheetWorkout.name ? 'text-xs text-muted-foreground' : 'text-base font-semibold')}>
+                          {new Date(sheetWorkout.started_at).toLocaleDateString('en-US', {
+                            weekday: 'long', month: 'long', day: 'numeric'
+                          })}
+                        </p>
+                      </>
                     )}
                   </div>
                   <button
@@ -231,33 +240,33 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                       ))}
                     </div>
 
-                    {/* Exercises */}
+                    {/* Exercises — best set per exercise */}
                     {sheetWorkout.workout_exercises.length > 0 && (
                       <div className="rounded-2xl border border-white/8 overflow-hidden divide-y divide-border mb-4">
                         {sheetWorkout.workout_exercises.map(we => {
                           const vol = we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0)
+                          const bestSet = we.sets.length > 0
+                            ? we.sets.reduce((best, s) =>
+                                s.reps * s.weight_kg > best.reps * best.weight_kg ? s : best,
+                                we.sets[0]
+                              )
+                            : null
                           return (
-                            <div key={we.id}>
-                              <div className="px-4 py-3 flex items-center justify-between">
-                                <div>
-                                  <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
-                                  <p className="text-[11px] text-muted-foreground">
-                                    {we.sets.length} sets · {Math.round(vol)} kg
+                            <div key={we.id} className="flex items-center justify-between px-4 py-3">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  {we.sets.length} sets · {Math.round(vol)} kg
+                                </p>
+                              </div>
+                              {bestSet && (
+                                <div className="shrink-0 text-right">
+                                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Best set</p>
+                                  <p className="text-sm font-semibold text-foreground">
+                                    {bestSet.weight_kg} kg × {bestSet.reps}
                                   </p>
                                 </div>
-                              </div>
-                              <div className="divide-y divide-border/30">
-                                {we.sets.map(set => (
-                                  <div key={set.id} className="flex items-center justify-between px-4 py-2">
-                                    <span className="w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] flex items-center justify-center font-semibold shrink-0">
-                                      {set.set_order}
-                                    </span>
-                                    <span className="text-sm text-foreground">
-                                      {set.weight_kg} kg × {set.reps} reps
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                              )}
                             </div>
                           )
                         })}

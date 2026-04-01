@@ -52,6 +52,7 @@ export interface Exercise {
 
 export interface Workout {
   id: string
+  name: string | null
   started_at: string
   ended_at: string | null
   duration_seconds: number | null

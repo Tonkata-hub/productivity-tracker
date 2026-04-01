@@ -24,7 +24,21 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
   const [exerciseSuggestions, setExerciseSuggestions] = useState<Exercise[]>([])
   const [showSummary, setShowSummary]             = useState(false)
   const [lastPerformances, setLastPerformances]   = useState<Record<string, LastExercisePerformance>>({})
+  const [workoutName, setWorkoutName]             = useState(workout.name ?? '')
+  const isFirstRender = useRef(true)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-save name to DB (debounced, skips initial render)
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+    const t = setTimeout(async () => {
+      await supabase
+        .from('workouts')
+        .update({ name: workoutName.trim() || null })
+        .eq('id', workout.id)
+    }, 800)
+    return () => clearTimeout(t)
+  }, [workoutName, workout.id])
 
   // Timer
   useEffect(() => {
@@ -175,7 +189,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
         </div>
 
         {/* Live stats */}
-        <div className="flex items-center px-4 pb-3 gap-3">
+        <div className="flex items-center px-4 pb-2 gap-3">
           {[
             { label: 'Exercises', value: workout.workout_exercises.length },
             { label: 'Sets',      value: totalSets },
@@ -186,6 +200,18 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
               <p className="text-sm font-semibold text-foreground">{stat.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Workout name — editable, auto-saved */}
+        <div className="px-4 pb-3">
+          <input
+            type="text"
+            value={workoutName}
+            onChange={e => setWorkoutName(e.target.value)}
+            placeholder="Name this workout… (e.g. Push Day)"
+            maxLength={60}
+            className="w-full bg-transparent text-xs text-muted-foreground placeholder-muted-foreground/30 outline-none caret-accent"
+          />
         </div>
       </div>
 

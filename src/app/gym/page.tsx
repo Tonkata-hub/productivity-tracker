@@ -279,10 +279,12 @@ export default function GymPage() {
             )}
           </>
         ) : (
-          <WorkoutHistory
-            workouts={recentWorkouts}
-            onWorkoutDeleted={fetchRecentWorkouts}
-          />
+          <div className="calendar-animate-slide-in-up" style={{ animationDelay: '40ms' }}>
+            <WorkoutHistory
+              workouts={recentWorkouts}
+              onWorkoutDeleted={fetchRecentWorkouts}
+            />
+          </div>
         )}
 
       </div>
@@ -291,15 +293,16 @@ export default function GymPage() {
 }
 
 function RecentWorkoutRow({ workout }: { workout: Workout }) {
-  const date = new Date(workout.started_at)
+  const date    = new Date(workout.started_at)
+  const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-foreground">
-          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          {workout.name || dateStr}
         </p>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          {workout.total_sets} sets · {Math.round(workout.total_volume_kg)} kg
+          {workout.name ? dateStr + ' · ' : ''}{workout.total_sets} sets · {Math.round(workout.total_volume_kg)} kg
         </p>
       </div>
       <span className="text-sm font-semibold text-accent shrink-0">
