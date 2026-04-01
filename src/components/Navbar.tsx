@@ -2,27 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  CalendarDays, BarChart2, PlusCircle,
-  ListChecks, Dumbbell, LogOut, Home,
-} from "lucide-react";
+import { CalendarDays, BarChart2, PlusCircle, ListChecks, Dumbbell, LogOut, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { icon: Home,         label: "Home",         href: "/" },
-  { icon: CalendarDays, label: "Calendar",     href: "/calendar" },
-  { icon: PlusCircle,   label: "Add Task",     href: "/add-task" },
-  { icon: Dumbbell,     label: "Gym",          href: "/gym" },
-  { icon: ListChecks,   label: "Manage Tasks", href: "/manage-tasks" },
-  { icon: BarChart2,    label: "Analytics",    href: "/analytics" },
+  { icon: Home, label: "Home", href: "/" },
+  { icon: CalendarDays, label: "Calendar", href: "/calendar" },
+  { icon: PlusCircle, label: "Add Task", href: "/add-task" },
+  { icon: Dumbbell, label: "Gym", href: "/gym" },
+  { icon: ListChecks, label: "Manage Tasks", href: "/manage-tasks" },
+  { icon: BarChart2, label: "Analytics", href: "/analytics" },
 ] as const;
 
 const TAB_ITEMS = [
-  { icon: Home,         label: "Home",     href: "/",            fab: false },
-  { icon: CalendarDays, label: "Calendar", href: "/calendar",    fab: false },
-  { icon: PlusCircle,   label: "Add",      href: "/add-task",    fab: true  },
-  { icon: Dumbbell,     label: "Gym",      href: "/gym",         fab: false },
-  { icon: ListChecks,   label: "Manage",   href: "/manage-tasks",fab: false },
+  { icon: Home, label: "Home", href: "/", fab: false },
+  { icon: CalendarDays, label: "Calendar", href: "/calendar", fab: false },
+  { icon: PlusCircle, label: "Add", href: "/add-task", fab: true },
+  { icon: Dumbbell, label: "Gym", href: "/gym", fab: false },
+  { icon: ListChecks, label: "Manage", href: "/manage-tasks", fab: false },
 ] as const;
 
 export function Navbar() {
@@ -35,9 +32,8 @@ export function Navbar() {
     <>
       {/* ── Desktop sidebar ─────────────────────────────────────── */}
       <aside className="hidden md:flex fixed top-0 left-0 h-full w-56 flex-col z-50 border-r border-white/5 bg-[#0a0b0f]">
-
         {/* Brand */}
-        <div className="flex items-center gap-3 px-5 h-16 border-b border-white/5 flex-shrink-0">
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-white/5 shrink-0">
           <div className="flex size-8 items-center justify-center rounded-xl bg-accent shadow-md shadow-accent/40">
             <CalendarDays className="size-4 text-white" />
           </div>
@@ -57,12 +53,10 @@ export function Navbar() {
                 href={href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
-                  active
-                    ? "bg-accent/12 text-accent"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/6"
+                  active ? "bg-accent/12 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-white/6"
                 )}
               >
-                <Icon className={cn("size-4 flex-shrink-0", active && "text-accent")} />
+                <Icon className={cn("size-4 shrink-0", active && "text-accent")} />
                 {label}
               </Link>
             );
@@ -70,12 +64,12 @@ export function Navbar() {
         </nav>
 
         {/* Sign out */}
-        <div className="px-3 py-4 border-t border-white/5 flex-shrink-0">
+        <div className="px-3 py-4 border-t border-white/5 shrink-0">
           <Link
             href="/signout"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
           >
-            <LogOut className="size-4 flex-shrink-0" />
+            <LogOut className="size-4 shrink-0" />
             Sign out
           </Link>
         </div>
@@ -98,12 +92,14 @@ export function Navbar() {
                   className="flex flex-1 flex-col items-center justify-center"
                   aria-label={label}
                 >
-                  <div className={cn(
-                    "flex items-center justify-center w-12 h-12 rounded-2xl bg-accent transition-all duration-150 active:scale-90",
-                    active
-                      ? "shadow-lg shadow-accent/50 ring-2 ring-accent/25 ring-offset-2 ring-offset-background"
-                      : "shadow-md shadow-accent/35"
-                  )}>
+                  <div
+                    className={cn(
+                      "flex items-center justify-center w-12 h-12 rounded-2xl bg-accent transition-all duration-150 active:scale-90",
+                      active
+                        ? "shadow-lg shadow-accent/50 ring-2 ring-accent/25 ring-offset-2 ring-offset-background"
+                        : "shadow-md shadow-accent/35"
+                    )}
+                  >
                     <Icon className="size-5 text-white" />
                   </div>
                 </Link>

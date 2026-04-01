@@ -1,27 +1,27 @@
-import { Task } from './types'
+import { Task } from "./types";
 
 const getDateOffset = (days: number): string => {
-  const date = new Date()
-  date.setDate(date.getDate() + days)
-  return date.toISOString().split('T')[0]
-}
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+};
 
-const today = getDateOffset(0)
-const yesterday = getDateOffset(-1)
-const twoDaysAgo = getDateOffset(-2)
-const threeDaysAgo = getDateOffset(-3)
-const fourDaysAgo = getDateOffset(-4)
-const fiveDaysAgo = getDateOffset(-5)
-const tomorrow = getDateOffset(1)
-const inTwoDays = getDateOffset(2)
-const inFourDays = getDateOffset(4)
+const today = getDateOffset(0);
+const yesterday = getDateOffset(-1);
+const twoDaysAgo = getDateOffset(-2);
+const threeDaysAgo = getDateOffset(-3);
+const fourDaysAgo = getDateOffset(-4);
+const fiveDaysAgo = getDateOffset(-5);
+const tomorrow = getDateOffset(1);
+const inTwoDays = getDateOffset(2);
+const inFourDays = getDateOffset(4);
 
 export const mockTasks: Task[] = [
   // ── DAILY RECURRING TASKS ──────────────────────────────────────────────────
   {
-    id: 'mock-1',
-    title: 'Morning meditation',
-    type: 'daily',
+    id: "mock-1",
+    title: "Morning meditation",
+    type: "daily",
     priority: null,
     due_date: null,
     is_completed: false,
@@ -32,10 +32,10 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-2',
-    title: 'Exercise',
-    type: 'daily',
-    priority: 'high',
+    id: "mock-2",
+    title: "Exercise",
+    type: "daily",
+    priority: "high",
     due_date: null,
     is_completed: false,
     completed_at: null,
@@ -45,9 +45,9 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-3',
-    title: 'Read for 30 minutes',
-    type: 'daily',
+    id: "mock-3",
+    title: "Read for 30 minutes",
+    type: "daily",
     priority: null,
     due_date: null,
     is_completed: false,
@@ -58,10 +58,10 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-4',
-    title: 'Review daily goals',
-    type: 'daily',
-    priority: 'medium',
+    id: "mock-4",
+    title: "Review daily goals",
+    type: "daily",
+    priority: "medium",
     due_date: null,
     is_completed: false,
     completed_at: null,
@@ -71,9 +71,9 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-6',
-    title: 'Evening journal',
-    type: 'daily',
+    id: "mock-6",
+    title: "Evening journal",
+    type: "daily",
     priority: null,
     due_date: null,
     is_completed: false,
@@ -86,51 +86,51 @@ export const mockTasks: Task[] = [
 
   // ── TRACKED DAILY TASKS (with amount targets) ──────────────────────────────
   {
-    id: 'mock-q1',
-    title: 'Drink water',
-    type: 'daily',
+    id: "mock-q1",
+    title: "Drink water",
+    type: "daily",
     priority: null,
     due_date: null,
     is_completed: false,
     completed_at: null,
     target_value: 2000,
-    unit: 'ml',
+    unit: "ml",
     created_at: fiveDaysAgo,
     updated_at: today,
   },
   {
-    id: 'mock-q2',
-    title: 'Walk',
-    type: 'daily',
-    priority: 'low',
+    id: "mock-q2",
+    title: "Walk",
+    type: "daily",
+    priority: "low",
     due_date: null,
     is_completed: false,
     completed_at: null,
     target_value: 8000,
-    unit: 'steps',
+    unit: "steps",
     created_at: fiveDaysAgo,
     updated_at: today,
   },
 
   // ── ONE-TIME TASKS ─────────────────────────────────────────────────────────
   {
-    id: 'mock-7',
-    title: 'Send weekly status report',
-    type: 'one_time',
-    priority: 'medium',
+    id: "mock-7",
+    title: "Send weekly status report",
+    type: "one_time",
+    priority: "medium",
     due_date: fiveDaysAgo,
     is_completed: true,
-    completed_at: fiveDaysAgo + 'T09:00:00Z',
+    completed_at: fiveDaysAgo + "T09:00:00Z",
     target_value: null,
     unit: null,
     created_at: fiveDaysAgo,
     updated_at: fiveDaysAgo,
   },
   {
-    id: 'mock-8',
-    title: 'Submit expense report',
-    type: 'one_time',
-    priority: 'high',
+    id: "mock-8",
+    title: "Submit expense report",
+    type: "one_time",
+    priority: "high",
     due_date: fourDaysAgo,
     is_completed: false,
     completed_at: null,
@@ -140,23 +140,23 @@ export const mockTasks: Task[] = [
     updated_at: fourDaysAgo,
   },
   {
-    id: 'mock-9',
-    title: 'Prepare team meeting agenda',
-    type: 'one_time',
+    id: "mock-9",
+    title: "Prepare team meeting agenda",
+    type: "one_time",
     priority: null,
     due_date: threeDaysAgo,
     is_completed: true,
-    completed_at: threeDaysAgo + 'T10:00:00Z',
+    completed_at: threeDaysAgo + "T10:00:00Z",
     target_value: null,
     unit: null,
     created_at: fiveDaysAgo,
     updated_at: threeDaysAgo,
   },
   {
-    id: 'mock-10',
-    title: 'Schedule dentist appointment',
-    type: 'one_time',
-    priority: 'low',
+    id: "mock-10",
+    title: "Schedule dentist appointment",
+    type: "one_time",
+    priority: "low",
     due_date: twoDaysAgo,
     is_completed: false,
     completed_at: null,
@@ -166,10 +166,10 @@ export const mockTasks: Task[] = [
     updated_at: twoDaysAgo,
   },
   {
-    id: 'mock-11',
-    title: 'Reply to client proposal email',
-    type: 'one_time',
-    priority: 'high',
+    id: "mock-11",
+    title: "Reply to client proposal email",
+    type: "one_time",
+    priority: "high",
     due_date: yesterday,
     is_completed: false,
     completed_at: null,
@@ -179,10 +179,10 @@ export const mockTasks: Task[] = [
     updated_at: yesterday,
   },
   {
-    id: 'mock-12',
-    title: 'Review pull requests',
-    type: 'one_time',
-    priority: 'medium',
+    id: "mock-12",
+    title: "Review pull requests",
+    type: "one_time",
+    priority: "medium",
     due_date: today,
     is_completed: false,
     completed_at: null,
@@ -192,9 +192,9 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-13',
-    title: 'Call insurance provider',
-    type: 'one_time',
+    id: "mock-13",
+    title: "Call insurance provider",
+    type: "one_time",
     priority: null,
     due_date: tomorrow,
     is_completed: false,
@@ -205,10 +205,10 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-14',
-    title: 'Buy groceries for dinner party',
-    type: 'one_time',
-    priority: 'low',
+    id: "mock-14",
+    title: "Buy groceries for dinner party",
+    type: "one_time",
+    priority: "low",
     due_date: inTwoDays,
     is_completed: false,
     completed_at: null,
@@ -218,10 +218,10 @@ export const mockTasks: Task[] = [
     updated_at: today,
   },
   {
-    id: 'mock-15',
-    title: 'Finalize Q2 project spec',
-    type: 'one_time',
-    priority: 'high',
+    id: "mock-15",
+    title: "Finalize Q2 project spec",
+    type: "one_time",
+    priority: "high",
     due_date: inFourDays,
     is_completed: false,
     completed_at: null,
@@ -230,14 +230,14 @@ export const mockTasks: Task[] = [
     created_at: today,
     updated_at: today,
   },
-]
+];
 
 export const filterOptions = [
-  { value: 'all', label: 'All Tasks' },
-  { value: 'daily', label: 'Daily Only' },
-  { value: 'one_time', label: 'One-Time Only' },
-  { value: 'tracked', label: 'Tracked Only' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'incomplete', label: 'Incomplete' },
-  { value: 'overdue', label: 'Overdue' },
-]
+  { value: "all", label: "All Tasks" },
+  { value: "daily", label: "Daily Only" },
+  { value: "one_time", label: "One-Time Only" },
+  { value: "tracked", label: "Tracked Only" },
+  { value: "completed", label: "Completed" },
+  { value: "incomplete", label: "Incomplete" },
+  { value: "overdue", label: "Overdue" },
+];

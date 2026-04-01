@@ -1,111 +1,102 @@
-'use client'
+"use client";
 
-import { useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import type { WorkoutExercise, ExerciseSet, LastExercisePerformance } from '@/lib/types'
-import { ChevronDown, ChevronUp, Plus, Trash2, TrendingUp, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import type { WorkoutExercise, ExerciseSet, LastExercisePerformance } from "@/lib/types";
+import { ChevronDown, ChevronUp, Plus, Trash2, TrendingUp, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ExerciseCardProps {
   workoutExercise: WorkoutExercise & {
-    exercise: { id: string; name: string }
-    sets: ExerciseSet[]
-  }
-  lastPerformance?: LastExercisePerformance
-  onUpdate: () => void
+    exercise: { id: string; name: string };
+    sets: ExerciseSet[];
+  };
+  lastPerformance?: LastExercisePerformance;
+  onUpdate: () => void;
 }
 
 export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: ExerciseCardProps) {
-  const [isExpanded, setIsExpanded]   = useState(true)
-  const [isAddingSet, setIsAddingSet] = useState(false)
-  const [newReps, setNewReps]         = useState('')
-  const [newWeight, setNewWeight]     = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
-  const [errorMsg, setErrorMsg]       = useState<string | null>(null)
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isAddingSet, setIsAddingSet] = useState(false);
+  const [newReps, setNewReps] = useState("");
+  const [newWeight, setNewWeight] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   function showError(msg: string) {
-    setErrorMsg(msg)
-    setTimeout(() => setErrorMsg(null), 3000)
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 3000);
   }
 
   function openAddSet() {
     // Auto-fill with last set values or last performance
-    const lastSet = workoutExercise.sets[workoutExercise.sets.length - 1]
+    const lastSet = workoutExercise.sets[workoutExercise.sets.length - 1];
     if (lastSet) {
-      setNewReps(lastSet.reps.toString())
-      setNewWeight(lastSet.weight_kg.toString())
+      setNewReps(lastSet.reps.toString());
+      setNewWeight(lastSet.weight_kg.toString());
     } else if (lastPerformance && lastPerformance.sets.length > 0) {
-      setNewReps(lastPerformance.sets[0].reps.toString())
-      setNewWeight(lastPerformance.sets[0].weight_kg.toString())
+      setNewReps(lastPerformance.sets[0].reps.toString());
+      setNewWeight(lastPerformance.sets[0].weight_kg.toString());
     }
-    setIsAddingSet(true)
+    setIsAddingSet(true);
   }
 
   const addSet = useCallback(async () => {
-    const reps   = parseInt(newReps)
-    const weight = parseFloat(newWeight)
-    if (isNaN(reps) || reps <= 0) return
-    if (isNaN(weight) || weight < 0) return
+    const reps = parseInt(newReps);
+    const weight = parseFloat(newWeight);
+    if (isNaN(reps) || reps <= 0) return;
+    if (isNaN(weight) || weight < 0) return;
 
-    setIsSubmitting(true)
-    const { error } = await supabase
-      .from('exercise_sets')
-      .insert({
-        workout_exercise_id: workoutExercise.id,
-        set_order: workoutExercise.sets.length + 1,
-        reps,
-        weight_kg: weight,
-      })
+    setIsSubmitting(true);
+    const { error } = await supabase.from("exercise_sets").insert({
+      workout_exercise_id: workoutExercise.id,
+      set_order: workoutExercise.sets.length + 1,
+      reps,
+      weight_kg: weight,
+    });
 
-    setIsSubmitting(false)
-    if (error) { showError('Failed to add set — try again'); return }
+    setIsSubmitting(false);
+    if (error) {
+      showError("Failed to add set — try again");
+      return;
+    }
 
-    setNewReps('')
-    setNewWeight('')
-    setIsAddingSet(false)
-    onUpdate()
-  }, [newReps, newWeight, workoutExercise.id, workoutExercise.sets.length, onUpdate])
+    setNewReps("");
+    setNewWeight("");
+    setIsAddingSet(false);
+    onUpdate();
+  }, [newReps, newWeight, workoutExercise.id, workoutExercise.sets.length, onUpdate]);
 
   const deleteSet = async (setId: string) => {
-    setIsDeletingId(setId)
-    const { error: delErr } = await supabase
-      .from('exercise_sets')
-      .delete()
-      .eq('id', setId)
+    setIsDeletingId(setId);
+    const { error: delErr } = await supabase.from("exercise_sets").delete().eq("id", setId);
 
     if (delErr) {
-      setIsDeletingId(null)
-      showError('Failed to delete set — try again')
-      return
+      setIsDeletingId(null);
+      showError("Failed to delete set — try again");
+      return;
     }
 
     // Reorder remaining sets
-    const remaining = workoutExercise.sets
-      .filter(s => s.id !== setId)
-      .sort((a, b) => a.set_order - b.set_order)
+    const remaining = workoutExercise.sets.filter((s) => s.id !== setId).sort((a, b) => a.set_order - b.set_order);
 
     for (let i = 0; i < remaining.length; i++) {
       if (remaining[i].set_order !== i + 1) {
         await supabase
-          .from('exercise_sets')
+          .from("exercise_sets")
           .update({ set_order: i + 1 })
-          .eq('id', remaining[i].id)
+          .eq("id", remaining[i].id);
       }
     }
 
-    setIsDeletingId(null)
-    onUpdate()
-  }
+    setIsDeletingId(null);
+    onUpdate();
+  };
 
-  const currentVolume = workoutExercise.sets.reduce(
-    (sum, set) => sum + set.reps * set.weight_kg,
-    0
-  )
-  const lastVolume  = lastPerformance
-    ? lastPerformance.sets.reduce((sum, set) => sum + set.reps * set.weight_kg, 0)
-    : 0
-  const volumeDiff = lastVolume > 0 ? currentVolume - lastVolume : 0
+  const currentVolume = workoutExercise.sets.reduce((sum, set) => sum + set.reps * set.weight_kg, 0);
+  const lastVolume = lastPerformance ? lastPerformance.sets.reduce((sum, set) => sum + set.reps * set.weight_kg, 0) : 0;
+  const volumeDiff = lastVolume > 0 ? currentVolume - lastVolume : 0;
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
@@ -119,16 +110,18 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {workoutExercise.sets.length} sets · {Math.round(currentVolume)} kg
             {volumeDiff !== 0 && (
-              <span className={cn('ml-1', volumeDiff > 0 ? 'text-green-400' : 'text-red-400')}>
-                ({volumeDiff > 0 ? '+' : ''}{Math.round(volumeDiff)} kg)
+              <span className={cn("ml-1", volumeDiff > 0 ? "text-green-400" : "text-red-400")}>
+                ({volumeDiff > 0 ? "+" : ""}
+                {Math.round(volumeDiff)} kg)
               </span>
             )}
           </p>
         </div>
-        {isExpanded
-          ? <ChevronUp  className="size-4 text-muted-foreground flex-shrink-0" />
-          : <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />
-        }
+        {isExpanded ? (
+          <ChevronUp className="size-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronDown className="size-4 text-muted-foreground shrink-0" />
+        )}
       </button>
 
       {isExpanded && (
@@ -145,7 +138,11 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
             <div className="px-4 py-2.5 bg-white/3 border-b border-border">
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1.5">
                 <TrendingUp className="size-3" />
-                Last · {new Date(lastPerformance.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                Last ·{" "}
+                {new Date(lastPerformance.workout_date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {lastPerformance.sets.map((set, idx) => (
@@ -162,7 +159,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
             {workoutExercise.sets.map((set) => (
               <div key={set.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-accent/15 text-accent text-xs flex items-center justify-center font-semibold flex-shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-accent/15 text-accent text-xs flex items-center justify-center font-semibold shrink-0">
                     {set.set_order}
                   </span>
                   <span className="text-sm text-foreground font-medium">
@@ -175,10 +172,11 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                   className="shrink-0 flex size-8 items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90 disabled:opacity-50"
                   aria-label="Delete set"
                 >
-                  {isDeletingId === set.id
-                    ? <Loader2 className="size-3.5 animate-spin" />
-                    : <Trash2   className="size-3.5" />
-                  }
+                  {isDeletingId === set.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-3.5" />
+                  )}
                 </button>
               </div>
             ))}
@@ -195,7 +193,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                   <input
                     type="number"
                     value={newWeight}
-                    onChange={e => setNewWeight(e.target.value)}
+                    onChange={(e) => setNewWeight(e.target.value)}
                     placeholder="0"
                     className="w-full rounded-xl border border-border bg-white/5 px-3 py-2.5 text-sm text-foreground text-center outline-none focus:border-accent/50 transition-colors"
                     inputMode="decimal"
@@ -209,8 +207,10 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                   <input
                     type="number"
                     value={newReps}
-                    onChange={e => setNewReps(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') addSet() }}
+                    onChange={(e) => setNewReps(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addSet();
+                    }}
                     placeholder="0"
                     className="w-full rounded-xl border border-border bg-white/5 px-3 py-2.5 text-sm text-foreground text-center outline-none focus:border-accent/50 transition-colors"
                     inputMode="numeric"
@@ -221,11 +221,15 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                   disabled={!newReps || !newWeight || isSubmitting}
                   className="flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-accent/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
                 >
-                  {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : 'Add'}
+                  {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : "Add"}
                 </button>
               </div>
               <button
-                onClick={() => { setIsAddingSet(false); setNewReps(''); setNewWeight('') }}
+                onClick={() => {
+                  setIsAddingSet(false);
+                  setNewReps("");
+                  setNewWeight("");
+                }}
                 className="mt-2 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
               >
                 Cancel
@@ -243,5 +247,5 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
         </div>
       )}
     </div>
-  )
+  );
 }
