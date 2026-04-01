@@ -438,7 +438,7 @@ export default function GymPage() {
                   placeholder="Or type a custom name…"
                   maxLength={60}
                   autoFocus
-                  className="w-full bg-transparent text-sm font-medium text-foreground placeholder-muted-foreground/35 outline-none caret-accent"
+                  className="w-full bg-transparent text-base font-medium text-foreground placeholder-muted-foreground/35 outline-none caret-accent"
                 />
               </div>
 

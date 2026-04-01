@@ -153,14 +153,14 @@ export default function AddTaskPage() {
                   type="number"
                   min="1"
                   step="any"
-                  className="w-28 min-w-0 rounded-lg border border-glass-border bg-white/5 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
+                  className="w-28 min-w-0 rounded-lg border border-glass-border bg-white/5 px-3 py-2.5 text-base text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
                   value={targetValue}
                   onChange={(e) => setTargetValue(e.target.value)}
                   placeholder="e.g. 2000"
                 />
                 <input
                   type="text"
-                  className="flex-1 min-w-0 rounded-lg border border-glass-border bg-white/5 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
+                  className="flex-1 min-w-0 rounded-lg border border-glass-border bg-white/5 px-3 py-2.5 text-base text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                   placeholder="unit (ml, steps…)"
@@ -194,7 +194,7 @@ export default function AddTaskPage() {
                     </div>
                     <input
                       type="date"
-                      className="w-full rounded-lg border border-glass-border bg-white/5 px-3 py-2 text-sm text-foreground outline-none focus:border-accent/50 transition-colors scheme-dark"
+                      className="w-full rounded-lg border border-glass-border bg-white/5 px-3 py-2.5 text-base text-foreground outline-none focus:border-accent/50 transition-colors scheme-dark"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
                     />

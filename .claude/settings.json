@@ -27,14 +27,16 @@
 			"Bash(npm ls:*)",
 			"Bash(npm view:*)",
 			"Bash(npm outdated:*)",
-			"Bash(npx eslint:*)",
+			"Bash(npm run eslint:*)",
+			"Bash(npm run lint:*)",
 			"Bash(gh pr list:*)",
 			"Bash(gh pr view:*)",
 			"Bash(gh pr diff:*)",
 			"Bash(gh pr checks:*)",
 			"Bash(gh issue list:*)",
 			"Bash(gh issue view:*)",
-			"Bash(gh search:*)"
+			"Bash(gh search:*)",
+			"Bash(find:*)"
 		]
 	}
 }

@@ -195,7 +195,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                     value={newWeight}
                     onChange={(e) => setNewWeight(e.target.value)}
                     placeholder="0"
-                    className="w-full rounded-xl border border-border bg-white/5 px-3 py-2.5 text-sm text-foreground text-center outline-none focus:border-accent/50 transition-colors"
+                    className="w-full rounded-xl border border-border bg-white/5 px-3 py-2.5 text-base text-foreground text-center outline-none focus:border-accent/50 transition-colors"
                     inputMode="decimal"
                     autoFocus
                   />
@@ -212,14 +212,14 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                       if (e.key === "Enter") addSet();
                     }}
                     placeholder="0"
-                    className="w-full rounded-xl border border-border bg-white/5 px-3 py-2.5 text-sm text-foreground text-center outline-none focus:border-accent/50 transition-colors"
+                    className="w-full rounded-xl border border-border bg-white/5 px-3 py-2.5 text-base text-foreground text-center outline-none focus:border-accent/50 transition-colors"
                     inputMode="numeric"
                   />
                 </div>
                 <button
                   onClick={addSet}
                   disabled={!newReps || !newWeight || isSubmitting}
-                  className="flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-accent/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  className="flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-base font-semibold text-white shadow-md shadow-accent/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
                 >
                   {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : "Add"}
                 </button>

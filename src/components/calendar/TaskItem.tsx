@@ -147,7 +147,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
 
         {/* Inline log input */}
         {showInput && (
-          <div className="mt-2 flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="mt-2.5 flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
             <input
               autoFocus
               type="number"
@@ -162,13 +162,13 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
                   setInputValue("");
                 }
               }}
-              className="w-24 rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-mars-red/50 focus:ring-1 focus:ring-mars-red/20"
+              className="w-28 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-base text-foreground placeholder-muted-foreground outline-none focus:border-mars-red/50 focus:ring-1 focus:ring-mars-red/20"
               placeholder={task.unit ?? "amount"}
             />
             <button
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleLogSubmit}
-              className="flex items-center gap-1 rounded-lg bg-mars-red/20 px-2 py-1 text-[10px] font-medium text-mars-red hover:bg-mars-red/30 transition-colors"
+              className="flex items-center gap-1 rounded-lg bg-mars-red/20 px-2.5 py-1.5 text-xs font-medium text-mars-red hover:bg-mars-red/30 transition-colors"
             >
               <Check className="size-3" />
               Log
@@ -178,7 +178,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
                 setShowInput(false);
                 setInputValue("");
               }}
-              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>

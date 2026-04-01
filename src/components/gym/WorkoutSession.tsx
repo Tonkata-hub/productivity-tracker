@@ -286,7 +286,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
                   }}
                   placeholder="Exercise name…"
                   maxLength={100}
-                  className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground/40 outline-none caret-accent"
+                  className="flex-1 bg-transparent text-base text-foreground placeholder-muted-foreground/40 outline-none caret-accent"
                   autoFocus
                 />
                 <button
