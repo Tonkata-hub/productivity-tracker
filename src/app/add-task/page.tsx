@@ -124,6 +124,7 @@ export default function AddTaskPage() {
               <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
                 <Flag className="size-4 text-muted-foreground" />
                 Priority
+                <span className="ml-auto text-xs font-normal text-muted-foreground">optional</span>
               </label>
               <div className="grid grid-cols-4 gap-2">
                 {[

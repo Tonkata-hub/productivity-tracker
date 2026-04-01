@@ -185,9 +185,11 @@ export function CalendarView() {
 	const handleToggleMonthView = useCallback(() => {
 		setIsMonthView((prev) => {
 			if (!prev) {
-				// Switching to month view - sync month with current week
-				const currentWeekDate = weekDates[0];
 				const today = new Date();
+				const todayISO = formatDateISO(today);
+				// If the visible week contains today, anchor month view to today
+				// instead of the week's Monday so month boundaries behave correctly.
+				const currentWeekDate = weekDates.find((date) => formatDateISO(date) === todayISO) ?? weekDates[0];
 				const monthsDiff =
 					(currentWeekDate.getFullYear() - today.getFullYear()) * 12 +
 					(currentWeekDate.getMonth() - today.getMonth());
