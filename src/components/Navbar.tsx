@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X, PlusCircle, Trash2 } from "lucide-react";
+import { CalendarDays, BarChart2, Settings, HelpCircle, LogOut, Menu, X, PlusCircle, Trash2, Dumbbell } from "lucide-react";
 
 const menuItems = [
 	{ icon: CalendarDays, label: "Calendar", href: "/calendar" },
 	{ icon: PlusCircle, label: "Add Task", href: "/add-task" },
 	{ icon: Trash2, label: "Manage Tasks", href: "/manage-tasks" },
+	{ icon: Dumbbell, label: "Gym", href: "/gym" },
 	{ icon: BarChart2, label: "Analytics", href: "/analytics" },
 	{ icon: Settings, label: "Settings", href: "/settings" },
 	{ icon: HelpCircle, label: "Help", href: "/help" },
