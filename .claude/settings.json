@@ -1,5 +1,40 @@
 {
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
-  }
+	"enabledPlugins": {
+		"frontend-design@claude-plugins-official": true
+	},
+	"permissions": {
+		"allow": [
+			"Bash(git log:*)",
+			"Bash(git status:*)",
+			"Bash(git diff:*)",
+			"Bash(git branch:*)",
+			"Bash(git show:*)",
+			"Bash(git rev-parse:*)",
+			"Bash(git remote:*)",
+			"Bash(git stash list:*)",
+			"Bash(git tag:*)",
+			"Bash(rg:*)",
+			"Bash(grep:*)",
+			"Bash(cat:*)",
+			"Bash(head:*)",
+			"Bash(tail:*)",
+			"Bash(ls:*)",
+			"Bash(pwd:*)",
+			"Bash(which:*)",
+			"Bash(wc:*)",
+			"Bash(file:*)",
+			"Bash(echo:*)",
+			"Bash(npm ls:*)",
+			"Bash(npm view:*)",
+			"Bash(npm outdated:*)",
+			"Bash(npx eslint:*)",
+			"Bash(gh pr list:*)",
+			"Bash(gh pr view:*)",
+			"Bash(gh pr diff:*)",
+			"Bash(gh pr checks:*)",
+			"Bash(gh issue list:*)",
+			"Bash(gh issue view:*)",
+			"Bash(gh search:*)"
+		]
+	}
 }

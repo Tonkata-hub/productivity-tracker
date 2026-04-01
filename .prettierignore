@@ -1,0 +1,35 @@
+# dependencies
+node_modules
+package-lock.json
+yarn.lock
+
+# next.js / build outputs
+.next
+dist
+build
+out
+
+# misc
+.DS_Store
+
+# lockfiles
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# generated code
+src/generated
+src/graphql/**/*.generated.ts
+
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Other generated or large files
+coverage
+public
+
+*.md
