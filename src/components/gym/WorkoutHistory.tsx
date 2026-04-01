@@ -3,18 +3,40 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Workout, WorkoutWithExercises } from '@/lib/types'
-import { Calendar, Clock, Dumbbell, TrendingUp, ChevronRight, X } from 'lucide-react'
+import { formatDuration } from '@/lib/gym-utils'
+import { Calendar, Clock, Dumbbell, TrendingUp, ChevronRight, X, Trash2, Loader2, AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface WorkoutHistoryProps {
   workouts: Workout[]
+  onWorkoutDeleted: () => void
 }
 
-export function WorkoutHistory({ workouts }: WorkoutHistoryProps) {
-  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutWithExercises | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryProps) {
+  const [sheetWorkout, setSheetWorkout]   = useState<WorkoutWithExercises | null>(null)
+  const [sheetVisible, setSheetVisible]   = useState(false)
+  const [sheetAnimated, setSheetAnimated] = useState(false)
+  const [sheetExiting, setSheetExiting]   = useState(false)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [isDeleting, setIsDeleting]       = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const fetchWorkoutDetails = async (workoutId: string) => {
-    setIsLoading(true)
+  // Enter animation — two RAF frames after sheet mounts
+  useEffect(() => {
+    if (!sheetVisible) return
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setSheetAnimated(true))
+    )
+    return () => cancelAnimationFrame(id)
+  }, [sheetVisible])
+
+  const openSheet = async (workoutId: string) => {
+    setSheetAnimated(false)  // reset before mounting so the enter animation plays
+    setConfirmDelete(false)
+    setIsLoadingDetail(true)
+    setSheetExiting(false)
+    setSheetVisible(true)
+
     const { data } = await supabase
       .from('workouts')
       .select(`
@@ -32,195 +54,262 @@ export function WorkoutHistory({ workouts }: WorkoutHistoryProps) {
       const workout = data as WorkoutWithExercises
       workout.workout_exercises = workout.workout_exercises
         .sort((a, b) => a.exercise_order - b.exercise_order)
-        .map(we => ({
-          ...we,
-          sets: we.sets.sort((a, b) => a.set_order - b.set_order)
-        }))
-      setSelectedWorkout(workout)
+        .map(we => ({ ...we, sets: we.sets.sort((a, b) => a.set_order - b.set_order) }))
+      setSheetWorkout(workout)
     }
-    setIsLoading(false)
+    setIsLoadingDetail(false)
   }
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '-'
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    if (hrs > 0) {
-      return `${hrs}h ${mins}m`
-    }
-    return `${mins}m`
+  const closeSheet = () => {
+    setSheetExiting(true)
+    setConfirmDelete(false)
+    setTimeout(() => {
+      setSheetVisible(false)
+      setSheetExiting(false)
+      setSheetWorkout(null)
+    }, 300)
   }
 
-  const groupWorkoutsByMonth = (workouts: Workout[]) => {
+  const deleteWorkout = async () => {
+    if (!sheetWorkout) return
+    setIsDeleting(true)
+
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', sheetWorkout.id)
+
+    setIsDeleting(false)
+    if (error) { setConfirmDelete(false); return }
+
+    closeSheet()
+    onWorkoutDeleted()
+  }
+
+  const groupByMonth = (ws: Workout[]) => {
     const groups: Record<string, Workout[]> = {}
-    
-    workouts.forEach(workout => {
-      const date = new Date(workout.started_at)
-      const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      if (!groups[monthYear]) {
-        groups[monthYear] = []
-      }
-      groups[monthYear].push(workout)
+    ws.forEach(w => {
+      const key = new Date(w.started_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      if (!groups[key]) groups[key] = []
+      groups[key].push(w)
     })
-
     return groups
   }
 
-  const groupedWorkouts = groupWorkoutsByMonth(workouts)
-
-  if (selectedWorkout) {
-    return (
-      <WorkoutDetailView 
-        workout={selectedWorkout} 
-        onClose={() => setSelectedWorkout(null)} 
-      />
-    )
-  }
+  const grouped = groupByMonth(workouts)
 
   if (workouts.length === 0) {
     return (
-      <div className="p-8 text-center">
-        <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-        <p className="text-muted-foreground">No workout history yet</p>
+      <div className="mx-auto max-w-lg px-4 pt-6">
+        <div className="glass rounded-2xl flex flex-col items-center justify-center gap-3 p-12 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center">
+            <Calendar className="size-5 text-muted-foreground/40" />
+          </div>
+          <p className="text-sm text-muted-foreground">No workout history yet.</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {Object.entries(groupedWorkouts).map(([monthYear, monthWorkouts]) => (
-        <div key={monthYear}>
-          <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">{monthYear}</h2>
-          <div className="space-y-2">
-            {monthWorkouts.map(workout => {
-              const date = new Date(workout.started_at)
-              const formattedDate = date.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric'
-              })
-              const formattedTime = date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit'
-              })
-
-              return (
-                <button
-                  key={workout.id}
-                  onClick={() => fetchWorkoutDetails(workout.id)}
-                  className="w-full bg-card border border-border rounded-xl p-4 flex items-center justify-between text-left hover:bg-card/80 transition-colors"
-                  disabled={isLoading}
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{formattedDate}</p>
-                    <p className="text-sm text-muted-foreground">{formattedTime}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">{formatDuration(workout.duration_seconds)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {workout.total_sets} sets &middot; {Math.round(workout.total_volume_kg)} kg
+    <>
+      <div className="mx-auto max-w-lg px-4 pt-4 space-y-5">
+        {Object.entries(grouped).map(([monthYear, monthWorkouts]) => (
+          <div key={monthYear}>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">
+              {monthYear}
+            </p>
+            <div className="glass rounded-2xl overflow-hidden divide-y divide-border">
+              {monthWorkouts.map(workout => {
+                const date = new Date(workout.started_at)
+                return (
+                  <button
+                    key={workout.id}
+                    onClick={() => openSheet(workout.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/3 transition-colors group"
+                  >
+                    {/* Date */}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        {' · '}{workout.total_sets} sets · {Math.round(workout.total_volume_kg)} kg
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                </button>
-              )
-            })}
+
+                    {/* Duration + chevron */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-semibold text-accent">
+                        {formatDuration(workout.duration_seconds)}
+                      </span>
+                      <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function WorkoutDetailView({ 
-  workout, 
-  onClose 
-}: { 
-  workout: WorkoutWithExercises
-  onClose: () => void 
-}) {
-  const date = new Date(workout.started_at)
-  const formattedDate = date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  })
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '-'
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    if (hrs > 0) {
-      return `${hrs}h ${mins}m`
-    }
-    return `${mins} minutes`
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="font-semibold text-foreground">Workout Details</h1>
-          <button
-            onClick={onClose}
-            className="p-2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        ))}
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Date & Overview */}
-        <div>
-          <p className="text-lg font-semibold text-foreground">{formattedDate}</p>
-          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {formatDuration(workout.duration_seconds)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Dumbbell className="w-4 h-4" />
-              {workout.total_sets} sets
-            </span>
-            <span className="flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              {Math.round(workout.total_volume_kg)} kg
-            </span>
-          </div>
-        </div>
+      {/* ── Detail sheet ──────────────────────────────────────── */}
+      {sheetVisible && (
+        <>
+          {/* Backdrop */}
+          <div
+            className={cn(
+              'fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
+              sheetAnimated && !sheetExiting ? 'opacity-100' : 'opacity-0'
+            )}
+            onClick={closeSheet}
+          />
 
-        {/* Exercises */}
-        <div className="space-y-4">
-          {workout.workout_exercises.map((we) => (
-            <div key={we.id} className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold text-foreground">{we.exercise.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {we.sets.length} sets &middot;{' '}
-                  {Math.round(we.sets.reduce((sum, s) => sum + (s.reps * s.weight_kg), 0))} kg
-                </p>
-              </div>
-              <div className="divide-y divide-border/50">
-                {we.sets.map((set) => (
-                  <div key={set.id} className="flex items-center justify-between px-4 py-3">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-medium">
-                      {set.set_order}
-                    </span>
-                    <span className="text-foreground">
-                      {set.weight_kg} kg × {set.reps} reps
-                    </span>
+          {/* Positioning wrapper */}
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-6 pointer-events-none">
+            <div
+              className={cn(
+                'w-full md:max-w-sm pointer-events-auto',
+                'bg-[#0f1117] border-t border-x md:border border-white/10',
+                'rounded-t-3xl md:rounded-2xl',
+                'transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                'flex flex-col',
+                sheetAnimated && !sheetExiting
+                  ? 'translate-y-0 md:opacity-100 md:scale-100'
+                  : 'max-md:translate-y-full md:opacity-0 md:scale-95'
+              )}
+              style={{ maxHeight: '85dvh', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+            >
+              {/* Fixed sheet header */}
+              <div className="px-5 pt-5 pb-4 flex-shrink-0">
+                {/* Drag handle */}
+                <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
+
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Workout</p>
+                    {sheetWorkout && (
+                      <p className="text-base font-semibold text-foreground mt-0.5">
+                        {new Date(sheetWorkout.started_at).toLocaleDateString('en-US', {
+                          weekday: 'long', month: 'long', day: 'numeric'
+                        })}
+                      </p>
+                    )}
                   </div>
-                ))}
+                  <button
+                    onClick={closeSheet}
+                    className="shrink-0 flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto px-5 min-h-0">
+                {isLoadingDetail && (
+                  <div className="flex items-center justify-center gap-2 py-8">
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Loading…</span>
+                  </div>
+                )}
+
+                {!isLoadingDetail && sheetWorkout && (
+                  <>
+                    {/* Stats row */}
+                    <div className="flex gap-2 mb-4">
+                      {[
+                        { icon: Clock,      label: formatDuration(sheetWorkout.duration_seconds) },
+                        { icon: Dumbbell,   label: `${sheetWorkout.total_sets} sets` },
+                        { icon: TrendingUp, label: `${Math.round(sheetWorkout.total_volume_kg)} kg` },
+                      ].map(({ icon: Icon, label }) => (
+                        <div key={label} className="flex-1 flex items-center gap-1.5 bg-white/5 rounded-xl px-3 py-2">
+                          <Icon className="size-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-xs font-medium text-foreground truncate">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Exercises */}
+                    {sheetWorkout.workout_exercises.length > 0 && (
+                      <div className="rounded-2xl border border-white/8 overflow-hidden divide-y divide-border mb-4">
+                        {sheetWorkout.workout_exercises.map(we => {
+                          const vol = we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0)
+                          return (
+                            <div key={we.id}>
+                              <div className="px-4 py-3 flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {we.sets.length} sets · {Math.round(vol)} kg
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="divide-y divide-border/30">
+                                {we.sets.map(set => (
+                                  <div key={set.id} className="flex items-center justify-between px-4 py-2">
+                                    <span className="w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] flex items-center justify-center font-semibold shrink-0">
+                                      {set.set_order}
+                                    </span>
+                                    <span className="text-sm text-foreground">
+                                      {set.weight_kg} kg × {set.reps} reps
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Fixed sheet footer — delete */}
+              <div className="px-5 pt-4 flex-shrink-0 border-t border-white/5 mt-2">
+                {confirmDelete ? (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <AlertTriangle className="size-4 text-accent shrink-0" />
+                      <span>This will permanently delete the workout and all its data.</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={deleteWorkout}
+                        disabled={isDeleting}
+                        className="flex-1 rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:opacity-50"
+                      >
+                        {isDeleting
+                          ? <span className="flex items-center justify-center gap-2"><Loader2 className="size-4 animate-spin" />Deleting…</span>
+                          : 'Yes, delete'
+                        }
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={isDeleting}
+                        className="flex-1 rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground hover:bg-white/8 transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={isLoadingDetail}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground hover:text-accent hover:border-accent/25 hover:bg-accent/5 transition-all disabled:opacity-30"
+                  >
+                    <Trash2 className="size-4" />
+                    Delete workout
+                  </button>
+                )}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
+          </div>
+        </>
+      )}
+    </>
   )
 }

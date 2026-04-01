@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { WorkoutWithExercises, Exercise, LastExercisePerformance } from '@/lib/types'
+import type { WorkoutWithExercises, Exercise, LastExercisePerformance, ExerciseSet } from '@/lib/types'
 import { ExerciseCard } from './ExerciseCard'
 import { WorkoutSummary } from './WorkoutSummary'
-import { Timer, Plus, Check, X } from 'lucide-react'
+import { formatTime } from '@/lib/gym-utils'
+import { Plus, Check, X, Timer } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface WorkoutSessionProps {
   workout: WorkoutWithExercises
@@ -14,92 +16,69 @@ interface WorkoutSessionProps {
 }
 
 export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSessionProps) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [newExerciseName, setNewExerciseName] = useState('')
-  const [isAddingExercise, setIsAddingExercise] = useState(false)
+  const [elapsedSeconds, setElapsedSeconds]       = useState(0)
+  const [newExerciseName, setNewExerciseName]     = useState('')
+  const [isAddingExercise, setIsAddingExercise]   = useState(false)
   const [exerciseSuggestions, setExerciseSuggestions] = useState<Exercise[]>([])
-  const [showSummary, setShowSummary] = useState(false)
-  const [lastPerformances, setLastPerformances] = useState<Record<string, LastExercisePerformance>>({})
+  const [showSummary, setShowSummary]             = useState(false)
+  const [lastPerformances, setLastPerformances]   = useState<Record<string, LastExercisePerformance>>({})
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Timer
   useEffect(() => {
     const startTime = new Date(workout.started_at).getTime()
-    
-    const updateTimer = () => {
-      const now = Date.now()
-      setElapsedSeconds(Math.floor((now - startTime) / 1000))
-    }
-
-    updateTimer()
-    const interval = setInterval(updateTimer, 1000)
+    const update = () => setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000))
+    update()
+    const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
   }, [workout.started_at])
 
-  // Format time
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    if (hrs > 0) {
-      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // Search for exercises as user types
+  // Search exercises with debounce
   useEffect(() => {
-    const searchExercises = async () => {
-      if (newExerciseName.trim().length < 1) {
-        setExerciseSuggestions([])
-        return
-      }
-
+    const search = async () => {
+      if (newExerciseName.trim().length < 1) { setExerciseSuggestions([]); return }
       const { data } = await supabase
         .from('exercises')
         .select('*')
         .ilike('name_lower', `%${newExerciseName.toLowerCase()}%`)
         .limit(5)
-
-      if (data) {
-        setExerciseSuggestions(data)
-      }
+      if (data) setExerciseSuggestions(data)
     }
-
-    const debounce = setTimeout(searchExercises, 200)
-    return () => clearTimeout(debounce)
+    const t = setTimeout(search, 200)
+    return () => clearTimeout(t)
   }, [newExerciseName])
 
-  // Fetch last performance for all exercises in this workout
+  // Fetch last performance for all exercises — single query (fixes N+1)
   useEffect(() => {
     const fetchLastPerformances = async () => {
       const exerciseIds = workout.workout_exercises.map(we => we.exercise_id)
       if (exerciseIds.length === 0) return
 
+      const { data } = await supabase
+        .from('workout_exercises')
+        .select(`
+          exercise_id,
+          workout_id,
+          workout:workouts!inner(started_at, ended_at),
+          sets:exercise_sets(set_order, reps, weight_kg)
+        `)
+        .in('exercise_id', exerciseIds)
+        .neq('workout_id', workout.id)
+        .not('workout.ended_at', 'is', null)
+        .order('workout(started_at)', { ascending: false })
+
+      if (!data) return
+
+      // Group by exercise_id — first row per exercise is the most recent (desc order)
       const performances: Record<string, LastExercisePerformance> = {}
-
-      for (const exerciseId of exerciseIds) {
-        const { data } = await supabase
-          .from('workout_exercises')
-          .select(`
-            workout:workouts!inner (started_at, ended_at),
-            sets:exercise_sets (set_order, reps, weight_kg)
-          `)
-          .eq('exercise_id', exerciseId)
-          .not('workout.ended_at', 'is', null)
-          .neq('workout.id', workout.id)
-          .order('workout(started_at)', { ascending: false })
-          .limit(1)
-          .single()
-
-        if (data && data.sets && data.sets.length > 0) {
-          performances[exerciseId] = {
-            workout_date: (data.workout as { started_at: string }).started_at,
-            sets: data.sets.sort((a, b) => a.set_order - b.set_order)
+      for (const row of data) {
+        if (!performances[row.exercise_id]) {
+          performances[row.exercise_id] = {
+            workout_date: (row.workout as { started_at: string }).started_at,
+            sets: (row.sets as ExerciseSet[]).sort((a, b) => a.set_order - b.set_order),
           }
         }
       }
-
       setLastPerformances(performances)
     }
 
@@ -107,46 +86,36 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
   }, [workout.workout_exercises, workout.id])
 
   const addExercise = async (exerciseName: string) => {
-    const nameLower = exerciseName.trim().toLowerCase()
+    const nameTrimmed = exerciseName.trim().slice(0, 100)
+    const nameLower   = nameTrimmed.toLowerCase()
     if (!nameLower) return
 
-    // Check if exercise exists
     let exercise: Exercise | null = null
-    const { data: existingExercise } = await supabase
+
+    const { data: existing } = await supabase
       .from('exercises')
       .select('*')
       .eq('name_lower', nameLower)
       .single()
 
-    if (existingExercise) {
-      exercise = existingExercise
+    if (existing) {
+      exercise = existing
     } else {
-      // Create new exercise
-      const { data: newExercise } = await supabase
+      const { data: created } = await supabase
         .from('exercises')
-        .insert({
-          name: exerciseName.trim(),
-          name_lower: nameLower
-        })
+        .insert({ name: nameTrimmed, name_lower: nameLower })
         .select()
         .single()
-
-      if (newExercise) {
-        exercise = newExercise
-      }
+      if (created) exercise = created
     }
 
     if (!exercise) return
 
-    // Add exercise to workout
-    const nextOrder = workout.workout_exercises.length + 1
-    await supabase
-      .from('workout_exercises')
-      .insert({
-        workout_id: workout.id,
-        exercise_id: exercise.id,
-        exercise_order: nextOrder
-      })
+    await supabase.from('workout_exercises').insert({
+      workout_id:     workout.id,
+      exercise_id:    exercise.id,
+      exercise_order: workout.workout_exercises.length + 1,
+    })
 
     setNewExerciseName('')
     setIsAddingExercise(false)
@@ -154,21 +123,9 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
     onRefresh()
   }
 
-  const handleEndWorkout = () => {
-    setShowSummary(true)
-  }
-
-  const confirmEndWorkout = () => {
-    onEndWorkout()
-  }
-
-  // Calculate current stats
-  const totalSets = workout.workout_exercises.reduce(
-    (sum, we) => sum + we.sets.length, 
-    0
-  )
+  const totalSets   = workout.workout_exercises.reduce((sum, we) => sum + we.sets.length, 0)
   const totalVolume = workout.workout_exercises.reduce(
-    (sum, we) => sum + we.sets.reduce((setSum, set) => setSum + (set.reps * set.weight_kg), 0),
+    (sum, we) => sum + we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0),
     0
   )
 
@@ -179,7 +136,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
         duration={elapsedSeconds}
         totalSets={totalSets}
         totalVolume={totalVolume}
-        onConfirm={confirmEndWorkout}
+        onConfirm={onEndWorkout}
         onCancel={() => setShowSummary(false)}
       />
     )
@@ -187,116 +144,115 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header with Timer */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 glass-strong border-b border-white/5">
         <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
-              <Timer className="w-4 h-4 text-primary" />
-              <span className="font-mono font-semibold text-primary">
-                {formatTime(elapsedSeconds)}
-              </span>
-            </div>
+          {/* Timer */}
+          <div className="flex items-center gap-2 bg-accent/10 border border-accent/20 px-3 py-1.5 rounded-full">
+            <Timer className="size-3.5 text-accent" />
+            <span className="font-mono font-semibold text-accent tracking-wider text-sm">
+              {formatTime(elapsedSeconds)}
+            </span>
           </div>
+
+          {/* Finish */}
           <button
-            onClick={handleEndWorkout}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors"
+            onClick={() => setShowSummary(true)}
+            className="flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md shadow-accent/25 transition-all active:scale-95 hover:bg-accent/90"
           >
-            <Check className="w-4 h-4" />
+            <Check className="size-4" />
             Finish
           </button>
         </div>
 
-        {/* Live Stats */}
-        <div className="flex items-center justify-around px-4 py-2 border-t border-border/50">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Exercises</p>
-            <p className="font-semibold text-foreground">{workout.workout_exercises.length}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Sets</p>
-            <p className="font-semibold text-foreground">{totalSets}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Volume</p>
-            <p className="font-semibold text-foreground">{Math.round(totalVolume)} kg</p>
-          </div>
+        {/* Live stats */}
+        <div className="flex items-center px-4 pb-3 gap-3">
+          {[
+            { label: 'Exercises', value: workout.workout_exercises.length },
+            { label: 'Sets',      value: totalSets },
+            { label: 'Volume',    value: `${Math.round(totalVolume)} kg` },
+          ].map(stat => (
+            <div key={stat.label} className="flex-1 bg-white/5 rounded-xl px-3 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+              <p className="text-sm font-semibold text-foreground">{stat.value}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Exercise List */}
-      <div className="p-4 space-y-4">
-        {workout.workout_exercises.map((workoutExercise) => (
+      {/* Exercise list */}
+      <div className="mx-auto max-w-lg px-4 pt-4 space-y-3">
+        {workout.workout_exercises.map(we => (
           <ExerciseCard
-            key={workoutExercise.id}
-            workoutExercise={workoutExercise}
-            lastPerformance={lastPerformances[workoutExercise.exercise_id]}
+            key={we.id}
+            workoutExercise={we}
+            lastPerformance={lastPerformances[we.exercise_id]}
             onUpdate={onRefresh}
           />
         ))}
 
-        {/* Add Exercise */}
+        {/* Add exercise */}
         {isAddingExercise ? (
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-2 p-4">
               <input
                 ref={inputRef}
                 type="text"
                 value={newExerciseName}
-                onChange={(e) => setNewExerciseName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newExerciseName.trim()) {
-                    addExercise(newExerciseName)
-                  }
+                onChange={e => setNewExerciseName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newExerciseName.trim()) addExercise(newExerciseName)
                 }}
-                placeholder="Exercise name..."
-                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Exercise name…"
+                maxLength={100}
+                className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground/40 outline-none caret-accent"
                 autoFocus
               />
               <button
-                onClick={() => {
-                  setIsAddingExercise(false)
-                  setNewExerciseName('')
-                  setExerciseSuggestions([])
-                }}
-                className="p-2 text-muted-foreground hover:text-foreground"
+                onClick={() => { setIsAddingExercise(false); setNewExerciseName(''); setExerciseSuggestions([]) }}
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="size-4" />
               </button>
             </div>
 
-            {/* Suggestions */}
             {exerciseSuggestions.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground px-1">Previous exercises:</p>
-                {exerciseSuggestions.map(exercise => (
+              <div className="border-t border-border divide-y divide-border/40">
+                {exerciseSuggestions.map(ex => (
                   <button
-                    key={exercise.id}
-                    onClick={() => addExercise(exercise.name)}
-                    className="w-full text-left px-3 py-2 rounded-lg bg-background hover:bg-muted transition-colors text-foreground"
+                    key={ex.id}
+                    onClick={() => addExercise(ex.name)}
+                    className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-white/5 transition-colors"
                   >
-                    {exercise.name}
+                    {ex.name}
                   </button>
                 ))}
               </div>
             )}
 
             {newExerciseName.trim() && (
-              <button
-                onClick={() => addExercise(newExerciseName)}
-                className="w-full bg-primary text-primary-foreground py-2 rounded-lg font-medium"
-              >
-                Add &quot;{newExerciseName.trim()}&quot;
-              </button>
+              <div className="border-t border-border p-3">
+                <button
+                  onClick={() => addExercise(newExerciseName)}
+                  className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                >
+                  Add &quot;{newExerciseName.trim()}&quot;
+                </button>
+              </div>
             )}
           </div>
         ) : (
           <button
             onClick={() => setIsAddingExercise(true)}
-            className="w-full border-2 border-dashed border-border hover:border-primary/50 rounded-xl p-4 flex items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+            className={cn(
+              'w-full border-2 border-dashed border-border hover:border-accent/40 rounded-2xl p-4',
+              'flex items-center justify-center gap-2',
+              'text-sm text-muted-foreground hover:text-accent transition-colors'
+            )}
           >
-            <Plus className="w-5 h-5" />
-            <span>Add Exercise</span>
+            <Plus className="size-5" />
+            Add Exercise
           </button>
         )}
       </div>

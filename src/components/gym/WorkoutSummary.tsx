@@ -1,7 +1,9 @@
 'use client'
 
 import type { WorkoutWithExercises } from '@/lib/types'
+import { formatDuration } from '@/lib/gym-utils'
 import { Trophy, Clock, Dumbbell, TrendingUp, Check, ArrowLeft } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface WorkoutSummaryProps {
   workout: WorkoutWithExercises
@@ -18,112 +20,91 @@ export function WorkoutSummary({
   totalSets,
   totalVolume,
   onConfirm,
-  onCancel
+  onCancel,
 }: WorkoutSummaryProps) {
-  const formatDuration = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    if (hrs > 0) {
-      return `${hrs}h ${mins}m`
-    }
-    return `${mins}m`
-  }
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-border">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-lg px-4 pt-6 pb-10">
+
+        {/* Back */}
         <button
           onClick={onCancel}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to workout</span>
+          <ArrowLeft className="size-4" />
+          Back to workout
         </button>
-      </div>
 
-      {/* Summary Content */}
-      <div className="flex-1 p-6 flex flex-col items-center justify-center">
-        <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-6">
-          <Trophy className="w-8 h-8 text-primary" />
+        {/* Trophy */}
+        <div className="flex flex-col items-center text-center mb-8 calendar-animate-slide-in-up">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-accent/15 mb-4">
+            <Trophy className="size-8 text-accent" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Workout complete!</h1>
+          <p className="text-sm text-muted-foreground mt-1">Great job pushing through.</p>
         </div>
 
-        <h1 className="text-2xl font-bold text-foreground mb-2 text-balance text-center">Workout Complete!</h1>
-        <p className="text-muted-foreground mb-8 text-center">Great job pushing through!</p>
-
-        {/* Stats Grid */}
-        <div className="w-full max-w-sm grid grid-cols-3 gap-4 mb-8">
-          <SummaryStatCard
-            icon={<Clock className="w-5 h-5" />}
-            label="Duration"
-            value={formatDuration(duration)}
-          />
-          <SummaryStatCard
-            icon={<Dumbbell className="w-5 h-5" />}
-            label="Sets"
-            value={totalSets.toString()}
-          />
-          <SummaryStatCard
-            icon={<TrendingUp className="w-5 h-5" />}
-            label="Volume"
-            value={`${Math.round(totalVolume)}kg`}
-          />
+        {/* Stats grid */}
+        <div
+          className="grid grid-cols-3 gap-3 mb-5 calendar-animate-slide-in-up"
+          style={{ animationDelay: '60ms' }}
+        >
+          {[
+            { icon: Clock,      label: 'Duration', value: formatDuration(duration) },
+            { icon: Dumbbell,   label: 'Sets',     value: totalSets.toString() },
+            { icon: TrendingUp, label: 'Volume',   value: `${Math.round(totalVolume)} kg` },
+          ].map(({ icon: Icon, label, value }) => (
+            <div key={label} className="glass rounded-2xl p-4 text-center">
+              <Icon className="size-4 text-accent mx-auto mb-2" />
+              <p className="text-base font-bold text-foreground">{value}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">{label}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Exercise Breakdown */}
-        <div className="w-full max-w-sm space-y-2 mb-8">
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">Exercise Breakdown</h2>
-          {workout.workout_exercises.map((we) => {
-            const exerciseVolume = we.sets.reduce(
-              (sum, set) => sum + (set.reps * set.weight_kg),
-              0
-            )
-            return (
-              <div
-                key={we.id}
-                className="flex items-center justify-between bg-card border border-border rounded-lg p-3"
-              >
-                <div>
-                  <p className="font-medium text-foreground">{we.exercise.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {we.sets.length} sets
-                  </p>
+        {/* Exercise breakdown */}
+        {workout.workout_exercises.length > 0 && (
+          <div
+            className="glass rounded-2xl overflow-hidden divide-y divide-border mb-6 calendar-animate-slide-in-up"
+            style={{ animationDelay: '110ms' }}
+          >
+            <div className="px-4 py-3">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Exercise breakdown
+              </p>
+            </div>
+            {workout.workout_exercises.map((we) => {
+              const vol = we.sets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0)
+              return (
+                <div key={we.id} className="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{we.sets.length} sets</p>
+                  </div>
+                  <p className="text-sm font-semibold text-accent">{Math.round(vol)} kg</p>
                 </div>
-                <p className="text-primary font-semibold">{Math.round(exerciseVolume)} kg</p>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+              )
+            })}
+          </div>
+        )}
 
-      {/* Footer */}
-      <div className="p-4 border-t border-border">
+        {/* CTA */}
         <button
           onClick={onConfirm}
-          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors active:scale-[0.98]"
+          className={cn(
+            'w-full rounded-2xl px-6 py-4 text-sm font-semibold',
+            'bg-accent text-white shadow-lg shadow-accent/30',
+            'flex items-center justify-center gap-2',
+            'transition-all active:scale-[0.98] hover:bg-accent/90',
+            'calendar-animate-slide-in-up'
+          )}
+          style={{ animationDelay: '150ms' }}
         >
-          <Check className="w-5 h-5" />
-          <span>Save Workout</span>
+          <Check className="size-4" />
+          Save Workout
         </button>
-      </div>
-    </div>
-  )
-}
 
-function SummaryStatCard({
-  icon,
-  label,
-  value
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-4 text-center">
-      <div className="text-primary mb-2 flex justify-center">{icon}</div>
-      <p className="text-lg font-bold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      </div>
     </div>
   )
 }

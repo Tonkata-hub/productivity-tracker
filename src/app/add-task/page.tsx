@@ -3,236 +3,250 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { TaskType, TaskPriority } from '@/lib/types'
-import { PlusCircle, CheckCircle2, AlertCircle, CalendarDays, Flag, Type, BarChart2 } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const PRIORITIES: { value: TaskPriority | ''; label: string; on: string }[] = [
+  { value: '',       label: 'None', on: 'bg-white/10 text-foreground border-white/20' },
+  { value: 'low',    label: 'Low',  on: 'bg-zinc-500/20 text-zinc-300 border-zinc-400/40' },
+  { value: 'medium', label: 'Med',  on: 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40' },
+  { value: 'high',   label: 'High', on: 'bg-accent/20 text-accent border-accent/40' },
+]
 
 export default function AddTaskPage() {
-  const [title, setTitle] = useState('')
-  const [type, setType] = useState<TaskType>('daily')
-  const [priority, setPriority] = useState<TaskPriority | ''>('')
-  const [dueDate, setDueDate] = useState('')
+  const [title, setTitle]           = useState('')
+  const [type, setType]             = useState<TaskType>('daily')
+  const [priority, setPriority]     = useState<TaskPriority | ''>('')
+  const [dueDate, setDueDate]       = useState('')
   const [targetValue, setTargetValue] = useState('')
-  const [unit, setUnit] = useState('')
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [unit, setUnit]             = useState('')
+  const [status, setStatus]         = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setStatus('idle')
-    setIsSubmitting(true)
+    if (status === 'submitting' || status === 'success') return
+    setStatus('submitting')
 
     const { error } = await supabase.from('tasks').insert({
       title,
       type,
-      priority: priority || null,
-      due_date: type === 'one_time' ? dueDate || null : null,
+      priority:     priority || null,
+      due_date:     type === 'one_time' ? dueDate || null : null,
       target_value: targetValue ? Number(targetValue) : null,
-      unit: unit || null,
+      unit:         unit || null,
     })
-
-    setIsSubmitting(false)
 
     if (error) {
       console.error(error)
       setStatus('error')
-    } else {
-      setTitle('')
-      setType('daily')
-      setPriority('')
-      setDueDate('')
-      setTargetValue('')
-      setUnit('')
-      setStatus('success')
-      // Auto-dismiss success message after 3 seconds
       setTimeout(() => setStatus('idle'), 3000)
+    } else {
+      setStatus('success')
+      setTimeout(() => {
+        setTitle('')
+        setType('daily')
+        setPriority('')
+        setDueDate('')
+        setTargetValue('')
+        setUnit('')
+        setStatus('idle')
+      }, 1800)
     }
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
-      {/* Subtle background gradient */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-white/2 blur-[120px]" />
-        <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-white/1 blur-[100px]" />
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-lg px-4 pt-6 pb-24 space-y-5">
 
-      <main className="relative flex-1 p-4 pb-8">
-        <div className="mx-auto max-w-lg space-y-6">
-          {/* Header */}
-          <div className="glass rounded-2xl p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-xl bg-white/10 border border-glass-border">
-                <PlusCircle className="size-6 text-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Add New Task</h1>
-                <p className="text-sm text-muted-foreground">Create a new task to track</p>
-              </div>
-            </div>
-          </div>
+        {/* Header */}
+        <div className="calendar-animate-slide-in-up">
+          <p className="text-xs text-muted-foreground uppercase tracking-widest">New task</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground mt-1">
+            What needs doing?
+          </h1>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Title Input */}
-            <div className="glass rounded-2xl p-4">
-              <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                <Type className="size-4 text-muted-foreground" />
-                Task Title
-              </label>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-3 calendar-animate-slide-in-up"
+          style={{ animationDelay: '60ms' }}
+        >
+          {/* Unified form card */}
+          <div className="glass rounded-2xl overflow-hidden w-full">
+
+            {/* Title — big, focal, borderless */}
+            <div className="px-5 pt-5 pb-4">
               <input
-                className="w-full rounded-xl border border-glass-border bg-white/5 px-4 py-3 text-foreground placeholder-muted-foreground outline-none transition-all focus:border-mars-red/50 focus:ring-2 focus:ring-mars-red/20"
+                className="w-full bg-transparent text-xl font-medium text-foreground placeholder-muted-foreground/35 outline-none caret-accent"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter task title..."
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Task title…"
                 required
+                autoFocus
               />
             </div>
 
-            {/* Type Selection */}
-            <div className="glass rounded-2xl p-4">
-              <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                <CalendarDays className="size-4 text-muted-foreground" />
-                Task Type
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setType('daily')}
-                  className={`rounded-xl border px-4 py-3 text-sm font-medium transition-all ${
-                    type === 'daily'
-                      ? 'border-mars-red bg-mars-red/20 text-mars-red'
-                      : 'border-glass-border bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                  }`}
-                >
-                  Daily
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType('one_time')}
-                  className={`rounded-xl border px-4 py-3 text-sm font-medium transition-all ${
-                    type === 'one_time'
-                      ? 'border-mars-red bg-mars-red/20 text-mars-red'
-                      : 'border-glass-border bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                  }`}
-                >
-                  One-time
-                </button>
-              </div>
-            </div>
+            <div className="border-t border-border" />
 
-            {/* Priority Selection */}
-            <div className="glass rounded-2xl p-4">
-              <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                <Flag className="size-4 text-muted-foreground" />
-                Priority
-                <span className="ml-auto text-xs font-normal text-muted-foreground">optional</span>
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { value: '', label: 'None', color: 'text-muted-foreground' },
-                  { value: 'low', label: 'Low', color: 'text-blue-400' },
-                  { value: 'medium', label: 'Med', color: 'text-yellow-400' },
-                  { value: 'high', label: 'High', color: 'text-mars-red' },
-                ].map((option) => (
+            {/* Type — sliding pill toggle */}
+            <div className="px-5 py-3.5 flex items-center justify-between gap-4">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Type
+              </span>
+              <div className="relative grid grid-cols-2 rounded-lg bg-white/5 p-0.5">
+                {/* sliding background */}
+                <div
+                  className="absolute top-0.5 bottom-0.5 rounded-md bg-accent transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  style={{
+                    width: 'calc(50% - 2px)',
+                    transform: type === 'daily'
+                      ? 'translateX(2px)'
+                      : 'translateX(calc(100% + 2px))',
+                  }}
+                />
+                {(['daily', 'one_time'] as const).map(t => (
                   <button
-                    key={option.value}
+                    key={t}
                     type="button"
-                    onClick={() => setPriority(option.value as TaskPriority | '')}
-                    className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
-                      priority === option.value
-                        ? option.value === 'high'
-                          ? 'border-mars-red bg-mars-red/20 text-mars-red'
-                          : option.value === 'medium'
-                          ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400'
-                          : option.value === 'low'
-                          ? 'border-blue-400 bg-blue-400/20 text-blue-400'
-                          : 'border-foreground/30 bg-foreground/10 text-foreground'
-                        : 'border-glass-border bg-white/5 text-muted-foreground hover:bg-white/10'
-                    }`}
+                    onClick={() => setType(t)}
+                    className={cn(
+                      'relative z-10 px-4 py-1.5 rounded-md text-xs font-semibold transition-colors duration-150 text-center whitespace-nowrap',
+                      type === t ? 'text-white' : 'text-muted-foreground'
+                    )}
                   >
-                    {option.label}
+                    {t === 'daily' ? 'Daily' : 'One-time'}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Target Amount (optional, works for any task type) */}
-            <div className="glass rounded-2xl p-4">
-              <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                <BarChart2 className="size-4 text-muted-foreground" />
-                Target Amount
-                <span className="ml-auto text-xs text-muted-foreground font-normal">optional</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="border-t border-border" />
+
+            {/* Priority */}
+            <div className="px-5 py-3.5 flex items-center justify-between gap-4">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Priority
+              </span>
+              <div className="flex gap-1.5">
+                {PRIORITIES.map(p => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPriority(p.value)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-150',
+                      priority === p.value
+                        ? p.on
+                        : 'border-transparent bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/8'
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* Target amount */}
+            <div className="px-5 py-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Target
+                </span>
+                <span className="text-[10px] text-muted-foreground/50">optional</span>
+              </div>
+              <div className="flex gap-2">
                 <input
                   type="number"
                   min="1"
                   step="any"
-                  className="rounded-xl border border-glass-border bg-white/5 px-4 py-3 text-foreground placeholder-muted-foreground outline-none transition-all focus:border-mars-red/50 focus:ring-2 focus:ring-mars-red/20"
+                  className="w-28 min-w-0 rounded-lg border border-glass-border bg-white/5 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
                   value={targetValue}
-                  onChange={(e) => setTargetValue(e.target.value)}
+                  onChange={e => setTargetValue(e.target.value)}
                   placeholder="e.g. 2000"
                 />
                 <input
                   type="text"
-                  className="rounded-xl border border-glass-border bg-white/5 px-4 py-3 text-foreground placeholder-muted-foreground outline-none transition-all focus:border-mars-red/50 focus:ring-2 focus:ring-mars-red/20"
+                  className="flex-1 min-w-0 rounded-lg border border-glass-border bg-white/5 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
                   value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
+                  onChange={e => setUnit(e.target.value)}
                   placeholder="unit (ml, steps…)"
                 />
               </div>
             </div>
 
-            {/* Due Date (conditional) */}
-            {type === 'one_time' && (
-              <div className="glass rounded-2xl p-4">
-                <label className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                  <CalendarDays className="size-4 text-muted-foreground" />
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  className="w-full rounded-xl border border-glass-border bg-white/5 px-4 py-3 text-foreground outline-none transition-all focus:border-mars-red/50 focus:ring-2 focus:ring-mars-red/20 [color-scheme:dark]"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-2xl bg-mars-red px-6 py-4 text-base font-semibold text-white shadow-lg shadow-mars-red/30 transition-all hover:bg-mars-red/90 hover:shadow-xl hover:shadow-mars-red/40 disabled:cursor-not-allowed disabled:opacity-50"
+            {/* Due date — CSS-only enter/exit via grid-template-rows */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateRows: type === 'one_time' ? '1fr' : '0fr',
+                transition: 'grid-template-rows 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
             >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="size-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Adding Task...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <PlusCircle className="size-5" />
-                  Add Task
-                </span>
-              )}
-            </button>
-          </form>
+              <div className="overflow-hidden">
+                <div
+                  style={{
+                    opacity: type === 'one_time' ? 1 : 0,
+                    transform: type === 'one_time' ? 'translateY(0)' : 'translateY(-6px)',
+                    transition: 'opacity 0.2s, transform 0.2s',
+                  }}
+                >
+                  <div className="border-t border-border" />
+                  <div className="px-5 py-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Due date
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/50">optional</span>
+                    </div>
+                    <input
+                      type="date"
+                      className="w-full rounded-lg border border-glass-border bg-white/5 px-3 py-2 text-sm text-foreground outline-none focus:border-accent/50 transition-colors [color-scheme:dark]"
+                      value={dueDate}
+                      onChange={e => setDueDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          {/* Status Messages */}
-          {status === 'success' && (
-            <div className="glass flex items-center gap-3 rounded-2xl border-green-500/30 bg-green-500/10 p-4">
-              <CheckCircle2 className="size-5 text-green-400" />
-              <p className="text-sm font-medium text-green-400">Task added successfully!</p>
-            </div>
-          )}
-          {status === 'error' && (
-            <div className="glass flex items-center gap-3 rounded-2xl border-mars-red/30 bg-mars-red/10 p-4">
-              <AlertCircle className="size-5 text-mars-red" />
-              <p className="text-sm font-medium text-mars-red">Something went wrong. Please try again.</p>
-            </div>
-          )}
-        </div>
-      </main>
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={status === 'submitting' || status === 'success' || !title.trim()}
+            className={cn(
+              'w-full rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2',
+              status === 'success'
+                ? 'bg-green-500 text-white shadow-lg shadow-green-500/25'
+                : status === 'error'
+                ? 'bg-accent/70 text-white'
+                : 'bg-accent text-white hover:bg-accent/90 shadow-lg shadow-accent/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none'
+            )}
+          >
+            {status === 'submitting' ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Adding…
+              </>
+            ) : status === 'success' ? (
+              <>
+                <Check className="w-4 h-4" />
+                Added!
+              </>
+            ) : status === 'error' ? (
+              'Something went wrong — try again'
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Add Task
+              </>
+            )}
+          </button>
+        </form>
+
+      </div>
     </div>
   )
 }

@@ -204,6 +204,14 @@
 	animation: slide-in-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes slide-out-down {
+	from { opacity: 1; transform: translateY(0); }
+	to   { opacity: 0; transform: translateY(12px); }
+}
+.calendar-animate-slide-out-down {
+	animation: slide-out-down 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Scrollbar styling */
 .scrollbar-none {
 	-ms-overflow-style: none;
