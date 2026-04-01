@@ -15,6 +15,8 @@ interface WorkoutSessionProps {
   onRefresh: () => void
 }
 
+type WorkoutRelation = { started_at: string } | { started_at: string }[]
+
 export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSessionProps) {
   const [elapsedSeconds, setElapsedSeconds]       = useState(0)
   const [newExerciseName, setNewExerciseName]     = useState('')
@@ -73,8 +75,14 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh }: WorkoutSess
       const performances: Record<string, LastExercisePerformance> = {}
       for (const row of data) {
         if (!performances[row.exercise_id]) {
+          const workoutRelation = row.workout as WorkoutRelation
+          const startedAt = Array.isArray(workoutRelation)
+            ? workoutRelation[0]?.started_at
+            : workoutRelation?.started_at
+          if (!startedAt) continue
+
           performances[row.exercise_id] = {
-            workout_date: (row.workout as { started_at: string }).started_at,
+            workout_date: startedAt,
             sets: (row.sets as ExerciseSet[]).sort((a, b) => a.set_order - b.set_order),
           }
         }
