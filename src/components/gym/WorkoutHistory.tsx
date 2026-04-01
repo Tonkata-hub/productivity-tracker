@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabase'
 import type { Workout, WorkoutWithExercises } from '@/lib/types'
 import { formatDuration } from '@/lib/gym-utils'
@@ -20,6 +21,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [isDeleting, setIsDeleting]       = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set())
 
   // Enter animation — two RAF frames after sheet mounts
   useEffect(() => {
@@ -30,9 +32,20 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
     return () => cancelAnimationFrame(id)
   }, [sheetVisible])
 
+  // Lock page scroll while the detail sheet is open.
+  useEffect(() => {
+    if (!sheetVisible) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [sheetVisible])
+
   const openSheet = async (workoutId: string) => {
-    setSheetAnimated(false)  // reset before mounting so the enter animation plays
+    setSheetAnimated(false)
     setConfirmDelete(false)
+    setExpandedExercises(new Set())
     setIsLoadingDetail(true)
     setSheetExiting(false)
     setSheetVisible(true)
@@ -67,6 +80,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
       setSheetVisible(false)
       setSheetExiting(false)
       setSheetWorkout(null)
+      setExpandedExercises(new Set())
     }, 300)
   }
 
@@ -84,6 +98,15 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
 
     closeSheet()
     onWorkoutDeleted()
+  }
+
+  const toggleExercise = (id: string) => {
+    setExpandedExercises(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const groupByMonth = (ws: Workout[]) => {
@@ -133,7 +156,6 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                     onClick={() => openSheet(workout.id)}
                     className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/3 transition-colors group"
                   >
-                    {/* Primary: name (if set) or date */}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">
                         {workout.name || dateStr}
@@ -142,8 +164,6 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                         {workout.name ? dateStr + ' · ' : ''}{workout.total_sets} sets · {Math.round(workout.total_volume_kg)} kg
                       </p>
                     </div>
-
-                    {/* Duration + chevron */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-sm font-semibold text-accent">
                         {formatDuration(workout.duration_seconds)}
@@ -159,19 +179,19 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
       </div>
 
       {/* ── Detail sheet ──────────────────────────────────────── */}
-      {sheetVisible && (
+      {sheetVisible && createPortal(
         <>
           {/* Backdrop */}
           <div
             className={cn(
-              'fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
+              'fixed inset-0 z-60 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
               sheetAnimated && !sheetExiting ? 'opacity-100' : 'opacity-0'
             )}
             onClick={closeSheet}
           />
 
           {/* Positioning wrapper */}
-          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-6 pointer-events-none">
+          <div className="fixed inset-0 z-70 flex items-end md:items-center justify-center md:p-6 pointer-events-none">
             <div
               className={cn(
                 'w-full md:max-w-sm pointer-events-auto',
@@ -187,7 +207,6 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
             >
               {/* Fixed sheet header */}
               <div className="px-5 pt-5 pb-4 flex-shrink-0">
-                {/* Drag handle */}
                 <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
 
                 <div className="flex items-start justify-between gap-3">
@@ -240,33 +259,86 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                       ))}
                     </div>
 
-                    {/* Exercises — best set per exercise */}
+                    {/* Exercises — expandable accordion */}
                     {sheetWorkout.workout_exercises.length > 0 && (
                       <div className="rounded-2xl border border-white/8 overflow-hidden divide-y divide-border mb-4">
                         {sheetWorkout.workout_exercises.map(we => {
-                          const vol = we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0)
+                          const vol     = we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0)
                           const bestSet = we.sets.length > 0
                             ? we.sets.reduce((best, s) =>
                                 s.reps * s.weight_kg > best.reps * best.weight_kg ? s : best,
                                 we.sets[0]
                               )
                             : null
+                          const isExpanded = expandedExercises.has(we.id)
+
                           return (
-                            <div key={we.id} className="flex items-center justify-between px-4 py-3">
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {we.sets.length} sets · {Math.round(vol)} kg
-                                </p>
-                              </div>
-                              {bestSet && (
-                                <div className="shrink-0 text-right">
-                                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Best set</p>
-                                  <p className="text-sm font-semibold text-foreground">
-                                    {bestSet.weight_kg} kg × {bestSet.reps}
+                            <div key={we.id}>
+                              {/* Exercise header row — tap to expand */}
+                              <button
+                                onClick={() => toggleExercise(we.id)}
+                                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/3 transition-colors group"
+                              >
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    {we.sets.length} {we.sets.length === 1 ? 'set' : 'sets'} · {Math.round(vol)} kg
                                   </p>
                                 </div>
-                              )}
+                                <ChevronRight
+                                  className={cn(
+                                    'size-4 text-muted-foreground/40 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                                    isExpanded && 'rotate-90'
+                                  )}
+                                />
+                              </button>
+
+                              {/* Expandable set list */}
+                              <div
+                                className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                                style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}
+                              >
+                                <div className="overflow-hidden">
+                                  <div className="border-t border-white/5">
+                                    {we.sets.map((set, i) => {
+                                      const isBest = bestSet?.id === set.id
+                                      return (
+                                        <div
+                                          key={set.id}
+                                          className={cn(
+                                            'flex items-center gap-3 px-4 py-2.5 transition-all duration-200',
+                                            isBest
+                                              ? 'bg-accent/8 border-l-2 border-accent/50'
+                                              : 'border-l-2 border-transparent',
+                                            isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
+                                          )}
+                                          style={{ transitionDelay: isExpanded ? `${i * 40}ms` : '0ms' }}
+                                        >
+                                          {/* Set number */}
+                                          <span className="flex size-5 items-center justify-center rounded-md bg-white/6 text-[10px] font-bold text-muted-foreground shrink-0">
+                                            {set.set_order}
+                                          </span>
+
+                                          {/* Weight × reps */}
+                                          <span className="flex-1 text-sm text-foreground">
+                                            <span className="font-semibold">{set.weight_kg}</span>
+                                            <span className="text-muted-foreground/60 text-xs"> kg</span>
+                                            <span className="text-muted-foreground/40 mx-1.5">×</span>
+                                            <span className="font-semibold">{set.reps}</span>
+                                          </span>
+
+                                          {/* Best badge */}
+                                          {isBest && (
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-accent shrink-0">
+                                              Best
+                                            </span>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           )
                         })}
@@ -317,7 +389,8 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   )

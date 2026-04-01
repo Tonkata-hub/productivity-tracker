@@ -64,9 +64,6 @@ export function Navbar() {
               >
                 <Icon className={cn("size-4 flex-shrink-0", active && "text-accent")} />
                 {label}
-                {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-                )}
               </Link>
             );
           })}
@@ -122,12 +119,7 @@ export function Navbar() {
                   active ? "text-accent" : "text-muted-foreground"
                 )}
               >
-                <div className="relative">
-                  <Icon className={cn("size-5 transition-transform duration-150", active && "scale-110")} />
-                  {active && (
-                    <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent" />
-                  )}
-                </div>
+                <Icon className={cn("size-5 transition-transform duration-150", active && "scale-110")} />
                 <span className="text-[10px] font-semibold tracking-wide">{label}</span>
               </Link>
             );
