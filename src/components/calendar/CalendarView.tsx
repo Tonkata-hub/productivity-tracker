@@ -472,19 +472,20 @@ export function CalendarView() {
             ))}
           </div>
 
-          {/* Desktop: Full-width grid */}
-          <div className="hidden lg:grid lg:grid-cols-7 gap-3">
+          {/* Desktop: Horizontal scroll with minimum card width */}
+          <div className="hidden lg:flex lg:gap-3 lg:overflow-x-auto lg:pb-1 scrollbar-none">
             {weekData.map((dayData, index) => (
-              <DayCard
-                key={dayData.date}
-                dayData={dayData}
-                onToggleTask={handleToggleTask}
-                onLogQuantitative={handleLogQuantitative}
-                index={index}
-                totalCards={weekData.length}
-                stackMode="desktop"
-                isHighlighted={highlightedDate === dayData.date}
-              />
+              <div key={dayData.date} className="min-w-[250px] shrink-0">
+                <DayCard
+                  dayData={dayData}
+                  onToggleTask={handleToggleTask}
+                  onLogQuantitative={handleLogQuantitative}
+                  index={index}
+                  totalCards={weekData.length}
+                  stackMode="desktop"
+                  isHighlighted={highlightedDate === dayData.date}
+                />
+              </div>
             ))}
           </div>
         </div>

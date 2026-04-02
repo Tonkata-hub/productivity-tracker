@@ -2,25 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, BarChart2, PlusCircle, ListChecks, Dumbbell, LogOut, Home } from "lucide-react";
+import { CalendarDays, PlusCircle, ListChecks, Dumbbell, LogOut, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
+type NavItem = {
+  icon: (typeof Home) | (typeof CalendarDays) | (typeof PlusCircle) | (typeof Dumbbell) | (typeof ListChecks);
+  label: string;
+  mobileLabel?: string;
+  href: string;
+  fab?: boolean;
+};
+
+const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: "Home", href: "/" },
   { icon: CalendarDays, label: "Calendar", href: "/calendar" },
-  { icon: PlusCircle, label: "Add Task", href: "/add-task" },
+  { icon: PlusCircle, label: "Add Task", mobileLabel: "Add", href: "/add-task", fab: true },
   { icon: Dumbbell, label: "Gym", href: "/gym" },
-  { icon: ListChecks, label: "Manage Tasks", href: "/manage-tasks" },
-  { icon: BarChart2, label: "Analytics", href: "/analytics" },
-] as const;
-
-const TAB_ITEMS = [
-  { icon: Home, label: "Home", href: "/", fab: false },
-  { icon: CalendarDays, label: "Calendar", href: "/calendar", fab: false },
-  { icon: PlusCircle, label: "Add", href: "/add-task", fab: true },
-  { icon: Dumbbell, label: "Gym", href: "/gym", fab: false },
-  { icon: ListChecks, label: "Manage", href: "/manage-tasks", fab: false },
-] as const;
+  { icon: ListChecks, label: "Manage Tasks", mobileLabel: "Manage", href: "/manage-tasks" },
+];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -31,7 +30,7 @@ export function Navbar() {
   return (
     <>
       {/* ── Desktop sidebar ─────────────────────────────────────── */}
-      <aside className="hidden md:flex fixed top-0 left-0 h-full w-56 flex-col z-50 border-r border-white/5 bg-[#0a0b0f]">
+      <aside className="hidden md:flex fixed top-0 left-0 h-full w-56 flex-col z-50 border-r border-white/5 navbar-glass">
         {/* Brand */}
         <div className="flex items-center gap-3 px-5 h-16 border-b border-white/5 shrink-0">
           <div className="flex size-8 items-center justify-center rounded-xl bg-accent shadow-md shadow-accent/40">
@@ -77,12 +76,13 @@ export function Navbar() {
 
       {/* ── Mobile bottom tab bar ───────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden glass-strong border-t border-white/5"
+        className="fixed bottom-0 left-0 right-0 z-50 md:hidden navbar-glass border-t border-white/5"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex items-stretch h-16">
-          {TAB_ITEMS.map(({ icon: Icon, label, href, fab }) => {
+          {NAV_ITEMS.map(({ icon: Icon, href, fab, label, mobileLabel }) => {
             const active = isActive(href);
+            const itemLabel = mobileLabel ?? label;
 
             if (fab) {
               return (
@@ -116,7 +116,7 @@ export function Navbar() {
                 )}
               >
                 <Icon className={cn("size-5 transition-transform duration-150", active && "scale-110")} />
-                <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+                <span className="text-[10px] font-semibold tracking-wide">{itemLabel}</span>
               </Link>
             );
           })}

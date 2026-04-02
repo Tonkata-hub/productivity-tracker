@@ -136,6 +136,14 @@
   }
 }
 
+/* Navbar frosted-glass effect */
+.navbar-glass {
+  background-color: rgba(10, 11, 15, 0.5); /* fallback for when CSS vars aren't resolved yet (dev mode) */
+  background-color: color-mix(in oklab, var(--color-background) 50%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 /* Glassmorphism utilities */
 .glass {
   background: var(--glass-bg);
