@@ -49,7 +49,11 @@ export function Navbar() {
       {/* ── Desktop sidebar ─────────────────────────────────────── */}
       <aside className="hidden md:flex fixed top-0 left-0 h-full w-56 flex-col z-50 border-r border-white/5 navbar-glass">
         {/* Brand */}
-        <div className="flex items-center gap-3 px-5 h-16 border-b border-white/5 shrink-0">
+        <Link
+          href="/"
+          className="flex items-center gap-3 px-5 h-16 border-b border-white/5 shrink-0"
+          aria-label="Go to homepage"
+        >
           <div className="flex size-8 items-center justify-center rounded-xl bg-accent shadow-md shadow-accent/40">
             <CalendarDays className="size-4 text-white" />
           </div>
@@ -57,7 +61,7 @@ export function Navbar() {
             <span className="text-sm font-bold tracking-tight text-foreground">Productivity</span>
             <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Tracker</span>
           </div>
-        </div>
+        </Link>
 
         {/* Nav items */}
         <nav className="flex-1 flex flex-col gap-0.5 px-3 py-4 overflow-y-auto">
@@ -95,7 +99,7 @@ export function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 md:hidden navbar-glass border-b border-white/5">
         <div className="flex items-center justify-between px-4 h-14">
           {/* Brand */}
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3" aria-label="Go to homepage">
             <div className="flex size-8 items-center justify-center rounded-xl bg-accent shadow-md shadow-accent/40">
               <CalendarDays className="size-4 text-white" />
             </div>
@@ -103,7 +107,7 @@ export function Navbar() {
               <span className="text-sm font-bold tracking-tight text-foreground">Productivity</span>
               <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Tracker</span>
             </div>
-          </div>
+          </Link>
 
           {/* Hamburger / Close */}
           <button
