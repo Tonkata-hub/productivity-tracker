@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { TaskWithStatus } from "@/lib/types";
+import { TaskWithStatus, TaskPriority } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Repeat, Clock, AlertCircle, Flag, Calendar, Plus, Check } from "lucide-react";
+import { Repeat, Clock, AlertCircle, Calendar, Plus, Check } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 
 interface TaskItemProps {
@@ -13,11 +13,17 @@ interface TaskItemProps {
   onLogValue?: (taskId: string, amount: number) => void;
 }
 
-const priorityConfig = {
-  high: { label: "High", className: "text-mars-red" },
-  medium: { label: "Medium", className: "text-amber-400" },
-  low: { label: "Low", className: "text-muted-foreground" },
-};
+function PriorityIndicator({ priority }: { priority: TaskPriority | null }) {
+  if (!priority || priority === "low") return null;
+  return (
+    <div
+      className={cn(
+        "absolute left-0 top-1 bottom-1 w-[3px] rounded-full",
+        priority === "high" ? "bg-mars-red" : "bg-amber-400"
+      )}
+    />
+  );
+}
 
 function overdueDays(dueDate: string): number {
   return differenceInDays(new Date(), parseISO(dueDate));
@@ -43,7 +49,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
     setInputValue("");
   };
 
-  const hasMeta = task.priority || task.due_date || task.isOverdue || task.isDueToday;
+  const hasMeta = task.due_date || task.isOverdue || task.isDueToday;
 
   if (task.target_value != null) {
     const progress = Math.min((task.currentValue / task.target_value) * 100, 100);
@@ -59,6 +65,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
         role="listitem"
         onClick={() => setShowInput(true)}
       >
+        <PriorityIndicator priority={task.priority} />
         {/* Main row */}
         <div className="flex items-center gap-3">
           {/* + button */}
@@ -105,17 +112,6 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
             {/* Meta info below progress bar */}
             {hasMeta && (
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                {task.priority && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] font-medium",
-                      priorityConfig[task.priority].className
-                    )}
-                  >
-                    <Flag className="size-2.5" />
-                    {priorityConfig[task.priority].label}
-                  </span>
-                )}
                 {task.isOverdue && !task.isCompleted && task.due_date && (
                   <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
                     <AlertCircle className="size-2.5" />
@@ -200,6 +196,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
       role="listitem"
       onClick={handleToggle}
     >
+      <PriorityIndicator priority={task.priority} />
       {/* Checkbox with custom styling */}
       <div className="relative flex shrink-0 items-center self-center">
         <Checkbox
@@ -207,7 +204,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           onCheckedChange={handleToggle}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "size-5 rounded-md border-2 transition-all duration-200",
+            "size-5 rounded-full border-2 transition-all duration-200",
             "border-white/20 bg-transparent",
             "data-[state=checked]:border-white/40 data-[state=checked]:bg-white/10",
             "hover:border-white/30"
@@ -233,19 +230,6 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           {/* Meta info row - priority, due date, status badges */}
           {hasMeta && (
             <div className="flex flex-wrap items-center gap-2">
-              {/* Priority */}
-              {task.priority && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 text-[10px] font-medium",
-                    priorityConfig[task.priority].className
-                  )}
-                >
-                  <Flag className="size-2.5" />
-                  {priorityConfig[task.priority].label}
-                </span>
-              )}
-
               {/* Due date for one-time tasks */}
               {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">

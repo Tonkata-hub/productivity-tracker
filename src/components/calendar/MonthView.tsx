@@ -15,7 +15,6 @@ interface MonthViewProps {
 }
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
-const MAX_DOTS = 6;
 
 export function MonthView({ baseDate, tasks, completions, onDayClick, direction = "none" }: MonthViewProps) {
   const monthDates = useMemo(() => getMonthDates(baseDate), [baseDate]);
@@ -72,13 +71,16 @@ export function MonthView({ baseDate, tasks, completions, onDayClick, direction 
               const isCurrentMonth = date.getMonth() === currentMonth;
               const isToday = dateISO === todayISO;
               const dayTasks = dayTasksMap.get(dateISO) || [];
-              const completedTasks = dayTasks.filter((t) => t.isCompleted);
-              const incompleteTasks = dayTasks.filter((t) => !t.isCompleted);
-              const shownCompleted = completedTasks.slice(0, MAX_DOTS);
-              const remaining = MAX_DOTS - shownCompleted.length;
-              const shownIncomplete = incompleteTasks.slice(0, Math.max(0, remaining));
-              const totalShown = shownCompleted.length + shownIncomplete.length;
-              const overflow = dayTasks.length - totalShown;
+              const completedCount = dayTasks.filter((t) => t.isCompleted).length;
+              const fraction = dayTasks.length > 0 ? completedCount / dayTasks.length : 0;
+              const heatBg =
+                fraction === 0
+                  ? ""
+                  : fraction < 0.5
+                    ? "bg-mars-red/8"
+                    : fraction < 1
+                      ? "bg-mars-red/16"
+                      : "bg-mars-red/25";
 
               return (
                 <button
@@ -86,10 +88,10 @@ export function MonthView({ baseDate, tasks, completions, onDayClick, direction 
                   onClick={() => onDayClick(date)}
                   className={cn(
                     "relative flex flex-col items-center justify-start gap-1 rounded-lg p-1.5 transition-all duration-200",
-                    "min-h-[52px] sm:min-h-[60px]",
+                    "min-h-[56px] sm:min-h-[64px]",
                     "hover:bg-white/10 active:scale-95",
                     isCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
-                    isToday && "ring-1 ring-mars-red bg-mars-red/10"
+                    isToday ? "ring-1 ring-mars-red bg-mars-red/10" : heatBg
                   )}
                   aria-label={`${date.toLocaleDateString("en-US", {
                     weekday: "long",
@@ -101,29 +103,6 @@ export function MonthView({ baseDate, tasks, completions, onDayClick, direction 
                   <span className={cn("text-sm font-medium", isToday && "text-mars-red font-bold")}>
                     {date.getDate()}
                   </span>
-
-                  {/* Task dots */}
-                  {dayTasks.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-0.5 max-w-[40px]">
-                      {shownCompleted.map((task, i) => (
-                        <div
-                          key={`c-${task.id}-${i}`}
-                          className="size-1.5 rounded-full bg-emerald-500"
-                          title={task.title}
-                        />
-                      ))}
-                      {shownIncomplete.map((task, i) => (
-                        <div
-                          key={`i-${task.id}-${i}`}
-                          className="size-1.5 rounded-full bg-muted-foreground/50"
-                          title={task.title}
-                        />
-                      ))}
-                      {overflow > 0 && (
-                        <span className="text-[8px] leading-[10px] text-muted-foreground">+{overflow}</span>
-                      )}
-                    </div>
-                  )}
                 </button>
               );
             })}

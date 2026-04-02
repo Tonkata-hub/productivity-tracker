@@ -353,6 +353,7 @@ export function CalendarView() {
         <div className="glass rounded-2xl p-3">
           <WeekNavigation
             weekDates={weekDates}
+            weekData={weekData}
             onPreviousWeek={handlePreviousWeek}
             onNextWeek={handleNextWeek}
             isMonthView={isMonthView}
@@ -360,6 +361,8 @@ export function CalendarView() {
             monthBaseDate={monthBaseDate}
             onPreviousMonth={handlePreviousMonth}
             onNextMonth={handleNextMonth}
+            onScrollToDay={scrollToDay}
+            activeDayIndex={activeDayIndex}
           />
         </div>
 
@@ -377,49 +380,14 @@ export function CalendarView() {
           </div>
         )}
 
-        {/* Filters - glass effect (only show in week view) */}
+        {/* Filters (only show in week view) */}
         <div
           className={cn(
-            "glass-subtle rounded-xl p-2 transition-all duration-300",
-            isMonthView && "opacity-0 h-0 p-0 overflow-hidden"
-          )}
-        >
-          <FilterBar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-        </div>
-
-        {/* Day indicators for mobile scroll */}
-        <div
-          className={cn(
-            "flex justify-center gap-1.5 sm:hidden transition-all duration-300",
+            "transition-all duration-300",
             isMonthView && "opacity-0 h-0 overflow-hidden"
           )}
         >
-          {weekData.map((day, index) => (
-            <button
-              key={day.date}
-              onClick={() => scrollToDay(index)}
-              className={cn(
-                "flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-all duration-200",
-                activeDayIndex === index ? "bg-white/10" : "opacity-50 hover:opacity-80"
-              )}
-              aria-label={`Go to ${day.dayName}`}
-            >
-              <span
-                className={cn(
-                  "text-[10px] font-medium uppercase",
-                  day.isToday ? "text-mars-red" : "text-muted-foreground"
-                )}
-              >
-                {day.dayName.slice(0, 1)}
-              </span>
-              <div
-                className={cn(
-                  "size-1.5 rounded-full transition-all",
-                  activeDayIndex === index ? (day.isToday ? "bg-mars-red" : "bg-foreground") : "bg-muted-foreground/30"
-                )}
-              />
-            </button>
-          ))}
+          <FilterBar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
         </div>
 
         {/* Week cards */}

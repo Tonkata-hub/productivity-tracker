@@ -3,7 +3,9 @@
 import { DayTasks } from "@/lib/types";
 import { TaskItem } from "./TaskItem";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Circle } from "lucide-react";
+
+const ARC_RADIUS = 10;
+const ARC_CIRCUMFERENCE = 2 * Math.PI * ARC_RADIUS;
 
 interface DayCardProps {
   dayData: DayTasks;
@@ -54,7 +56,7 @@ export function DayCard({
           // Glassmorphism base
           "glass",
           // Today highlight (not on mobile)
-          isToday && stackMode !== "mobile" && "ring-1 ring-mars-red/70",
+          isToday && stackMode !== "mobile" && "ring-1 ring-mars-red/50 shadow-lg shadow-mars-red/10",
           // Highlighted from month view selection
           isHighlighted && "ring-2 ring-mars-red animate-pulse",
           // Past days slightly dimmed
@@ -67,18 +69,6 @@ export function DayCard({
           stackMode === "mobile" && "min-h-[400px]"
         )}
       >
-        {/* Completion progress bar (top edge) - white/neutral, red only when complete */}
-        {totalCount > 0 && (
-          <div className="absolute left-0 right-0 top-0 h-[2px] overflow-hidden rounded-t-2xl bg-white/5">
-            <div
-              className={cn(
-                "h-full transition-all duration-500 ease-out",
-                allCompleted ? "bg-mars-red" : "bg-white/30"
-              )}
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
-        )}
 
         {/* Day header */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -100,29 +90,36 @@ export function DayCard({
               </span>
               {totalCount > 0 && (
                 <span className="text-xs text-muted-foreground">
-                  {completedCount} of {totalCount} done
+                  {completedCount}/{totalCount}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Completion indicator */}
+          {/* Radial arc progress */}
           {totalCount > 0 && (
-            <div
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5",
-                allCompleted ? "bg-mars-red/15" : "bg-white/5"
+            <svg viewBox="0 0 28 28" className="w-8 h-8 shrink-0 -rotate-90">
+              <circle
+                cx="14"
+                cy="14"
+                r={ARC_RADIUS}
+                fill="none"
+                stroke="rgba(255,255,255,0.07)"
+                strokeWidth="2.5"
+              />
+              {completionPercentage > 0 && (
+                <circle
+                  cx="14"
+                  cy="14"
+                  r={ARC_RADIUS}
+                  fill="none"
+                  stroke={allCompleted ? "#ff3b3b" : "rgba(255,59,59,0.45)"}
+                  strokeWidth="2.5"
+                  strokeDasharray={`${(completionPercentage / 100) * ARC_CIRCUMFERENCE} ${ARC_CIRCUMFERENCE}`}
+                  strokeLinecap="round"
+                />
               )}
-            >
-              {allCompleted ? (
-                <CheckCircle2 className="size-4 text-mars-red" />
-              ) : (
-                <Circle className="size-4 text-muted-foreground" />
-              )}
-              <span className={cn("text-xs font-semibold", allCompleted ? "text-mars-red" : "text-muted-foreground")}>
-                {completedCount}/{totalCount}
-              </span>
-            </div>
+            </svg>
           )}
         </div>
 
