@@ -7,7 +7,7 @@ import { CalendarDays, PlusCircle, ListChecks, Dumbbell, LogOut, Home, Menu, X }
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  icon: (typeof Home) | (typeof CalendarDays) | (typeof PlusCircle) | (typeof Dumbbell) | (typeof ListChecks);
+  icon: typeof Home | typeof CalendarDays | typeof PlusCircle | typeof Dumbbell | typeof ListChecks;
   label: string;
   href: string;
 };
@@ -30,12 +30,16 @@ export function Navbar() {
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
@@ -116,10 +120,10 @@ export function Navbar() {
         {/* Slide-down drawer */}
         <div
           id="mobile-nav-drawer"
-          className="overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className="overflow-hidden transition-all duration-300 ease-in-out"
           style={{ maxHeight: open ? "400px" : "0px" }}
           aria-hidden={!open}
-          {...(!open ? { inert: "" } : {})}
+          {...(!open ? { inert: true } : {})}
         >
           <nav className="flex flex-col px-3 py-2">
             {NAV_ITEMS.map(({ icon: Icon, label, href }) => {
@@ -157,13 +161,7 @@ export function Navbar() {
       </header>
 
       {/* Backdrop — closes menu on outside tap */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          onClick={close}
-          aria-hidden="true"
-        />
-      )}
+      {open && <div className="fixed inset-0 z-40 md:hidden" onClick={close} aria-hidden="true" />}
     </>
   );
 }
