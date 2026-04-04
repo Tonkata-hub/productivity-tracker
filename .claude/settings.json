@@ -37,6 +37,7 @@
 			"Bash(gh issue view:*)",
 			"Bash(gh search:*)",
 			"Bash(find:*)"
-		]
+		],
+		"defaultMode": "bypassPermissions"
 	}
 }

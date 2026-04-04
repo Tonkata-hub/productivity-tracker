@@ -9,19 +9,35 @@ interface MonthViewProps {
   baseDate: Date;
   tasks: Task[];
   completions: Set<string>;
+  quantValues: Map<string, number>;
   onDayClick: (date: Date) => void;
   /** "up" = navigating forward (next month), "down" = backward (prev month), "none" = initial open */
   direction?: "up" | "down" | "none";
 }
 
-const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+const WEEKDAY_LABELS = [
+  { short: "Mo", full: "Mon" },
+  { short: "Tu", full: "Tue" },
+  { short: "We", full: "Wed" },
+  { short: "Th", full: "Thu" },
+  { short: "Fr", full: "Fri" },
+  { short: "Sa", full: "Sat" },
+  { short: "Su", full: "Sun" },
+];
+const MAX_DOTS = 8;
 
-export function MonthView({ baseDate, tasks, completions, onDayClick, direction = "none" }: MonthViewProps) {
+export function MonthView({
+  baseDate,
+  tasks,
+  completions,
+  quantValues,
+  onDayClick,
+  direction = "none",
+}: MonthViewProps) {
   const monthDates = useMemo(() => getMonthDates(baseDate), [baseDate]);
   const currentMonth = baseDate.getMonth();
   const todayISO = formatDateISO(new Date());
 
-  // Group dates into weeks
   const weeks = useMemo(() => {
     const result: Date[][] = [];
     for (let i = 0; i < monthDates.length; i += 7) {
@@ -30,19 +46,30 @@ export function MonthView({ baseDate, tasks, completions, onDayClick, direction 
     return result;
   }, [monthDates]);
 
-  // Get daily tasks only for each day
   const dayTasksMap = useMemo(() => {
-    const map = new Map<string, TaskWithStatus[]>();
+    const map = new Map<
+      string,
+      { displayTasks: TaskWithStatus[]; totalCount: number; completedCount: number; hasOverflow: boolean }
+    >();
     for (const date of monthDates) {
       const dateISO = formatDateISO(date);
-      const allTasks = getTasksForDate(tasks, dateISO, completions);
+      const allTasks = getTasksForDate(tasks, dateISO, completions, quantValues);
+      const relevantTasks = allTasks.filter((t) => t.type === "daily");
+      const prioritizedTasks = relevantTasks.slice(0, MAX_DOTS);
+      const totalCount = relevantTasks.length;
+      const completedCount = relevantTasks.filter((t) => t.isCompleted).length;
       map.set(
         dateISO,
-        allTasks.filter((t) => t.type === "daily")
+        {
+          displayTasks: prioritizedTasks,
+          totalCount,
+          completedCount,
+          hasOverflow: totalCount > MAX_DOTS,
+        }
       );
     }
     return map;
-  }, [monthDates, tasks, completions]);
+  }, [monthDates, tasks, completions, quantValues]);
 
   const gridAnimClass =
     direction === "up"
@@ -54,55 +81,105 @@ export function MonthView({ baseDate, tasks, completions, onDayClick, direction 
   return (
     <div className={cn(gridAnimClass)}>
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 mb-1">
         {WEEKDAY_LABELS.map((label, index) => (
-          <div key={index} className="text-center text-xs font-medium text-muted-foreground py-2">
-            {label}
+          <div
+            key={index}
+            className={cn(
+              "py-2 text-center text-xs font-semibold uppercase tracking-widest",
+              index >= 5 ? "text-muted-foreground/55" : "text-muted-foreground/45"
+            )}
+          >
+            <span className="sm:hidden">{label.short}</span>
+            <span className="hidden sm:inline">{label.full}</span>
           </div>
         ))}
       </div>
 
+      {/* Month legend */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-wider text-muted-foreground/65">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block size-2 rounded-full bg-completed-green" />
+          <span>Completed</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block size-2 rounded-full bg-muted-foreground/45" />
+          <span>Incomplete</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-4 rounded-full bg-mars-red/40" />
+          <span>Today</span>
+        </div>
+      </div>
+
       {/* Calendar grid */}
-      <div className="grid gap-1">
+      <div className="grid gap-y-1">
         {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="grid grid-cols-7 gap-1">
+          <div key={weekIndex} className="grid grid-cols-7 gap-x-1">
             {week.map((date) => {
               const dateISO = formatDateISO(date);
               const isCurrentMonth = date.getMonth() === currentMonth;
               const isToday = dateISO === todayISO;
-              const dayTasks = dayTasksMap.get(dateISO) || [];
-              const completedCount = dayTasks.filter((t) => t.isCompleted).length;
-              const fraction = dayTasks.length > 0 ? completedCount / dayTasks.length : 0;
-              const heatBg =
-                fraction === 0
-                  ? ""
-                  : fraction < 0.5
-                    ? "bg-mars-red/8"
-                    : fraction < 1
-                      ? "bg-mars-red/16"
-                      : "bg-mars-red/25";
+              const dayTaskData = dayTasksMap.get(dateISO) ?? {
+                displayTasks: [],
+                totalCount: 0,
+                completedCount: 0,
+                hasOverflow: false,
+              };
+              const allDone = dayTaskData.totalCount > 0 && dayTaskData.completedCount === dayTaskData.totalCount;
 
               return (
                 <button
                   key={dateISO}
                   onClick={() => onDayClick(date)}
                   className={cn(
-                    "relative flex flex-col items-center justify-start gap-1 rounded-lg p-1.5 transition-all duration-200",
-                    "min-h-[56px] sm:min-h-[64px]",
-                    "hover:bg-white/10 active:scale-95",
-                    isCurrentMonth ? "text-foreground" : "text-muted-foreground/40",
-                    isToday ? "ring-1 ring-mars-red bg-mars-red/10" : heatBg
+                    "group relative flex min-h-[60px] flex-col items-center gap-1.5 rounded-lg p-1.5",
+                    "transition-all duration-150 active:scale-90",
+                    "hover:bg-white/6",
+                    isCurrentMonth ? "text-foreground" : "text-muted-foreground/25",
+                    isToday
+                      ? "bg-mars-red/10 ring-1 ring-mars-red/60"
+                      : allDone
+                        ? "bg-completed-green/8"
+                        : "bg-transparent"
                   )}
                   aria-label={`${date.toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
-                  })}. ${dayTasks.length} tasks`}
+                  })}. ${dayTaskData.totalCount} daily tasks, ${dayTaskData.completedCount} completed`}
                 >
-                  {/* Day number */}
-                  <span className={cn("text-sm font-medium", isToday && "text-mars-red font-bold")}>
+                  {/* Date number */}
+                  <span
+                    className={cn(
+                      "text-xs font-semibold tabular-nums leading-none select-none",
+                      isToday ? "text-mars-red" : isCurrentMonth ? "text-foreground/90" : "text-muted-foreground/25"
+                    )}
+                  >
                     {date.getDate()}
                   </span>
+
+                  {/* Task dot grid — bottom of cell */}
+                  {dayTaskData.displayTasks.length > 0 && (
+                    <div
+                      className="grid gap-[3px] justify-center"
+                      style={{ gridTemplateColumns: `repeat(4, 5px)` }}
+                    >
+                      {dayTaskData.displayTasks.map((task) => (
+                        <span
+                          key={task.id}
+                          className={cn(
+                            "block h-[5px] w-[5px] rounded-full transition-colors duration-200",
+                            task.isCompleted ? "bg-completed-green shadow-[0_0_4px_rgba(52,211,153,0.35)]" : "bg-muted-foreground/45"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {dayTaskData.hasOverflow && (
+                    <span className="text-[10px] leading-none text-muted-foreground/60">+{dayTaskData.totalCount - MAX_DOTS}</span>
+                  )}
                 </button>
               );
             })}

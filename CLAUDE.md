@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## Tooling note
+
+The project path contains a space (`Personal Projects`). Never use `Bash(grep/find)` — always use the `Grep` and `Glob` tools instead. Bash commands with escaped whitespace (`Personal\ Projects`) trigger a safety prompt regardless of the allow list.
+
 ## Commands
 
 ```bash

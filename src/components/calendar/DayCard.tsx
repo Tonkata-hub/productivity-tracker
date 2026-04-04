@@ -76,20 +76,16 @@ export function DayCard({
             {/* Day number */}
             <div
               className={cn(
-                "flex size-11 items-center justify-center rounded-xl text-lg font-bold transition-all duration-300",
+                "flex size-12 items-center justify-center rounded-xl text-xl font-bold transition-all duration-300 tabular-nums",
                 isToday && stackMode !== "mobile" ? "bg-mars-red text-white" : "bg-white/5 text-foreground"
               )}
             >
               {dayNumber}
             </div>
-            <div className="flex flex-col">
-              <span
-                className={cn("text-sm font-semibold tracking-wide", isToday ? "text-foreground" : "text-foreground")}
-              >
-                {dayName}
-              </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-base font-semibold tracking-tight text-foreground">{dayName}</span>
               {totalCount > 0 && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm tabular-nums text-muted-foreground">
                   {completedCount}/{totalCount}
                 </span>
               )}
@@ -130,7 +126,7 @@ export function DayCard({
           aria-label={`${totalCount} tasks`}
         >
           {tasks.length === 0 ? (
-            <span className="text-xs text-muted-foreground/50">No tasks scheduled</span>
+            <span className="text-sm italic text-muted-foreground/60">No tasks scheduled</span>
           ) : (
             tasks.map((task) => (
               <TaskItem

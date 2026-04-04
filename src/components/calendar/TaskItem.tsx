@@ -88,14 +88,14 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           <div className="min-w-0 flex-1">
             <span
               className={cn(
-                "text-sm font-medium leading-tight transition-all duration-200",
+                "text-base font-semibold leading-snug transition-all duration-200",
                 task.isCompleted && "line-through text-muted-foreground"
               )}
             >
               {task.title}
             </span>
             <div className="mt-0.5">
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-sm tabular-nums text-muted-foreground">
                 {task.currentValue} / {task.target_value} {task.unit}
               </span>
             </div>
@@ -113,19 +113,19 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
             {hasMeta && (
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 {task.isOverdue && !task.isCompleted && task.due_date && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
-                    <AlertCircle className="size-2.5" />
+                  <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
+                    <AlertCircle className="size-3 shrink-0" />
                     Overdue {overdueDays(task.due_date)}d
                   </span>
                 )}
                 {task.isDueToday && !task.isCompleted && !task.isOverdue && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
                     Due Today
                   </span>
                 )}
                 {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                    <Calendar className="size-2.5" />
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                    <Calendar className="size-3 shrink-0" />
                     {format(parseISO(task.due_date), "MMM d")}
                   </span>
                 )}
@@ -158,15 +158,15 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
                   setInputValue("");
                 }
               }}
-              className="w-28 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-base text-foreground placeholder-muted-foreground outline-none focus:border-mars-red/50 focus:ring-1 focus:ring-mars-red/20"
+              className="w-28 min-h-10 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-base leading-none text-foreground placeholder-muted-foreground outline-none focus:border-mars-red/50 focus:ring-1 focus:ring-mars-red/20"
               placeholder={task.unit ?? "amount"}
             />
             <button
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleLogSubmit}
-              className="flex items-center gap-1 rounded-lg bg-mars-red/20 px-2.5 py-1.5 text-xs font-medium text-mars-red hover:bg-mars-red/30 transition-colors"
+              className="flex min-h-10 items-center gap-1 rounded-lg bg-mars-red/20 px-3 py-2 text-base font-medium text-mars-red transition-colors hover:bg-mars-red/30"
             >
-              <Check className="size-3" />
+              <Check className="size-4 shrink-0" />
               Log
             </button>
             <button
@@ -174,7 +174,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
                 setShowInput(false);
                 setInputValue("");
               }}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="min-h-10 px-1 text-base text-muted-foreground transition-colors hover:text-foreground"
             >
               Cancel
             </button>
@@ -219,7 +219,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           {/* Task title */}
           <span
             className={cn(
-              "text-sm font-medium leading-tight transition-all duration-200",
+              "text-base font-semibold leading-snug transition-all duration-200",
               task.isCompleted && "line-through text-muted-foreground",
               task.isOverdue && !task.isCompleted && "text-mars-red"
             )}
@@ -232,23 +232,23 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
             <div className="flex flex-wrap items-center gap-2">
               {/* Due date for one-time tasks */}
               {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                  <Calendar className="size-2.5" />
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                  <Calendar className="size-3 shrink-0" />
                   {format(parseISO(task.due_date), "MMM d")}
                 </span>
               )}
 
               {/* Overdue badge */}
               {task.isOverdue && !task.isCompleted && task.due_date && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
-                  <AlertCircle className="size-2.5" />
+                <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
+                  <AlertCircle className="size-3 shrink-0" />
                   Overdue {overdueDays(task.due_date)}d
                 </span>
               )}
 
               {/* Due today badge */}
               {task.isDueToday && !task.isCompleted && !task.isOverdue && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-1.5 py-0.5 text-[10px] font-semibold text-mars-red">
+                <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
                   Due Today
                 </span>
               )}

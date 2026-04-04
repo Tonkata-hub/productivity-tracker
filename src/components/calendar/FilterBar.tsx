@@ -18,7 +18,7 @@ export function FilterBar({ activeFilter, onFilterChange }: FilterBarProps) {
           key={option.value}
           onClick={() => onFilterChange(option.value)}
           className={cn(
-            "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 whitespace-nowrap",
+            "shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap",
             "active:scale-95",
             activeFilter === option.value
               ? "bg-mars-red text-white shadow-sm shadow-mars-red/30"

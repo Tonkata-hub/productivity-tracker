@@ -4,7 +4,14 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Task } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { mockTasks } from "@/lib/mock-data";
-import { getWeekDates, generateWeekData, formatDateISO, filterTasks, getWeekOffsetForDate } from "@/lib/calendar-utils";
+import {
+  getWeekDates,
+  getMonthDates,
+  generateWeekData,
+  formatDateISO,
+  filterTasks,
+  getWeekOffsetForDate,
+} from "@/lib/calendar-utils";
 import { WeekNavigation } from "./WeekNavigation";
 import { FilterBar } from "./FilterBar";
 import { DayCard } from "./DayCard";
@@ -54,13 +61,18 @@ export function CalendarView() {
     return date;
   }, [monthOffset]);
 
-  // Fetch completions for visible week
+  // Fetch completions for the visible week and the full month grid (so month heat matches DB)
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") return;
     if (weekDates.length === 0) return;
 
-    const from = formatDateISO(weekDates[0]);
-    const to = formatDateISO(weekDates[weekDates.length - 1]);
+    const monthDates = getMonthDates(monthBaseDate);
+    const weekFrom = formatDateISO(weekDates[0]);
+    const weekTo = formatDateISO(weekDates[weekDates.length - 1]);
+    const monthFrom = formatDateISO(monthDates[0]);
+    const monthTo = formatDateISO(monthDates[monthDates.length - 1]);
+    const from = weekFrom < monthFrom ? weekFrom : monthFrom;
+    const to = weekTo > monthTo ? weekTo : monthTo;
 
     async function fetchCompletions() {
       const { data, error } = await supabase
@@ -86,7 +98,7 @@ export function CalendarView() {
       setQuantValues(qmap);
     }
     fetchCompletions();
-  }, [weekDates]);
+  }, [weekDates, monthBaseDate]);
 
   // Check if viewing current week
   // const isCurrentWeek = useMemo(() => {
@@ -374,6 +386,7 @@ export function CalendarView() {
               baseDate={monthBaseDate}
               tasks={tasks}
               completions={completions}
+              quantValues={quantValues}
               onDayClick={handleMonthDayClick}
               direction={monthDirection}
             />
@@ -464,8 +477,8 @@ export function CalendarView() {
             <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-white/5">
               <span className="text-3xl opacity-30">*</span>
             </div>
-            <h3 className="text-sm font-medium text-foreground">No matching tasks</h3>
-            <p className="mt-2 text-xs text-muted-foreground">Try adjusting your filter to see more tasks</p>
+            <h3 className="text-base font-semibold text-foreground">No matching tasks</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Try adjusting your filter to see more tasks</p>
           </div>
         )}
       </main>

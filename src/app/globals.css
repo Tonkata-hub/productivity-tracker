@@ -38,6 +38,7 @@
   --sidebar-border: #e4e4e7;
   --sidebar-ring: #ff3b3b;
   --mars-red: #ff3b3b;
+  --completed-green: #34d399;
   --space-charcoal: #11131a;
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
@@ -77,6 +78,7 @@
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #ff3b3b;
   --mars-red: #ff3b3b;
+  --completed-green: #34d399;
   --space-charcoal: #11131a;
   --glass-bg: rgba(26, 29, 38, 0.5);
   --glass-border: rgba(255, 255, 255, 0.08);
@@ -122,6 +124,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-mars-red: var(--mars-red);
+  --color-completed-green: var(--completed-green);
   --color-space-charcoal: var(--space-charcoal);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
@@ -140,8 +143,8 @@
 .navbar-glass {
   background-color: rgba(10, 11, 15, 0.5); /* fallback for when CSS vars aren't resolved yet (dev mode) */
   background-color: color-mix(in oklab, var(--color-background) 50%, transparent);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 /* Glassmorphism utilities */

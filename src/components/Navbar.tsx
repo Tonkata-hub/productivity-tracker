@@ -57,9 +57,9 @@ export function Navbar() {
           <div className="flex size-8 items-center justify-center rounded-xl bg-accent shadow-md shadow-accent/40">
             <CalendarDays className="size-4 text-white" />
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-sm font-bold tracking-tight text-foreground">Productivity</span>
-            <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Tracker</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-base font-bold tracking-tight text-foreground">Productivity</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tracker</span>
           </div>
         </Link>
 
@@ -72,7 +72,7 @@ export function Navbar() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-base font-medium transition-all duration-150",
                   active ? "bg-accent/12 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-white/6"
                 )}
               >
@@ -87,7 +87,7 @@ export function Navbar() {
         <div className="px-3 py-4 border-t border-white/5 shrink-0">
           <Link
             href="/signout"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-base font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
           >
             <LogOut className="size-4 shrink-0" />
             Sign out
@@ -103,9 +103,9 @@ export function Navbar() {
             <div className="flex size-8 items-center justify-center rounded-xl bg-accent shadow-md shadow-accent/40">
               <CalendarDays className="size-4 text-white" />
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-sm font-bold tracking-tight text-foreground">Productivity</span>
-              <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Tracker</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-base font-bold tracking-tight text-foreground">Productivity</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tracker</span>
             </div>
           </Link>
 
@@ -138,7 +138,7 @@ export function Navbar() {
                   href={href}
                   onClick={close}
                   className={cn(
-                    "flex items-center gap-3 px-3 h-14 rounded-xl text-sm font-medium transition-all duration-150",
+                    "flex items-center gap-3 px-3 h-14 rounded-xl text-base font-medium transition-all duration-150",
                     active ? "bg-accent/12 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-white/6"
                   )}
                 >
@@ -155,7 +155,7 @@ export function Navbar() {
             <Link
               href="/signout"
               onClick={close}
-              className="flex items-center gap-3 px-3 h-14 rounded-xl text-sm font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
+              className="flex items-center gap-3 px-3 h-14 rounded-xl text-base font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
             >
               <LogOut className="size-5 shrink-0" />
               Sign out

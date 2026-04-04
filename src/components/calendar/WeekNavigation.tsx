@@ -68,7 +68,9 @@ export function WeekNavigation({
           )}
           aria-label={isMonthView ? "Switch to week view" : "Switch to month view"}
         >
-          <h2 className="text-center text-sm font-bold tracking-tight text-foreground">{label}</h2>
+          <h2 className="text-center text-base font-bold tracking-tight text-foreground sm:text-lg">
+            {label}
+          </h2>
           {isMonthView ? (
             <CalendarDays className="size-4 text-muted-foreground group-hover:text-mars-red transition-colors" />
           ) : (
@@ -93,7 +95,7 @@ export function WeekNavigation({
 
       {/* Bottom row: day chips with completion rings (week view only) */}
       {!isMonthView && weekData.length > 0 && (
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1 mx-auto w-full max-w-sm sm:max-w-md">
           {weekData.map((day, index) => {
             const completionScore =
               day.tasks.length > 0
@@ -114,14 +116,14 @@ export function WeekNavigation({
                 onClick={() => onScrollToDay?.(index)}
                 style={{ animationDelay: `${index * 25}ms` }}
                 className={cn(
-                  "calendar-animate-slide-in-up flex flex-col items-center gap-0.5 rounded-xl py-1.5 px-1 transition-all duration-200",
+                  "calendar-animate-slide-in-up flex flex-col items-center gap-0.5 rounded-xl py-1.5 px-1 sm:py-2 sm:gap-1 transition-all duration-200",
                   isActive ? "bg-white/8" : "hover:bg-white/5",
                   day.isFuture && "opacity-40"
                 )}
                 aria-label={`Go to ${day.dayName}`}
               >
                 {/* Completion ring */}
-                <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 sm:w-8 sm:h-8 -rotate-90">
                   <circle
                     cx="12"
                     cy="12"
@@ -146,7 +148,7 @@ export function WeekNavigation({
                 {/* Day letter */}
                 <span
                   className={cn(
-                    "text-[10px] font-semibold uppercase leading-none",
+                    "text-xs font-semibold uppercase leading-none tracking-wide",
                     day.isToday
                       ? "text-mars-red"
                       : isActive
@@ -159,7 +161,7 @@ export function WeekNavigation({
                 {/* Date number */}
                 <span
                   className={cn(
-                    "text-[10px] leading-none",
+                    "text-xs font-medium leading-none tabular-nums",
                     day.isToday ? "text-mars-red font-bold" : "text-muted-foreground"
                   )}
                 >
