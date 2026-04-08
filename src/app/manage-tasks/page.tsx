@@ -8,16 +8,10 @@ import { Trash2, Repeat, Clock, Calendar, BarChart2, AlertTriangle, Loader2 } fr
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 
-const priorityDot: Record<NonNullable<TaskPriority>, string> = {
-  high: "bg-accent",
-  medium: "bg-yellow-400",
-  low: "bg-zinc-400",
-};
-
-const priorityLabel: Record<NonNullable<TaskPriority>, string> = {
-  high: "High",
-  medium: "Med",
-  low: "Low",
+const priorityConfig: Record<NonNullable<TaskPriority>, { dot: string; label: string; badge: string }> = {
+  high: { dot: "bg-accent", label: "High", badge: "bg-accent/15 text-accent" },
+  medium: { dot: "bg-yellow-400", label: "Med", badge: "bg-yellow-400/15 text-yellow-300" },
+  low: { dot: "bg-zinc-400", label: "Low", badge: "bg-zinc-400/15 text-zinc-400" },
 };
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
@@ -34,7 +28,6 @@ export default function ManageTasksPage() {
   const [sheetExiting, setSheetExiting] = useState(false);
   const [sheetAnimated, setSheetAnimated] = useState(false);
 
-  // Trigger enter animation after mount (needs two frames so browser paints the start state first)
   useEffect(() => {
     if (!sheetVisible) return;
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setSheetAnimated(true)));
@@ -55,15 +48,13 @@ export default function ManageTasksPage() {
     fetchTasks();
   }, []);
 
-  // Open sheet
   function openSheet(id: string) {
-    setSheetAnimated(false); // reset so enter animation plays
+    setSheetAnimated(false);
     setPendingDeleteId(id);
     setSheetExiting(false);
     setSheetVisible(true);
   }
 
-  // Close sheet with exit animation
   function closeSheet() {
     setSheetExiting(true);
     setTimeout(() => {
@@ -84,7 +75,6 @@ export default function ManageTasksPage() {
         closeSheet();
         return;
       }
-
       const { error: te } = await supabase.from("tasks").delete().eq("id", pendingDeleteId);
       if (te) {
         setDeleting(false);
@@ -100,9 +90,7 @@ export default function ManageTasksPage() {
 
   const dailyTasks = tasks.filter((t) => t.type === "daily");
   const oneTimeTasks = tasks.filter((t) => t.type === "one_time");
-
   const filtered = filter === "daily" ? dailyTasks : filter === "one_time" ? oneTimeTasks : tasks;
-
   const pendingTask = tasks.find((t) => t.id === pendingDeleteId) ?? null;
 
   const FILTERS: { value: Filter; label: string; count: number }[] = [
@@ -127,7 +115,7 @@ export default function ManageTasksPage() {
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150",
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150",
                 filter === f.value
                   ? "bg-accent/15 text-accent border border-accent/25"
                   : "bg-white/5 text-muted-foreground border border-transparent hover:text-foreground hover:bg-white/8"
@@ -136,7 +124,7 @@ export default function ManageTasksPage() {
               {f.label}
               <span
                 className={cn(
-                  "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                  "text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center",
                   filter === f.value ? "bg-accent/20 text-accent" : "bg-white/8 text-muted-foreground"
                 )}
               >
@@ -147,42 +135,38 @@ export default function ManageTasksPage() {
         </div>
 
         {/* Content */}
-        <div className="calendar-animate-slide-in-up" style={{ animationDelay: "100ms" }}>
+        <div className="space-y-2 calendar-animate-slide-in-up" style={{ animationDelay: "100ms" }}>
           {/* Loading */}
           {loading && (
             <div className="glass rounded-2xl flex items-center justify-center gap-3 p-10">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Loading tasks…</span>
+              <span className="text-base text-muted-foreground">Loading tasks…</span>
             </div>
           )}
 
           {/* Empty */}
           {!loading && filtered.length === 0 && (
-            <div className="glass rounded-2xl flex flex-col items-center justify-center gap-3 p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center">
-                <BarChart2 className="size-5 text-muted-foreground/40" />
+            <div className="glass rounded-2xl flex flex-col items-center justify-center gap-3 p-14 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center">
+                <BarChart2 className="size-6 text-muted-foreground/40" />
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 {filter === "all" ? "No tasks yet." : `No ${filter === "daily" ? "daily" : "one-time"} tasks.`}
               </p>
             </div>
           )}
 
-          {/* Task list */}
-          {!loading && filtered.length > 0 && (
-            <div className="glass rounded-2xl overflow-hidden divide-y divide-border">
-              {filtered.map((task) => (
-                <TaskRow key={task.id} task={task} onDelete={() => openSheet(task.id)} />
-              ))}
-            </div>
-          )}
+          {/* Task list — individual cards */}
+          {!loading &&
+            filtered.map((task) => (
+              <TaskRow key={task.id} task={task} onDelete={() => openSheet(task.id)} />
+            ))}
         </div>
       </div>
 
-      {/* ── Confirmation dialog (bottom sheet on mobile, modal on desktop) */}
+      {/* Confirmation sheet */}
       {sheetVisible && (
         <>
-          {/* Backdrop */}
           <div
             className={cn(
               "fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300",
@@ -191,9 +175,7 @@ export default function ManageTasksPage() {
             onClick={closeSheet}
           />
 
-          {/* Positioning wrapper: bottom on mobile, centered on desktop */}
           <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-6 pointer-events-none">
-            {/* Card — solid background, no transparency bleed */}
             <div
               className={cn(
                 "w-full md:max-w-sm pointer-events-auto",
@@ -206,10 +188,8 @@ export default function ManageTasksPage() {
               )}
               style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
             >
-              {/* Drag handle */}
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
 
-              {/* Icon + task name */}
               <div className="flex flex-col items-center gap-3 text-center mb-5">
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-accent/15">
                   <AlertTriangle className="size-5 text-accent" />
@@ -220,13 +200,11 @@ export default function ManageTasksPage() {
                 </div>
               </div>
 
-              {/* Warning */}
               <p className="text-center text-sm text-muted-foreground mb-6">
                 This will permanently remove the task and{" "}
                 <span className="text-foreground font-medium">all its completion history</span>.
               </p>
 
-              {/* Actions */}
               <div className="flex flex-col gap-2.5">
                 <button
                   onClick={handleDelete}
@@ -252,7 +230,6 @@ export default function ManageTasksPage() {
               </div>
             </div>
           </div>
-          {/* end positioning wrapper */}
         </>
       )}
     </div>
@@ -263,56 +240,72 @@ function TaskRow({ task, onDelete }: { task: Task; onDelete: () => void }) {
   const today = new Date().toISOString().split("T")[0];
   const isOverdue = task.type === "one_time" && !!task.due_date && task.due_date < today && !task.is_completed;
   const isDaily = task.type === "daily";
+  const hasMeta = !!task.priority || (!!task.due_date && task.type === "one_time");
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5 group">
-      {/* Left edge type indicator */}
+    <div className="glass rounded-2xl px-4 py-4 flex items-center gap-3.5 group">
+      {/* Type icon */}
       <div
-        className={cn("w-0.5 self-stretch rounded-full shrink-0", isDaily ? "bg-accent/40" : "bg-muted-foreground/20")}
-      />
-
-      {/* Icon */}
-      {isDaily ? (
-        <Repeat className="size-4 shrink-0 text-accent/60" />
-      ) : (
-        <Clock className="size-4 shrink-0 text-muted-foreground/60" />
-      )}
+        className={cn(
+          "shrink-0 flex size-10 items-center justify-center rounded-xl",
+          isDaily ? "bg-accent/10" : "bg-white/5"
+        )}
+      >
+        {isDaily ? (
+          <Repeat className="size-4 text-accent/70" />
+        ) : (
+          <Clock className="size-4 text-muted-foreground/60" />
+        )}
+      </div>
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
-        <div className="mt-0.5 flex items-center gap-2.5">
-          {task.priority && (
-            <span className="flex items-center gap-1">
-              <span className={cn("w-1.5 h-1.5 rounded-full", priorityDot[task.priority])} />
-              <span className="text-[10px] text-muted-foreground">{priorityLabel[task.priority]}</span>
-            </span>
-          )}
-          {task.due_date && task.type === "one_time" && (
-            <span
-              className={cn(
-                "flex items-center gap-1 text-[10px]",
-                isOverdue ? "text-accent font-medium" : "text-muted-foreground"
-              )}
-            >
-              <Calendar className="size-2.5" />
-              {format(parseISO(task.due_date), "MMM d")}
-              {isOverdue && " · Overdue"}
-            </span>
-          )}
-          {task.target_value != null && (
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <BarChart2 className="size-2.5" />
-              {task.target_value} {task.unit}
-            </span>
-          )}
-        </div>
+        <p className="truncate text-base font-semibold text-foreground">{task.title}</p>
+
+        {/* Target value subtitle */}
+        {task.target_value != null && (
+          <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
+            {task.target_value} {task.unit}
+          </p>
+        )}
+
+        {/* Meta row */}
+        {hasMeta && (
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            {task.priority && (
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 text-sm font-medium px-2 py-0.5 rounded-md",
+                  priorityConfig[task.priority].badge
+                )}
+              >
+                <span className={cn("w-1.5 h-1.5 rounded-full", priorityConfig[task.priority].dot)} />
+                {priorityConfig[task.priority].label}
+              </span>
+            )}
+
+            {task.due_date && task.type === "one_time" && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-sm font-medium",
+                  isOverdue
+                    ? "rounded-md bg-accent/15 px-2 py-0.5 text-accent"
+                    : "text-muted-foreground"
+                )}
+              >
+                <Calendar className="size-3 shrink-0" />
+                {format(parseISO(task.due_date), "MMM d")}
+                {isOverdue && " · Overdue"}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Delete */}
       <button
         onClick={onDelete}
-        className="shrink-0 flex size-9 items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90"
+        className="shrink-0 flex size-10 items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90"
         aria-label={`Delete "${task.title}"`}
       >
         <Trash2 className="size-4" />
