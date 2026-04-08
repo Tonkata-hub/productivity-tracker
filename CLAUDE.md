@@ -25,7 +25,7 @@ A personal productivity app (task tracking + gym logging) built with Next.js App
 
 ### Pages (`src/app/`)
 
-- `/` — Home dashboard: today's task summary, weekly streak rings, stat cards, quick actions (coming soon)
+- `/` — Home dashboard: 4 stat cards (done today, daily habits, upcoming, gym sessions), 7-day weekly streak rings with circular SVG progress, today's task list with completion toggles, quick actions placeholder (coming soon)
 - `/calendar` — Main calendar view; hosts `CalendarView` which owns all calendar state
 - `/add-task` — Task creation form (title, type, priority, optional target/unit, optional due date)
 - `/gym` — Gym tracker: overview/history/calendar tabs, active workout session, start-workout bottom sheet
@@ -33,7 +33,7 @@ A personal productivity app (task tracking + gym logging) built with Next.js App
 
 ### Navigation (`src/components/Navbar.tsx`)
 
-Single `NAV_ITEMS` array drives both mobile and desktop. Desktop: fixed left sidebar (w-56). Mobile: fixed bottom tab bar with FAB for Add Task. Both use the `.navbar-glass` CSS utility.
+Single `NAV_ITEMS` array drives both mobile and desktop. Desktop: fixed left sidebar (w-56). Mobile: fixed top bar (h-14) with hamburger → slide-down drawer overlay. Both use the `.navbar-glass` CSS utility. Keyboard `Escape` closes the mobile drawer.
 
 ### Calendar components (`src/components/calendar/`)
 
@@ -42,7 +42,7 @@ Single `NAV_ITEMS` array drives both mobile and desktop. Desktop: fixed left sid
 - `MonthView.tsx` — Month grid with per-day task dot indicators
 - `DayCard.tsx` — Single day card with task list
 - `TaskItem.tsx` — Individual task row; supports completion toggle and inline value logging for quantitative tasks
-- `FilterBar.tsx` — Filter tasks by type/priority on the calendar view
+- `FilterBar.tsx` — Horizontally-scrollable pill filters: All, Daily, One-time, Tracked, Completed, Incomplete, Overdue
 
 ### Gym components (`src/components/gym/`)
 
@@ -55,8 +55,8 @@ Single `NAV_ITEMS` array drives both mobile and desktop. Desktop: fixed left sid
 ### Data layer (`src/lib/`)
 
 - `supabase.ts` — Supabase client (env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-- `types.ts` — `Task`, `TaskCompletion`, `DayTasks`, `TaskWithStatus`, `Workout`, `WorkoutWithExercises`, `WorkoutExercise`, `ExerciseSet`, `Exercise`, `LastExercisePerformance` interfaces
-- `calendar-utils.ts` — Week/month date calculations (Monday-based ISO weeks)
+- `types.ts` — `TaskType`, `TaskPriority`, `Task` (includes `updated_at`), `TaskCompletion` (includes `created_at`), `DayTasks`, `TaskWithStatus`, `Exercise`, `Workout`, `WorkoutExercise`, `ExerciseSet`, `WorkoutWithExercises`, `LastExercisePerformance` interfaces
+- `calendar-utils.ts` — Week/month date calculations (Monday-based ISO weeks): `getWeekDates`, `formatDateISO`, `getTaskStatusForDate`, `getTasksForDate`, `generateWeekData`, `filterTasks`, `getWeekRangeLabel`, `getMonthDates`, `getMonthLabel`, `getWeekOffsetForDate`
 - `gym-utils.ts` — `formatTime`, `formatDuration` helpers for workout timer display
 - `utils.ts` — `cn()` helper (clsx + tailwind-merge)
 - `mock-data.ts` — Mock tasks; activated by `NEXT_PUBLIC_USE_MOCK_DATA=true` in `.env.local`
@@ -64,8 +64,8 @@ Single `NAV_ITEMS` array drives both mobile and desktop. Desktop: fixed left sid
 ### Database tables
 
 **Tasks:**
-- `tasks` — `id, title, type ('daily'|'one_time'), priority, due_date, target_value, unit, is_completed, completed_at, created_at`
-- `task_completions` — `id, task_id, date (ISO), value, completed_at` — per-day completion of daily tasks; `value` stores logged amounts for quantitative tasks
+- `tasks` — `id, title, type ('daily'|'one_time'), priority, due_date, target_value, unit, is_completed, completed_at, created_at, updated_at`
+- `task_completions` — `id, task_id, date (ISO), value, completed_at, created_at` — per-day completion of daily tasks; `value` stores logged amounts for quantitative tasks
 
 **Gym:**
 - `workouts` — `id, name, started_at, ended_at, duration_seconds, total_sets, total_volume_kg`
@@ -88,4 +88,6 @@ Single `NAV_ITEMS` array drives both mobile and desktop. Desktop: fixed left sid
 
 **State pattern:** All state lives in the top-level page component. Child components receive data and callbacks as props. Optimistic updates used for completion toggles with rollback on error.
 
-**Responsive layout:** Mobile snap-scroll → tablet 2-col → desktop 7-col grid on calendar. Pages are `max-w-lg` centered on mobile, `max-w-6xl` on home.
+**Responsive layout:** Mobile snap-scroll → tablet 2-col → desktop 7-col grid on calendar. Pages are `max-w-lg` centered on mobile, `max-w-6xl` on home. Root layout: mobile top bar (h-14) + bottom content padding; desktop left sidebar (w-56) + left content padding.
+
+**Dependencies worth knowing:** `date-fns` for date math, `lucide-react` for icons, `clsx` + `tailwind-merge` via `cn()`, `shadcn/ui` primitives (`button.tsx`, `checkbox.tsx` in `src/components/ui/`).
