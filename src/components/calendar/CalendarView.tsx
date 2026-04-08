@@ -360,9 +360,9 @@ export function CalendarView() {
         <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-white/1 blur-[100px]" />
       </div>
 
-      <main className="relative flex-1 space-y-4 p-4 pb-8">
+      <main className="relative flex-1 space-y-4 p-4 pb-8 lg:space-y-6 lg:p-6 lg:pb-10">
         {/* Week navigation - glass effect */}
-        <div className="glass rounded-2xl p-3">
+        <div className="glass mx-auto w-full max-w-6xl rounded-2xl p-3">
           <WeekNavigation
             weekDates={weekDates}
             weekData={weekData}
@@ -380,7 +380,7 @@ export function CalendarView() {
 
         {/* Month View */}
         {isMonthView && (
-          <div className="glass rounded-2xl p-4">
+          <div className="glass mx-auto w-full max-w-6xl rounded-2xl p-4">
             <MonthView
               key={`${monthBaseDate.getFullYear()}-${monthBaseDate.getMonth()}`}
               baseDate={monthBaseDate}
@@ -396,7 +396,7 @@ export function CalendarView() {
         {/* Filters (only show in week view) */}
         <div
           className={cn(
-            "transition-all duration-300",
+            "mx-auto w-full max-w-6xl transition-all duration-300",
             isMonthView && "opacity-0 h-0 overflow-hidden"
           )}
         >
@@ -453,20 +453,19 @@ export function CalendarView() {
             ))}
           </div>
 
-          {/* Desktop: Horizontal scroll with minimum card width */}
-          <div className="hidden lg:flex lg:gap-3 lg:overflow-x-auto lg:pb-1 scrollbar-none">
+          {/* Desktop: 7-column grid */}
+          <div className="hidden lg:grid lg:grid-cols-7 lg:gap-3 xl:gap-4">
             {weekData.map((dayData, index) => (
-              <div key={dayData.date} className="min-w-[250px] shrink-0">
-                <DayCard
-                  dayData={dayData}
-                  onToggleTask={handleToggleTask}
-                  onLogQuantitative={handleLogQuantitative}
-                  index={index}
-                  totalCards={weekData.length}
-                  stackMode="desktop"
-                  isHighlighted={highlightedDate === dayData.date}
-                />
-              </div>
+              <DayCard
+                key={dayData.date}
+                dayData={dayData}
+                onToggleTask={handleToggleTask}
+                onLogQuantitative={handleLogQuantitative}
+                index={index}
+                totalCards={weekData.length}
+                stackMode="desktop"
+                isHighlighted={highlightedDate === dayData.date}
+              />
             ))}
           </div>
         </div>
