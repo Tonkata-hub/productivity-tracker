@@ -13,7 +13,6 @@ interface HeroSummaryProps {
 const RANGE_LABEL: Record<TimeRange, string> = {
   W: "this week",
   M: "this month",
-  "30d": "last 30 days",
   All: "all time",
 };
 

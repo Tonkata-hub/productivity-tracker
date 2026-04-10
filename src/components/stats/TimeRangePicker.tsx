@@ -2,12 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
-export type TimeRange = "W" | "M" | "30d" | "All";
+export type TimeRange = "W" | "M" | "All";
 
 const RANGES: { label: string; value: TimeRange }[] = [
   { label: "Week", value: "W" },
-  { label: "This month", value: "M" },
-  { label: "30 days", value: "30d" },
+  { label: "Month", value: "M" },
   { label: "All time", value: "All" },
 ];
 

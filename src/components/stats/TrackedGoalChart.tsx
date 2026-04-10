@@ -75,7 +75,7 @@ export function TrackedGoalChart({ task, points }: TrackedGoalChartProps) {
       ) : (
         <div style={{ height: 160 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+            <LineChart data={points} margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -83,13 +83,16 @@ export function TrackedGoalChart({ task, points }: TrackedGoalChartProps) {
                 axisLine={false}
                 tickLine={false}
                 interval={tickInterval}
+                tickMargin={8}
               />
               <YAxis
                 domain={[0, Math.ceil(maxVal * 1.1)]}
                 tick={{ fill: "#a1a1aa", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
-                width={40}
+                width={52}
+                tickMargin={8}
+                tickFormatter={(v: number) => v.toLocaleString()}
               />
               <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)" }} />
               {task.target_value != null && (

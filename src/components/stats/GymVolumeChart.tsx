@@ -62,7 +62,7 @@ export function GymVolumeChart({ data }: GymVolumeChartProps) {
 
       <div style={{ height: 160 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <AreaChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
             <defs>
               <linearGradient id="volumeGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ff3b3b" stopOpacity={0.3} />
@@ -76,12 +76,14 @@ export function GymVolumeChart({ data }: GymVolumeChartProps) {
               axisLine={false}
               tickLine={false}
               interval={tickInterval}
+              tickMargin={8}
             />
             <YAxis
               tick={{ fill: "#a1a1aa", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={40}
+              width={44}
+              tickMargin={8}
               tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
             />
             <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)" }} />

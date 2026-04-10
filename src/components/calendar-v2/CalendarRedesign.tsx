@@ -222,6 +222,22 @@ export function CalendarRedesign() {
     setTimeout(() => setHighlightedDate(null), 2000);
   }, []);
 
+  const handleSelectToday = useCallback(() => {
+    const todayISO = formatDateISO(new Date());
+    setWeekDirection("none");
+    setWeekAnimKey((k) => k + 1);
+    setWeekOffset(0);
+    setMonthOffset(0);
+    setIsMonthView(false);
+    setSelectedDayIndex(-1);
+    setHighlightedDate(null);
+    hasInitialScrollRun.current = false;
+    window.setTimeout(() => {
+      setHighlightedDate(todayISO);
+      window.setTimeout(() => setHighlightedDate(null), 2000);
+    }, 0);
+  }, []);
+
   // ── Task toggle ────────────────────────────────────────
   const handleToggleTask = useCallback(
     (taskId: string, date: string) => {
@@ -353,6 +369,16 @@ export function CalendarRedesign() {
               {activeFilter !== "all" && (
                 <ActiveFilterBadge filter={activeFilter} onClear={() => setActiveFilter("all")} />
               )}
+              <button
+                onClick={handleSelectToday}
+                className={cn(
+                  "h-10 rounded-xl px-3 text-xs font-semibold tracking-wide transition-all duration-200",
+                  "bg-white/5 text-foreground hover:bg-white/10 active:scale-95"
+                )}
+                aria-label="Go to today"
+              >
+                Today
+              </button>
               <FilterPopover activeFilter={activeFilter} onFilterChange={setActiveFilter} />
             </div>
           </div>

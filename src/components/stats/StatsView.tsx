@@ -51,7 +51,6 @@ export function StatsView() {
     const to = todayISO;
     if (timeRange === "W") return { fromISO: formatDateISO(subDays(today, 6)), toISO: to };
     if (timeRange === "M") return { fromISO: formatDateISO(startOfMonth(today)), toISO: to };
-    if (timeRange === "30d") return { fromISO: formatDateISO(subDays(today, 29)), toISO: to };
     return { fromISO: null, toISO: to }; // All
   }, [timeRange, today, todayISO]);
 

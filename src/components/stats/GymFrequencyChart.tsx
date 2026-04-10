@@ -44,15 +44,22 @@ export function GymFrequencyChart({ data }: GymFrequencyChartProps) {
 
       <div style={{ height: 140 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }} barCategoryGap="30%">
+          <BarChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: 8 }} barCategoryGap="30%">
             <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="week" tick={{ fill: "#a1a1aa", fontSize: 10 }} axisLine={false} tickLine={false} />
+            <XAxis
+              dataKey="week"
+              tick={{ fill: "#a1a1aa", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              tickMargin={8}
+            />
             <YAxis
               allowDecimals={false}
               tick={{ fill: "#a1a1aa", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              width={20}
+              width={32}
+              tickMargin={8}
             />
             <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
             <Bar dataKey="sessions" radius={[4, 4, 0, 0]}>

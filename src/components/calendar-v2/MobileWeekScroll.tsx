@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useState, useEffect } from "react";
+import { forwardRef } from "react";
 import { DayTasks } from "@/lib/types";
 import { DayPanel } from "./DayPanel";
 import { cn } from "@/lib/utils";
@@ -39,7 +39,7 @@ export const MobileWeekScroll = forwardRef<HTMLDivElement, MobileWeekScrollProps
                 onToggleTask={onToggleTask}
                 onLogQuantitative={onLogQuantitative}
                 isHighlighted={highlightedDate === dayData.date}
-                className="min-h-[400px]"
+                className="h-[58svh] min-h-[400px] max-h-[560px]"
               />
             </div>
           ))}
