@@ -68,7 +68,7 @@ export function WeekNavigation({
           )}
           aria-label={isMonthView ? "Switch to week view" : "Switch to month view"}
         >
-          <h2 className="text-center text-base font-bold tracking-tight text-foreground sm:text-lg">
+          <h2 className="m-0 whitespace-nowrap text-center text-sm font-bold tracking-tight text-foreground sm:text-base">
             {label}
           </h2>
           {isMonthView ? (
@@ -95,7 +95,7 @@ export function WeekNavigation({
 
       {/* Bottom row: day chips with completion rings (week view only) */}
       {!isMonthView && weekData.length > 0 && (
-        <div className="grid grid-cols-7 gap-1 mx-auto w-full max-w-sm sm:max-w-md">
+        <div className="grid grid-cols-7 gap-1 w-full">
           {weekData.map((day, index) => {
             const completionScore =
               day.tasks.length > 0
@@ -156,7 +156,7 @@ export function WeekNavigation({
                         : "text-muted-foreground"
                   )}
                 >
-                  {day.dayName.slice(0, 1)}
+                  {day.dayName.slice(0, 2).toUpperCase()}
                 </span>
                 {/* Date number */}
                 <span

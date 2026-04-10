@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, PlusCircle, ListChecks, Dumbbell, LogOut, Home, Menu, X } from "lucide-react";
+import { CalendarDays, PlusCircle, ListChecks, Dumbbell, Home, Menu, X, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  icon: typeof Home | typeof CalendarDays | typeof PlusCircle | typeof Dumbbell | typeof ListChecks;
+  icon: typeof Home | typeof CalendarDays | typeof PlusCircle | typeof Dumbbell | typeof ListChecks | typeof BarChart2;
   label: string;
   href: string;
 };
@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: PlusCircle, label: "Add Task", href: "/add-task" },
   { icon: Dumbbell, label: "Gym", href: "/gym" },
   { icon: ListChecks, label: "Manage Tasks", href: "/manage-tasks" },
+  { icon: BarChart2, label: "Stats", href: "/stats" },
 ];
 
 export function Navbar() {
@@ -83,7 +84,7 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Sign out */}
+        {/* Sign out
         <div className="px-3 py-4 border-t border-white/5 shrink-0">
           <Link
             href="/signout"
@@ -92,7 +93,7 @@ export function Navbar() {
             <LogOut className="size-4 shrink-0" />
             Sign out
           </Link>
-        </div>
+        </div> */}
       </aside>
 
       {/* ── Mobile top bar ─────────────────────────────────── */}
@@ -149,7 +150,7 @@ export function Navbar() {
             })}
           </nav>
 
-          <div className="border-t border-white/5 mx-3" />
+          {/* <div className="border-t border-white/5 mx-3" />
 
           <div className="px-3 py-2">
             <Link
@@ -160,7 +161,7 @@ export function Navbar() {
               <LogOut className="size-5 shrink-0" />
               Sign out
             </Link>
-          </div>
+          </div> */}
         </div>
       </header>
 

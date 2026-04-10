@@ -124,7 +124,7 @@ export default function ManageTasksPage() {
               {f.label}
               <span
                 className={cn(
-                  "text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center",
+                  "text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center",
                   filter === f.value ? "bg-accent/20 text-accent" : "bg-white/8 text-muted-foreground"
                 )}
               >
@@ -140,7 +140,7 @@ export default function ManageTasksPage() {
           {loading && (
             <div className="glass rounded-2xl flex items-center justify-center gap-3 p-10">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
-              <span className="text-base text-muted-foreground">Loading tasks…</span>
+              <span className="text-sm text-muted-foreground">Loading tasks…</span>
             </div>
           )}
 
@@ -150,7 +150,7 @@ export default function ManageTasksPage() {
               <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center">
                 <BarChart2 className="size-6 text-muted-foreground/40" />
               </div>
-              <p className="text-base text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {filter === "all" ? "No tasks yet." : `No ${filter === "daily" ? "daily" : "one-time"} tasks.`}
               </p>
             </div>
@@ -158,9 +158,7 @@ export default function ManageTasksPage() {
 
           {/* Task list — individual cards */}
           {!loading &&
-            filtered.map((task) => (
-              <TaskRow key={task.id} task={task} onDelete={() => openSheet(task.id)} />
-            ))}
+            filtered.map((task) => <TaskRow key={task.id} task={task} onDelete={() => openSheet(task.id)} />)}
         </div>
       </div>
 
@@ -251,16 +249,12 @@ function TaskRow({ task, onDelete }: { task: Task; onDelete: () => void }) {
           isDaily ? "bg-accent/10" : "bg-white/5"
         )}
       >
-        {isDaily ? (
-          <Repeat className="size-4 text-accent/70" />
-        ) : (
-          <Clock className="size-4 text-muted-foreground/60" />
-        )}
+        {isDaily ? <Repeat className="size-4 text-accent/70" /> : <Clock className="size-4 text-muted-foreground/60" />}
       </div>
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-semibold text-foreground">{task.title}</p>
+        <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
 
         {/* Target value subtitle */}
         {task.target_value != null && (
@@ -287,10 +281,8 @@ function TaskRow({ task, onDelete }: { task: Task; onDelete: () => void }) {
             {task.due_date && task.type === "one_time" && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 text-sm font-medium",
-                  isOverdue
-                    ? "rounded-md bg-accent/15 px-2 py-0.5 text-accent"
-                    : "text-muted-foreground"
+                  "inline-flex items-center gap-1 text-xs font-medium",
+                  isOverdue ? "rounded-md bg-accent/15 px-2 py-0.5 text-accent" : "text-muted-foreground"
                 )}
               >
                 <Calendar className="size-3 shrink-0" />
