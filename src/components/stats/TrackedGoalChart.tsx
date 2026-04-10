@@ -73,8 +73,15 @@ export function TrackedGoalChart({ task, points }: TrackedGoalChartProps) {
           <p className="text-muted-foreground text-xs">No data logged yet</p>
         </div>
       ) : (
-        <div style={{ height: 160 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full min-w-0" style={{ height: 160 }}>
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={0}
+            minHeight={160}
+            aspect={undefined}
+            initialDimension={{ width: 700, height: 160 }}
+          >
             <LineChart data={points} margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
               <XAxis

@@ -42,8 +42,15 @@ export function GymFrequencyChart({ data }: GymFrequencyChartProps) {
     <div className="glass rounded-2xl p-4 space-y-3">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Sessions per week</p>
 
-      <div style={{ height: 140 }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full min-w-0" style={{ height: 140 }}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={140}
+          aspect={undefined}
+          initialDimension={{ width: 700, height: 140 }}
+        >
           <BarChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: 8 }} barCategoryGap="30%">
             <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
             <XAxis

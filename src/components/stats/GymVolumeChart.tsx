@@ -60,8 +60,15 @@ export function GymVolumeChart({ data }: GymVolumeChartProps) {
         </div>
       </div>
 
-      <div style={{ height: 160 }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full min-w-0" style={{ height: 160 }}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={160}
+          aspect={undefined}
+          initialDimension={{ width: 700, height: 160 }}
+        >
           <AreaChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
             <defs>
               <linearGradient id="volumeGrad" x1="0" y1="0" x2="0" y2="1">
