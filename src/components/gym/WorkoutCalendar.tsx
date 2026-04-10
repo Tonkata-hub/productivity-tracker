@@ -151,7 +151,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
         <div className="flex items-center justify-between px-1">
           <button
             onClick={() => setCurrentDate(new Date(year, month - 1))}
-            className="flex size-10 items-center justify-center rounded-2xl border border-white/6 bg-white/3 text-muted-foreground hover:text-foreground hover:bg-white/6 hover:border-white/10 transition-all duration-150 active:scale-95"
+            className="flex size-10 cursor-pointer items-center justify-center rounded-2xl border border-white/6 bg-white/3 text-muted-foreground transition-all duration-150 hover:border-white/10 hover:bg-white/6 hover:text-foreground active:scale-95"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -164,7 +164,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
             {!isCurrentMonth && (
               <button
                 onClick={() => setCurrentDate(new Date())}
-                className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-accent/60 hover:text-accent transition-colors"
+                className="mt-1 cursor-pointer text-[10px] font-semibold uppercase tracking-widest text-accent/60 transition-colors hover:text-accent"
               >
                 → today
               </button>
@@ -173,7 +173,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
 
           <button
             onClick={() => setCurrentDate(new Date(year, month + 1))}
-            className="flex size-10 items-center justify-center rounded-2xl border border-white/6 bg-white/3 text-muted-foreground hover:text-foreground hover:bg-white/6 hover:border-white/10 transition-all duration-150 active:scale-95"
+            className="flex size-10 cursor-pointer items-center justify-center rounded-2xl border border-white/6 bg-white/3 text-muted-foreground transition-all duration-150 hover:border-white/10 hover:bg-white/6 hover:text-foreground active:scale-95"
           >
             <ChevronRight className="size-4" />
           </button>
@@ -208,15 +208,16 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                     onClick={() => (hasW ? openSheet(workouts[0].id) : undefined)}
                     disabled={!hasW && !todayDay}
                     className={cn(
-                      "relative flex size-9 items-center justify-center rounded-full select-none",
+                      "relative flex size-9 select-none items-center justify-center rounded-full",
                       "text-[13px] font-semibold transition-all duration-150",
+                      "cursor-pointer disabled:cursor-not-allowed",
                       todayDay && [
                         "bg-accent text-white",
                         "shadow-[0_0_0_1px_rgba(255,59,59,0.5),0_0_16px_rgba(255,59,59,0.35)]",
                       ],
-                      !todayDay && hasW && ["text-white/90 hover:bg-white/8 active:bg-white/12 cursor-pointer"],
-                      !todayDay && !hasW && futureDay && "text-white/15 cursor-default",
-                      !todayDay && !hasW && !futureDay && "text-white/30 cursor-default"
+                      !todayDay && hasW && ["text-white/90 hover:bg-white/8 active:bg-white/12"],
+                      !todayDay && !hasW && futureDay && "text-white/15",
+                      !todayDay && !hasW && !futureDay && "text-white/30"
                     )}
                   >
                     {day}
@@ -258,7 +259,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
           {/* Backdrop */}
           <div
             className={cn(
-              "fixed inset-0 z-40 bg-black/75 backdrop-blur-sm transition-opacity duration-300",
+              "fixed inset-0 z-40 cursor-pointer bg-black/75 backdrop-blur-sm transition-opacity duration-300",
               sheetAnimated && !sheetExiting ? "opacity-100" : "opacity-0"
             )}
             onClick={closeSheet}
@@ -308,7 +309,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                   </div>
                   <button
                     onClick={closeSheet}
-                    className="shrink-0 flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                    className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
                   >
                     <X className="size-4" />
                   </button>
@@ -392,7 +393,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                       <button
                         onClick={deleteWorkout}
                         disabled={isDeleting}
-                        className="flex-1 rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:opacity-50"
+                        className="flex-1 cursor-pointer rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isDeleting ? (
                           <span className="flex items-center justify-center gap-2">
@@ -406,7 +407,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                       <button
                         onClick={() => setConfirmDelete(false)}
                         disabled={isDeleting}
-                        className="flex-1 rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors disabled:opacity-50"
+                        className="flex-1 cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -416,7 +417,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                   <button
                     onClick={() => setConfirmDelete(true)}
                     disabled={isLoadingDetail}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground hover:text-accent hover:border-accent/25 hover:bg-accent/5 transition-all disabled:opacity-30"
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-accent/25 hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <Trash2 className="size-4" />
                     Delete workout

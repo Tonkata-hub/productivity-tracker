@@ -225,7 +225,22 @@ export function StatsView() {
 
     const recentTitles = [...completed]
       .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))
-      .slice(0, 5)
+      .slice(0, 3)
+      .map((t) => t.title);
+
+    const pendingTitles = [...pending]
+      .sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      })
+      .slice(0, 3)
+      .map((t) => t.title);
+
+    const overdueTitles = [...overdue]
+      .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""))
+      .slice(0, 3)
       .map((t) => t.title);
 
     return {
@@ -233,6 +248,8 @@ export function StatsView() {
       pending: pending.length,
       overdue: overdue.length,
       recentTitles,
+      pendingTitles,
+      overdueTitles,
     };
   }, [oneTimeTasks, todayISO, fromISO]);
 

@@ -27,7 +27,7 @@ export function FilterPopover({ activeFilter, onFilterChange }: FilterPopoverPro
       <Popover.Trigger asChild>
         <button
           className={cn(
-            "relative flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+            "relative flex size-10 cursor-pointer items-center justify-center rounded-xl transition-all duration-200",
             "bg-white/5 text-foreground hover:bg-white/10 active:scale-95",
             isFiltering && "text-accent"
           )}
@@ -66,7 +66,7 @@ export function FilterPopover({ activeFilter, onFilterChange }: FilterPopoverPro
                   <button
                     onClick={() => onFilterChange(option.value)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150",
+                      "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150",
                       isActive
                         ? "bg-accent/15 text-accent"
                         : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
@@ -106,7 +106,7 @@ export function ActiveFilterBadge({
       <span>{label}</span>
       <button
         onClick={onClear}
-        className="rounded-md p-0.5 transition-colors hover:bg-accent/20"
+        className="cursor-pointer rounded-md p-0.5 transition-colors hover:bg-accent/20"
         aria-label="Clear filter"
       >
         <X className="size-3" />

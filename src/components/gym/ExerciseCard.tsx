@@ -103,7 +103,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+        className="flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-left"
       >
         <div>
           <h3 className="font-semibold text-foreground text-sm">{workoutExercise.exercise.name}</h3>
@@ -169,7 +169,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                 <button
                   onClick={() => deleteSet(set.id)}
                   disabled={isDeletingId === set.id}
-                  className="shrink-0 flex size-8 items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90 disabled:opacity-50"
+                  className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Delete set"
                 >
                   {isDeletingId === set.id ? (
@@ -219,7 +219,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                 <button
                   onClick={addSet}
                   disabled={!newReps || !newWeight || isSubmitting}
-                  className="flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-base font-semibold text-white shadow-md shadow-accent/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  className="flex cursor-pointer items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-base font-semibold text-white shadow-md shadow-accent/25 transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : "Add"}
                 </button>
@@ -230,7 +230,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
                   setNewReps("");
                   setNewWeight("");
                 }}
-                className="mt-2 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+                className="mt-2 w-full cursor-pointer py-1 text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 Cancel
               </button>
@@ -238,7 +238,7 @@ export function ExerciseCard({ workoutExercise, lastPerformance, onUpdate }: Exe
           ) : (
             <button
               onClick={openAddSet}
-              className="w-full flex items-center justify-center gap-2 py-3 text-sm text-accent/70 hover:text-accent hover:bg-accent/5 transition-colors border-t border-border"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 border-t border-border py-3 text-sm text-accent/70 transition-colors hover:bg-accent/5 hover:text-accent"
             >
               <Plus className="size-4" />
               Add Set

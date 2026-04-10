@@ -158,7 +158,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                   <button
                     key={workout.id}
                     onClick={() => openSheet(workout.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/3 transition-colors group"
+                    className="group flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/3"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">{workout.name || dateStr}</p>
@@ -188,7 +188,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
             {/* Backdrop */}
             <div
               className={cn(
-                "fixed inset-0 z-60 bg-black/70 backdrop-blur-sm transition-opacity duration-300",
+                "fixed inset-0 z-60 cursor-pointer bg-black/70 backdrop-blur-sm transition-opacity duration-300",
                 sheetAnimated && !sheetExiting ? "opacity-100" : "opacity-0"
               )}
               onClick={closeSheet}
@@ -241,7 +241,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                     </div>
                     <button
                       onClick={closeSheet}
-                      className="shrink-0 flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                      className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
                     >
                       <X className="size-4" />
                     </button>
@@ -298,7 +298,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                                 {/* Exercise header row — tap to expand */}
                                 <button
                                   onClick={() => toggleExercise(we.id)}
-                                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/3 transition-colors group"
+                                  className="group flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/3"
                                 >
                                   <div>
                                     <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
@@ -385,7 +385,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                         <button
                           onClick={deleteWorkout}
                           disabled={isDeleting}
-                          className="flex-1 rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:opacity-50"
+                          className="flex-1 cursor-pointer rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isDeleting ? (
                             <span className="flex items-center justify-center gap-2">
@@ -399,7 +399,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                         <button
                           onClick={() => setConfirmDelete(false)}
                           disabled={isDeleting}
-                          className="flex-1 rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground hover:bg-white/8 transition-colors disabled:opacity-50"
+                          className="flex-1 cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -409,7 +409,7 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                     <button
                       onClick={() => setConfirmDelete(true)}
                       disabled={isLoadingDetail}
-                      className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground hover:text-accent hover:border-accent/25 hover:bg-accent/5 transition-all disabled:opacity-30"
+                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-accent/25 hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <Trash2 className="size-4" />
                       Delete workout

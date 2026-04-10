@@ -222,7 +222,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
             {/* Abort */}
             <button
               onClick={openAbortSheet}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-accent/70 transition-colors"
+              className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground/50 transition-colors hover:text-accent/70"
             >
               <X className="size-3.5" />
               Abort
@@ -239,7 +239,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
             {/* Finish */}
             <button
               onClick={() => setShowSummary(true)}
-              className="flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md shadow-accent/25 transition-all active:scale-95 hover:bg-accent/90"
+              className="flex cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-md shadow-accent/25 transition-all hover:bg-accent/90 active:scale-95"
             >
               <Check className="size-4" />
               Finish
@@ -295,7 +295,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
                     setNewExerciseName("");
                     setExerciseSuggestions([]);
                   }}
-                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                  className="cursor-pointer p-1 text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <X className="size-4" />
                 </button>
@@ -307,7 +307,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
                     <button
                       key={ex.id}
                       onClick={() => addExercise(ex.name)}
-                      className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-white/5 transition-colors"
+                      className="w-full cursor-pointer px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-white/5"
                     >
                       {ex.name}
                     </button>
@@ -319,7 +319,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
                 <div className="border-t border-border p-3">
                   <button
                     onClick={() => addExercise(newExerciseName)}
-                    className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                    className="w-full cursor-pointer rounded-xl bg-accent py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
                   >
                     Add &quot;{newExerciseName.trim()}&quot;
                   </button>
@@ -330,9 +330,8 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
             <button
               onClick={() => setIsAddingExercise(true)}
               className={cn(
-                "w-full border-2 border-dashed border-border hover:border-accent/40 rounded-2xl p-4",
-                "flex items-center justify-center gap-2",
-                "text-sm text-muted-foreground hover:text-accent transition-colors"
+                "flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border p-4",
+                "text-sm text-muted-foreground transition-colors hover:border-accent/40 hover:text-accent"
               )}
             >
               <Plus className="size-5" />
@@ -348,7 +347,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
           {/* Backdrop */}
           <div
             className={cn(
-              "fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300",
+              "fixed inset-0 z-40 cursor-pointer bg-black/70 backdrop-blur-sm transition-opacity duration-300",
               abortSheetAnimated && !abortSheetExiting ? "opacity-100" : "opacity-0"
             )}
             onClick={closeAbortSheet}
@@ -398,7 +397,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
                 <button
                   onClick={confirmAbort}
                   disabled={isAborting}
-                  className="w-full rounded-2xl bg-accent py-4 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:opacity-50"
+                  className="w-full cursor-pointer rounded-2xl bg-accent py-4 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isAborting ? (
                     <span className="flex items-center justify-center gap-2">
@@ -412,7 +411,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
                 <button
                   onClick={closeAbortSheet}
                   disabled={isAborting}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-medium text-foreground hover:bg-white/8 transition-colors disabled:opacity-50"
+                  className="w-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-medium text-foreground transition-colors hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Keep going
                 </button>

@@ -102,7 +102,7 @@ export default function AddTaskPage() {
                     type="button"
                     onClick={() => setType(t)}
                     className={cn(
-                      "relative z-10 px-4 py-1.5 rounded-md text-xs font-semibold transition-colors duration-150 text-center whitespace-nowrap",
+                      "relative z-10 cursor-pointer rounded-md px-4 py-1.5 text-center text-xs font-semibold whitespace-nowrap transition-colors duration-150",
                       type === t ? "text-white" : "text-muted-foreground"
                     )}
                   >
@@ -126,10 +126,10 @@ export default function AddTaskPage() {
                     type="button"
                     onClick={() => setPriority(p.value)}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-150",
+                      "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150",
                       priority === p.value
                         ? p.on
-                        : "border-transparent bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/8"
+                        : "border-transparent bg-white/5 text-muted-foreground hover:bg-white/8 hover:text-foreground"
                     )}
                   >
                     {p.label}
@@ -209,12 +209,12 @@ export default function AddTaskPage() {
             type="submit"
             disabled={status === "submitting" || status === "success" || !title.trim()}
             className={cn(
-              "w-full rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2",
+              "flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300",
               status === "success"
                 ? "bg-green-500 text-white shadow-lg shadow-green-500/25"
                 : status === "error"
                   ? "bg-accent/70 text-white"
-                  : "bg-accent text-white hover:bg-accent/90 shadow-lg shadow-accent/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                  : "bg-accent text-white shadow-lg shadow-accent/30 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             )}
           >
             {status === "submitting" ? (

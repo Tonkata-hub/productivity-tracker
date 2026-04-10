@@ -53,13 +53,13 @@ export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputPr
               setInputValue("");
             }
           }}
-          className="w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-base text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
+          className="w-24 cursor-text rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-base text-foreground placeholder-muted-foreground/40 outline-none transition-colors focus:border-accent/50"
           placeholder={unit ?? "amount"}
         />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleCustomSubmit}
-          className="flex items-center gap-1 rounded-lg bg-accent/20 px-3 py-2 text-xs font-semibold text-accent transition-colors hover:bg-accent/30"
+          className="flex cursor-pointer items-center gap-1 rounded-lg bg-accent/20 px-3 py-2 text-xs font-semibold text-accent transition-colors hover:bg-accent/30"
         >
           <Check className="size-3.5" />
           Log
@@ -69,7 +69,7 @@ export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputPr
             setShowCustom(false);
             setInputValue("");
           }}
-          className="p-2 text-muted-foreground transition-colors hover:text-foreground"
+          className="cursor-pointer p-2 text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="size-3.5" />
         </button>
@@ -78,13 +78,13 @@ export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputPr
   }
 
   return (
-    <div className="mt-2 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+    <div className="mt-2 flex cursor-pointer items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
       {increments.map((inc) => (
         <button
           key={inc}
           onClick={() => onLogValue(inc)}
           className={cn(
-            "rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5",
+            "cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5",
             "text-xs font-semibold tabular-nums text-muted-foreground",
             "transition-all hover:border-accent/30 hover:bg-accent/10 hover:text-accent",
             "active:scale-95"
@@ -96,7 +96,7 @@ export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputPr
       <button
         onClick={() => setShowCustom(true)}
         className={cn(
-          "rounded-lg border border-white/10 bg-white/5 p-1.5",
+          "cursor-pointer rounded-lg border border-white/10 bg-white/5 p-1.5",
           "text-muted-foreground transition-all hover:border-white/20 hover:text-foreground",
           "active:scale-95"
         )}

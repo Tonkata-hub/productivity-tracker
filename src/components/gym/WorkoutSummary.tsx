@@ -28,7 +28,7 @@ export function WorkoutSummary({
         {/* Back */}
         <button
           onClick={onCancel}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          className="mb-8 flex cursor-pointer items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
           Back to workout
@@ -88,10 +88,9 @@ export function WorkoutSummary({
         <button
           onClick={onConfirm}
           className={cn(
-            "w-full rounded-2xl px-6 py-4 text-sm font-semibold",
+            "flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold",
             "bg-accent text-white shadow-lg shadow-accent/30",
-            "flex items-center justify-center gap-2",
-            "transition-all active:scale-[0.98] hover:bg-accent/90",
+            "transition-all hover:bg-accent/90 active:scale-[0.98]",
             "calendar-animate-slide-in-up"
           )}
           style={{ animationDelay: "150ms" }}

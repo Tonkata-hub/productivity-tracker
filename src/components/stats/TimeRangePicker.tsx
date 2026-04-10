@@ -23,10 +23,10 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
           key={rv}
           onClick={() => onChange(rv)}
           className={cn(
-            "px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-150",
+            "cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-150",
             value === rv
               ? "bg-accent text-white shadow-sm shadow-accent/40"
-              : "text-muted-foreground hover:text-foreground hover:bg-white/6"
+              : "text-muted-foreground hover:bg-white/6 hover:text-foreground"
           )}
         >
           {label}

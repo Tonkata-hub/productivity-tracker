@@ -28,7 +28,7 @@ export function WeekSummaryBar({ weekData, selectedIndex, onSelectDay }: WeekSum
             key={day.date}
             onClick={() => onSelectDay(index)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-xl px-2 py-2 transition-all duration-200",
+              "flex cursor-pointer flex-col items-center gap-1 rounded-xl px-2 py-2 transition-all duration-200",
               isSelected
                 ? "bg-white/[0.08] ring-1 ring-white/10"
                 : "hover:bg-white/[0.04]",

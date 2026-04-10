@@ -115,10 +115,10 @@ export default function ManageTasksPage() {
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150",
+                "flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150",
                 filter === f.value
-                  ? "bg-accent/15 text-accent border border-accent/25"
-                  : "bg-white/5 text-muted-foreground border border-transparent hover:text-foreground hover:bg-white/8"
+                  ? "border border-accent/25 bg-accent/15 text-accent"
+                  : "border border-transparent bg-white/5 text-muted-foreground hover:bg-white/8 hover:text-foreground"
               )}
             >
               {f.label}
@@ -167,7 +167,7 @@ export default function ManageTasksPage() {
         <>
           <div
             className={cn(
-              "fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300",
+              "fixed inset-0 z-40 cursor-pointer bg-black/70 backdrop-blur-sm transition-opacity duration-300",
               sheetAnimated && !sheetExiting ? "opacity-100" : "opacity-0"
             )}
             onClick={closeSheet}
@@ -207,7 +207,7 @@ export default function ManageTasksPage() {
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="w-full rounded-2xl bg-accent py-4 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full cursor-pointer rounded-2xl bg-accent py-4 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {deleting ? (
                     <span className="flex items-center justify-center gap-2">
@@ -221,7 +221,7 @@ export default function ManageTasksPage() {
                 <button
                   onClick={closeSheet}
                   disabled={deleting}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-medium text-foreground transition-all hover:bg-white/8 disabled:opacity-50"
+                  className="w-full cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-medium text-foreground transition-all hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -297,7 +297,7 @@ function TaskRow({ task, onDelete }: { task: Task; onDelete: () => void }) {
       {/* Delete */}
       <button
         onClick={onDelete}
-        className="shrink-0 flex size-10 items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90"
+        className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-accent/10 hover:text-accent active:scale-90"
         aria-label={`Delete "${task.title}"`}
       >
         <Trash2 className="size-4" />

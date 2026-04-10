@@ -4,7 +4,18 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { getTasksForDate, formatDateISO, getWeekDates } from "@/lib/calendar-utils";
 import type { Task, TaskWithStatus } from "@/lib/types";
-import { CheckCircle2, Circle, Droplets, Activity, Scale, Utensils, Moon, FileText, Flame } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  Circle,
+  Droplets,
+  Activity,
+  Scale,
+  Utensils,
+  Moon,
+  FileText,
+  ListChecks,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -94,6 +105,7 @@ export default function HomePage() {
 
   const todayTasks = getTasksForDate(tasks, today, todayCompletions, todayQuantValues);
   const completedCount = todayTasks.filter((t) => t.isCompleted).length;
+  const allTodayCompleted = todayTasks.length > 0 && completedCount === todayTasks.length;
   const dailyCount = tasks.filter((t) => t.type === "daily").length;
   const upcomingCount = tasks.filter(
     (t) => t.type === "one_time" && !t.is_completed && (!t.due_date || t.due_date >= today)
@@ -184,7 +196,13 @@ export default function HomePage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3 calendar-animate-slide-in-up" style={{ animationDelay: "60ms" }}>
-              <StatCard label="Done today" value={`${completedCount} / ${todayTasks.length}`} sub="tasks" accent />
+              <StatCard
+                label="Done today"
+                value={`${completedCount} / ${todayTasks.length}`}
+                sub="tasks"
+                accent={!allTodayCompleted}
+                success={allTodayCompleted}
+              />
               <StatCard label="Daily habits" value={dailyCount} sub="active" />
               <StatCard label="Upcoming" value={upcomingCount} sub="one-time tasks" />
               <StatCard label="Gym this week" value={gymSessions} sub="sessions" />
@@ -197,14 +215,14 @@ export default function HomePage() {
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">This Week</h2>
-                <Flame className="w-4 h-4 text-accent" />
+                <ListChecks className="w-4 h-4 text-muted-foreground" />
               </div>
               <div className="grid grid-cols-7 gap-1">
-                {weekStreak.map(({ day, fraction, isFuture, isToday }) => {
+                {weekStreak.map(({ day, fraction, isFuture }) => {
                   const circumference = 2 * Math.PI * 11;
                   const dash = fraction * circumference;
                   return (
-                    <div key={day} className="flex flex-col items-center gap-1.5">
+                    <div key={day} className="flex flex-col items-center gap-1.5 rounded-xl px-1 py-1.5 transition-colors">
                       <div className="relative w-9 h-9">
                         <svg viewBox="0 0 28 28" className="w-9 h-9 -rotate-90">
                           <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="2.5" />
@@ -214,7 +232,7 @@ export default function HomePage() {
                               cy="14"
                               r="11"
                               fill="none"
-                              stroke={fraction >= 1 ? "#ff3b3b" : "rgba(255,59,59,0.45)"}
+                              stroke={fraction >= 1 ? "#34d399" : "rgba(255,59,59,0.45)"}
                               strokeWidth="2.5"
                               strokeDasharray={`${dash} ${circumference}`}
                               strokeLinecap="round"
@@ -222,15 +240,19 @@ export default function HomePage() {
                           )}
                         </svg>
                         {fraction >= 1 && !isFuture && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                          <div className="absolute inset-0 flex items-center justify-center text-completed-green">
+                            <Check className="w-3.5 h-3.5" strokeWidth={3.5} />
                           </div>
                         )}
                       </div>
                       <span
                         className={cn(
-                          "text-[10px] font-medium",
-                          isToday ? "text-accent" : isFuture ? "text-muted-foreground/30" : "text-muted-foreground"
+                          "text-[10px] font-medium transition-colors",
+                          isFuture
+                            ? "text-muted-foreground/30"
+                            : fraction >= 1
+                              ? "text-completed-green"
+                              : "text-muted-foreground"
                         )}
                       >
                         {day}
@@ -298,16 +320,31 @@ function StatCard({
   value,
   sub,
   accent,
+  success,
 }: {
   label: string;
   value: string | number;
   sub: string;
   accent?: boolean;
+  success?: boolean;
 }) {
   return (
-    <div className={cn("glass rounded-2xl p-4 flex flex-col gap-0.5", accent && "border-accent/20")}>
+    <div
+      className={cn(
+        "glass rounded-2xl p-4 flex flex-col gap-0.5",
+        accent && "border-accent/20",
+        success && "border-completed-green/25"
+      )}
+    >
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-      <p className={cn("text-2xl font-bold tracking-tight", accent ? "text-accent" : "text-foreground")}>{value}</p>
+      <p
+        className={cn(
+          "text-2xl font-bold tracking-tight",
+          success ? "text-completed-green" : accent ? "text-accent" : "text-foreground"
+        )}
+      >
+        {value}
+      </p>
       <p className="text-[10px] text-muted-foreground">{sub}</p>
     </div>
   );

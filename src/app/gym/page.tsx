@@ -229,7 +229,7 @@ export default function GymPage() {
   return (
     <>
       <div className="min-h-screen bg-background md:flex md:items-center md:justify-center">
-        <div className="w-full max-w-lg px-4 pt-6 pb-10 md:pt-0 md:pb-0 space-y-5 md:h-[calc(100vh-20rem)] md:overflow-y-auto">
+        <div className="w-full max-w-lg px-4 pt-6 pb-10 md:pt-0 md:pb-0 space-y-5 md:overflow-y-auto">
           {/* Header */}
           <div className="calendar-animate-slide-in-up">
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Fitness</p>
@@ -264,7 +264,7 @@ export default function GymPage() {
                 key={key}
                 onClick={() => setView(key)}
                 className={cn(
-                  "relative z-10 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-semibold transition-colors duration-150",
+                  "relative z-10 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-colors duration-150",
                   view === key ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -288,10 +288,9 @@ export default function GymPage() {
               <button
                 onClick={openNameSheet}
                 className={cn(
-                  "w-full rounded-2xl px-6 py-4 text-sm font-semibold",
+                  "flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold",
                   "bg-accent text-white shadow-lg shadow-accent/30",
-                  "flex items-center justify-center gap-2",
-                  "transition-all active:scale-[0.98] hover:bg-accent/90",
+                  "transition-all hover:bg-accent/90 active:scale-[0.98]",
                   "calendar-animate-slide-in-up"
                 )}
                 style={{ animationDelay: "80ms" }}
@@ -331,7 +330,7 @@ export default function GymPage() {
                     {recentWorkouts.length > 3 && (
                       <button
                         onClick={() => setView("history")}
-                        className="w-full flex items-center justify-center gap-1 py-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex w-full cursor-pointer items-center justify-center gap-1 py-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
                       >
                         View all {recentWorkouts.length} workouts
                         <ChevronRight className="size-3.5" />
@@ -374,7 +373,7 @@ export default function GymPage() {
           {/* Backdrop */}
           <div
             className={cn(
-              "fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300",
+              "fixed inset-0 z-40 cursor-pointer bg-black/70 backdrop-blur-sm transition-opacity duration-300",
               nameSheetAnimated && !nameSheetExiting ? "opacity-100" : "opacity-0"
             )}
             onClick={closeNameSheet}
@@ -415,10 +414,10 @@ export default function GymPage() {
                     key={chip}
                     onClick={() => setPendingName(chip)}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-150",
+                      "cursor-pointer rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-150",
                       pendingName === chip
-                        ? "bg-accent/20 text-accent border-accent/40 shadow-sm shadow-accent/20"
-                        : "bg-white/5 text-muted-foreground border-white/8 hover:text-foreground hover:bg-white/8"
+                        ? "border-accent/40 bg-accent/20 text-accent shadow-sm shadow-accent/20"
+                        : "border-white/8 bg-white/5 text-muted-foreground hover:bg-white/8 hover:text-foreground"
                     )}
                   >
                     {chip}
@@ -447,12 +446,13 @@ export default function GymPage() {
                 onClick={confirmStartWorkout}
                 disabled={!pendingName.trim() || isStartingWorkout}
                 className={cn(
-                  "w-full rounded-2xl py-4 text-sm font-semibold",
-                  "flex items-center justify-center gap-2",
-                  "transition-all active:scale-[0.98]",
+                  "flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-semibold transition-all active:scale-[0.98]",
                   pendingName.trim()
-                    ? "bg-accent text-white shadow-lg shadow-accent/30 hover:bg-accent/90"
-                    : "bg-white/5 text-muted-foreground cursor-not-allowed"
+                    ? cn(
+                        "bg-accent text-white shadow-lg shadow-accent/30 hover:bg-accent/90",
+                        isStartingWorkout ? "cursor-wait" : "cursor-pointer"
+                      )
+                    : "cursor-not-allowed bg-white/5 text-muted-foreground"
                 )}
               >
                 {isStartingWorkout ? (

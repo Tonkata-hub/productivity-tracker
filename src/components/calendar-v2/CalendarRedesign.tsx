@@ -372,7 +372,7 @@ export function CalendarRedesign() {
               <button
                 onClick={handleSelectToday}
                 className={cn(
-                  "h-10 rounded-xl px-3 text-xs font-semibold tracking-wide transition-all duration-200",
+                  "h-10 cursor-pointer rounded-xl px-3 text-xs font-semibold tracking-wide transition-all duration-200",
                   "bg-white/5 text-foreground hover:bg-white/10 active:scale-95"
                 )}
                 aria-label="Go to today"

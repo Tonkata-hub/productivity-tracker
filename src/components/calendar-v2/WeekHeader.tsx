@@ -98,13 +98,17 @@ export function WeekHeader({
                 key={day.date}
                 onClick={() => onScrollToDay?.(index)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-xl py-1.5 px-1 min-h-[44px] transition-all duration-200",
+                  "flex min-h-[44px] cursor-pointer flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 transition-all duration-200",
                   isActive ? "bg-white/8" : "hover:bg-white/4",
                   day.isFuture && "opacity-35"
                 )}
                 aria-label={`Go to ${day.dayName}`}
               >
-                <svg viewBox="0 0 24 24" className="size-6 sm:size-7 -rotate-90">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="pointer-events-none size-6 -rotate-90 sm:size-7"
+                  aria-hidden
+                >
                   <circle
                     cx="12"
                     cy="12"

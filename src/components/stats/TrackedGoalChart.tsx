@@ -25,6 +25,27 @@ interface ChartTooltipProps {
   label?: string;
 }
 
+function getAxisTicks(maxValue: number): { ticks: number[]; domainMax: number } {
+  const upper = Math.max(0, maxValue);
+
+  // Keep small ranges granular (e.g. 0,1,2), but snap larger ranges to 5s.
+  if (upper <= 10) {
+    const domainMax = Math.max(1, Math.ceil(upper));
+    return {
+      ticks: Array.from({ length: domainMax + 1 }, (_, i) => i),
+      domainMax,
+    };
+  }
+
+  const step = 5;
+  const domainMax = Math.ceil(upper / step) * step;
+  const tickCount = domainMax / step;
+  return {
+    ticks: Array.from({ length: tickCount + 1 }, (_, i) => i * step),
+    domainMax,
+  };
+}
+
 function GlassTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   const val = payload[0]?.value;
@@ -41,6 +62,7 @@ function GlassTooltip({ active, payload, label }: ChartTooltipProps) {
 export function TrackedGoalChart({ task, points }: TrackedGoalChartProps) {
   const hasData = points.some((p) => p.value != null);
   const maxVal = Math.max(task.target_value ?? 0, ...points.map((p) => p.value ?? 0));
+  const { ticks: yTicks, domainMax: yMax } = getAxisTicks(maxVal);
   const hitCount = points.filter(
     (p) => p.value != null && task.target_value != null && p.value >= task.target_value
   ).length;
@@ -93,7 +115,9 @@ export function TrackedGoalChart({ task, points }: TrackedGoalChartProps) {
                 tickMargin={8}
               />
               <YAxis
-                domain={[0, Math.ceil(maxVal * 1.1)]}
+                domain={[0, yMax]}
+                ticks={yTicks}
+                allowDecimals={false}
                 tick={{ fill: "#a1a1aa", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}

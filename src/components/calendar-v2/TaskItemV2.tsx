@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { TaskWithStatus, TaskPriority } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,13 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
   // Quantitative task
   if (task.target_value != null) {
     const progress = Math.min((task.currentValue / task.target_value) * 100, 100);
+    const handleToggleQuickLog = () => setShowQuickLog((prev) => !prev);
+    const handleQuickLogKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleToggleQuickLog();
+      }
+    };
 
     return (
       <div
@@ -58,10 +65,21 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
       >
         <PriorityBar priority={task.priority} />
 
-        <div className="flex items-center gap-3">
+        <div
+          className="flex cursor-pointer items-center gap-3"
+          onClick={handleToggleQuickLog}
+          onKeyDown={handleQuickLogKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-expanded={showQuickLog}
+          aria-label={`Toggle options for ${task.title}`}
+        >
           {/* Toggle quick-log */}
           <button
-            onClick={() => setShowQuickLog((prev) => !prev)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleQuickLog();
+            }}
             className={cn(
               "shrink-0 flex size-5 items-center justify-center rounded-md border-2 transition-all duration-200",
               showQuickLog
