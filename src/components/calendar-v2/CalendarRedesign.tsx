@@ -409,7 +409,7 @@ export function CalendarRedesign() {
           {/* Month View */}
           {isMonthView && (
             <div
-              className="glass rounded-2xl p-4 calendar-animate-slide-in-up lg:mx-auto lg:max-w-4xl"
+              className="glass rounded-2xl p-4 calendar-animate-slide-in-up lg:mx-auto lg:max-w-2xl"
               style={{ animationDelay: "60ms" }}
             >
               <MonthGrid

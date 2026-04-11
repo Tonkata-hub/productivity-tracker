@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Check, ListChecks } from "lucide-react";
 import { Task } from "@/lib/types";
 import { getMonthDates, formatDateISO, getTasksForDate } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
@@ -44,18 +45,18 @@ export function MonthGrid({
     return result;
   }, [monthDates]);
 
-  // Compute day stats — now includes ALL task types
+  // Compute day stats from daily tasks only
   const dayStatsMap = useMemo(() => {
     const map = new Map<string, { totalCount: number; completedCount: number; fraction: number }>();
     for (const date of monthDates) {
       const dateISO = formatDateISO(date);
-      const allTasks = getTasksForDate(tasks, dateISO, completions, quantValues);
-      const totalCount = allTasks.length;
-      const completionScore = allTasks.reduce((sum, t) => {
+      const dailyTasks = getTasksForDate(tasks, dateISO, completions, quantValues).filter((task) => task.type === "daily");
+      const totalCount = dailyTasks.length;
+      const completionScore = dailyTasks.reduce((sum, t) => {
         if (t.target_value != null) return sum + Math.min(t.currentValue / t.target_value, 1);
         return sum + (t.isCompleted ? 1 : 0);
       }, 0);
-      const completedCount = allTasks.filter((t) => t.isCompleted).length;
+      const completedCount = dailyTasks.filter((t) => t.isCompleted).length;
       const fraction = totalCount > 0 ? completionScore / totalCount : 0;
       map.set(dateISO, { totalCount, completedCount, fraction });
     }
@@ -71,14 +72,22 @@ export function MonthGrid({
 
   return (
     <div className={animClass}>
+      <div className="mb-3 flex items-start justify-between">
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">Habit Overview</h2>
+          <p className="text-[10px] text-muted-foreground">Daily completions</p>
+        </div>
+        <ListChecks className="mt-0.5 size-4 text-muted-foreground" />
+      </div>
+
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="mb-2 grid grid-cols-7 gap-x-1">
         {WEEKDAY_LABELS.map((label, index) => (
           <div
             key={index}
             className={cn(
-              "py-2 text-center text-[10px] lg:text-xs font-semibold uppercase tracking-widest",
-              index >= 5 ? "text-muted-foreground/50" : "text-muted-foreground/40"
+              "py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest",
+              index >= 5 ? "text-muted-foreground/45" : "text-muted-foreground/35"
             )}
           >
             <span className="sm:hidden">{label.short}</span>
@@ -88,29 +97,33 @@ export function MonthGrid({
       </div>
 
       {/* Grid */}
-      <div className="grid gap-y-1 lg:gap-y-1.5">
+      <div className="grid gap-y-1.5">
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-x-1 lg:gap-x-1">
+          <div key={wi} className="grid grid-cols-7 gap-x-1">
             {week.map((date) => {
               const dateISO = formatDateISO(date);
               const isCurrentMonth = date.getMonth() === currentMonth;
               const isToday = dateISO === todayISO;
+              const isFuture = dateISO > todayISO;
               const stats = dayStatsMap.get(dateISO) ?? { totalCount: 0, completedCount: 0, fraction: 0 };
               const allDone = stats.totalCount > 0 && stats.fraction >= 1;
+              const progressStroke = allDone ? "#34d399" : "rgba(255,59,59,0.45)";
+              const circumference = 2 * Math.PI * 11;
+              const dash = Math.max(0, Math.min(stats.fraction, 1)) * circumference;
 
               return (
                 <button
                   key={dateISO}
                   onClick={() => onDayClick(date)}
                   className={cn(
-                    "group relative flex min-h-[56px] lg:min-h-0 lg:aspect-[1.55/1] flex-col items-center justify-between lg:justify-start gap-1 rounded-lg p-1.5 lg:px-1.5 lg:py-1.5",
-                    "transition-all duration-150 active:scale-95",
-                    "hover:bg-white/[0.06]",
-                    isCurrentMonth ? "text-foreground" : "text-muted-foreground/20",
+                    "group relative flex min-h-[68px] cursor-pointer flex-col items-center justify-between gap-2 rounded-xl px-1 py-2",
+                    "transition-all duration-200 active:scale-95",
+                    "hover:-translate-y-0.5 hover:bg-white/[0.06]",
+                    isCurrentMonth ? "text-foreground" : "text-muted-foreground/20 opacity-55",
                     isToday
-                      ? "bg-accent/10 ring-1 ring-accent/50"
+                      ? "bg-white/[0.04]"
                       : allDone
-                        ? "bg-completed-green/8"
+                        ? "bg-completed-green/8 ring-1 ring-completed-green/20"
                         : "bg-transparent"
                   )}
                   aria-label={`${date.toLocaleDateString("en-US", {
@@ -122,33 +135,50 @@ export function MonthGrid({
                   {/* Date number */}
                   <span
                     className={cn(
-                      "text-xs lg:text-sm font-semibold tabular-nums leading-none select-none",
-                      isToday ? "text-accent" : isCurrentMonth ? "text-foreground/85" : "text-muted-foreground/20"
+                      "text-xs font-semibold tabular-nums leading-none select-none",
+                      isCurrentMonth ? "text-foreground/85" : "text-muted-foreground/20"
                     )}
                   >
                     {date.getDate()}
                   </span>
 
-                  {/* Count + progress bar */}
-                  {stats.totalCount > 0 && isCurrentMonth && (
-                    <div className="w-full max-w-[92px] lg:max-w-[82px] flex flex-col items-center gap-1 lg:absolute lg:bottom-1.5 lg:left-1/2 lg:-translate-x-1/2">
-                      <span
-                        className={cn(
-                          "text-[10px] lg:text-xs font-medium tabular-nums leading-none",
-                          allDone ? "text-completed-green" : "text-muted-foreground/60"
+                  {isCurrentMonth ? (
+                    <div className="relative size-9">
+                      <svg viewBox="0 0 28 28" className="-rotate-90 size-9">
+                        <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
+                        {!isFuture && stats.totalCount > 0 && stats.fraction > 0 && (
+                          <circle
+                            cx="14"
+                            cy="14"
+                            r="11"
+                            fill="none"
+                            stroke={progressStroke}
+                            strokeWidth="2.5"
+                            strokeDasharray={`${dash} ${circumference}`}
+                            strokeLinecap="round"
+                          />
                         )}
-                      >
-                        {stats.completedCount}/{stats.totalCount}
-                      </span>
-                      <div className="w-full h-[2px] rounded-full bg-white/10 overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all duration-500",
-                            allDone ? "bg-completed-green" : "bg-accent/40"
+                      </svg>
+
+                      {allDone && (
+                        <div className="absolute inset-0 flex items-center justify-center text-completed-green">
+                          <Check className="size-3.5" strokeWidth={3.5} />
+                        </div>
+                      )}
+
+                      {!allDone && stats.totalCount > 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {!isFuture && (
+                            <span className="text-[9px] font-semibold tabular-nums text-muted-foreground/75">
+                              {stats.completedCount}/{stats.totalCount}
+                            </span>
                           )}
-                          style={{ width: `${stats.fraction * 100}%` }}
-                        />
-                      </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex size-9 items-center justify-center">
+                      <span className="text-[10px] font-medium tabular-nums leading-none text-muted-foreground/35" />
                     </div>
                   )}
                 </button>

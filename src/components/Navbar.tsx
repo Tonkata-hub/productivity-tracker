@@ -15,8 +15,8 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: "Home", href: "/" },
   { icon: CalendarDays, label: "Calendar", href: "/calendar" },
-  { icon: PlusCircle, label: "Add Task", href: "/add-task" },
   { icon: Dumbbell, label: "Gym", href: "/gym" },
+  { icon: PlusCircle, label: "Add Task", href: "/add-task" },
   { icon: ListChecks, label: "Manage Tasks", href: "/manage-tasks" },
   { icon: BarChart2, label: "Stats", href: "/stats" },
 ];

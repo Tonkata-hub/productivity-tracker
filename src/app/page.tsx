@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type KeyboardEvent } from "react";
+import { Fragment, useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { getTasksForDate, formatDateISO, getWeekDates } from "@/lib/calendar-utils";
 import type { Task, TaskWithStatus } from "@/lib/types";
@@ -147,6 +147,21 @@ export default function HomePage() {
   }, []);
 
   const todayTasks = getTasksForDate(tasks, today, todayCompletions, todayQuantValues);
+  const firstOneTimeTaskIndex = todayTasks.findIndex((task) => task.type === "one_time");
+  const endOfFirstOneTimeBlockIndex = (() => {
+    if (firstOneTimeTaskIndex < 0) return -1;
+    let end = firstOneTimeTaskIndex;
+    while (end + 1 < todayTasks.length && todayTasks[end + 1]?.type === "one_time") {
+      end += 1;
+    }
+    return end;
+  })();
+  const firstFutureOneTimeTaskIndex = todayTasks.findIndex(
+    (task) => task.type === "one_time" && !!task.due_date && task.due_date > today
+  );
+  const hasDailyBeforeFutureOneTime =
+    firstFutureOneTimeTaskIndex > 0 &&
+    todayTasks.slice(0, firstFutureOneTimeTaskIndex).some((task) => task.type === "daily");
   const completedCount = todayTasks.filter((t) => t.isCompleted).length;
   const allTodayCompleted = todayTasks.length > 0 && completedCount === todayTasks.length;
   const dailyCount = tasks.filter((t) => t.type === "daily").length;
@@ -325,10 +340,20 @@ export default function HomePage() {
                   const circumference = 2 * Math.PI * 11;
                   const dash = fraction * circumference;
                   return (
-                    <div key={day} className="flex flex-col items-center gap-1.5 rounded-xl px-1 py-1.5 transition-colors">
+                    <div
+                      key={day}
+                      className="flex flex-col items-center gap-1.5 rounded-xl px-1 py-1.5 transition-colors"
+                    >
                       <div className="relative w-9 h-9">
                         <svg viewBox="0 0 28 28" className="w-9 h-9 -rotate-90">
-                          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="2.5" />
+                          <circle
+                            cx="14"
+                            cy="14"
+                            r="11"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.07)"
+                            strokeWidth="2.5"
+                          />
                           {!isFuture && fraction > 0 && (
                             <circle
                               cx="14"
@@ -401,25 +426,34 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="space-y-1.5">
-                {todayTasks.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    onToggle={() => toggleTask(task)}
-                    onLogValue={(amount) => logTaskValue(task, amount)}
-                    isToggling={toggling.has(task.id)}
-                    showQuantInput={openQuantInputTaskId === task.id}
-                    quantInputValue={quantInputValue}
-                    onToggleQuantInput={() => {
-                      setOpenQuantInputTaskId((prev) => (prev === task.id ? null : task.id));
-                      setQuantInputValue("");
-                    }}
-                    onQuantInputChange={setQuantInputValue}
-                    onCloseQuantInput={() => {
-                      setOpenQuantInputTaskId(null);
-                      setQuantInputValue("");
-                    }}
-                  />
+                {todayTasks.map((task, index) => (
+                  <Fragment key={task.id}>
+                    {index === endOfFirstOneTimeBlockIndex + 1 &&
+                      endOfFirstOneTimeBlockIndex >= 0 &&
+                      endOfFirstOneTimeBlockIndex < todayTasks.length - 1 && (
+                        <div className="my-2.5 h-px bg-white/14" aria-hidden="true" />
+                      )}
+                    {index === firstFutureOneTimeTaskIndex && hasDailyBeforeFutureOneTime && (
+                      <div className="my-2.5 h-px bg-white/14" aria-hidden="true" />
+                    )}
+                    <TaskRow
+                      task={task}
+                      onToggle={() => toggleTask(task)}
+                      onLogValue={(amount) => logTaskValue(task, amount)}
+                      isToggling={toggling.has(task.id)}
+                      showQuantInput={openQuantInputTaskId === task.id}
+                      quantInputValue={quantInputValue}
+                      onToggleQuantInput={() => {
+                        setOpenQuantInputTaskId((prev) => (prev === task.id ? null : task.id));
+                        setQuantInputValue("");
+                      }}
+                      onQuantInputChange={setQuantInputValue}
+                      onCloseQuantInput={() => {
+                        setOpenQuantInputTaskId(null);
+                        setQuantInputValue("");
+                      }}
+                    />
+                  </Fragment>
                 ))}
               </div>
             )}
@@ -541,7 +575,7 @@ function TaskRow({
     <div
       ref={quickLogContainerRef}
       className={cn(
-        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-white/[0.06] hover:border-white/15",
+        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-accent/5! hover:border-accent/20!",
         task.isCompleted && "opacity-40"
       )}
       role="button"
@@ -587,6 +621,7 @@ function TaskRow({
               {overdueLabel}
             </p>
           )}
+          {task.isDueToday && !task.isCompleted && <p className="text-[10px] font-medium text-red-400">Due Today</p>}
           {isQuantitative && (
             <p className="text-[10px] text-muted-foreground">
               {task.currentValue} / {task.target_value} {task.unit}
@@ -604,7 +639,7 @@ function TaskRow({
 
       {isQuantitative && showQuantInput && (
         <div
-          className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-2.5"
+          className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/3 p-2.5"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex flex-wrap items-center gap-1.5">
