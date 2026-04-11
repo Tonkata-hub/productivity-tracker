@@ -608,7 +608,7 @@ function TaskRow({
     <div
       ref={quickLogContainerRef}
       className={cn(
-        "glass cursor-pointer rounded-xl px-4 py-3 select-none transition-all duration-150 ease-out hover:bg-white/10! will-change-transform",
+        "glass cursor-pointer rounded-xl px-4 py-3 select-none transition-all duration-150 ease-out hover:bg-white/[0.07]! will-change-transform",
         task.isCompleted && "opacity-40",
         isPressed && "translate-y-px scale-[0.985] bg-white/12! border-white/20 shadow-[0_8px_18px_rgba(0,0,0,0.22)]",
         isToggling && "pointer-events-none"
@@ -718,7 +718,7 @@ function TaskRow({
                   onCloseQuantInput();
                 }}
                 disabled={isToggling}
-                className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground transition-all hover:border-accent/30 hover:bg-accent/10 hover:text-accent disabled:opacity-60"
+                className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground transition-all hover:border-white/20 hover:bg-white/8 hover:text-foreground disabled:opacity-60"
               >
                 +{inc}
               </button>
@@ -750,7 +750,7 @@ function TaskRow({
             <button
               onClick={handleSubmit}
               disabled={isToggling}
-              className="h-9 cursor-pointer rounded-lg bg-accent/20 px-3 text-xs font-semibold text-accent transition-colors hover:bg-accent/30 disabled:cursor-default disabled:opacity-60"
+              className="h-9 cursor-pointer rounded-lg bg-accent/15 px-3 text-xs font-semibold text-accent transition-colors hover:bg-accent/20 disabled:cursor-default disabled:opacity-60"
             >
               Log
             </button>

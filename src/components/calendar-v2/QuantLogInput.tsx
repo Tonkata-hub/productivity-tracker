@@ -68,7 +68,7 @@ export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputPr
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleCustomSubmit}
-          className="flex cursor-pointer items-center gap-1 rounded-lg bg-accent/20 px-3 py-2 text-xs font-semibold text-accent transition-colors hover:bg-accent/30"
+          className="flex cursor-pointer items-center gap-1 rounded-lg bg-accent/15 px-3 py-2 text-xs font-semibold text-accent transition-colors hover:bg-accent/20"
         >
           <Check className="size-3.5" />
           Log
@@ -95,7 +95,7 @@ export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputPr
           className={cn(
             "cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5",
             "text-xs font-semibold tabular-nums text-muted-foreground",
-            "transition-all hover:border-accent/30 hover:bg-accent/10 hover:text-accent",
+            "transition-all hover:border-white/20 hover:bg-white/8 hover:text-foreground",
             "active:scale-95"
           )}
         >

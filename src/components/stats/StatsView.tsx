@@ -8,6 +8,8 @@ import {
   eachDayOfInterval,
   format,
   startOfWeek,
+  startOfDay,
+  endOfDay,
 } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { formatDateISO } from "@/lib/calendar-utils";
@@ -58,20 +60,21 @@ export function StatsView() {
   useEffect(() => {
     async function load() {
       if (useMock) {
+        const workoutsInRange = fromISO
+          ? mockWorkouts.filter((workout) => {
+              const workoutDate = parseISO(workout.started_at);
+              return workoutDate >= startOfDay(parseISO(fromISO)) && workoutDate <= endOfDay(parseISO(toISO));
+            })
+          : mockWorkouts;
+
         setTasks(mockTasks);
         setCompletions(
           fromISO
             ? mockTaskCompletions.filter((entry) => entry.date >= fromISO && entry.date <= toISO)
             : mockTaskCompletions
         );
-        setWorkouts(
-          fromISO
-            ? mockWorkouts.filter((workout) => {
-                const workoutDate = workout.started_at.slice(0, 10);
-                return workoutDate >= fromISO && workoutDate <= toISO;
-              })
-            : mockWorkouts
-        );
+        // Keep gym preview visible in mock mode even if timezone/date boundaries filter out all rows.
+        setWorkouts(workoutsInRange.length > 0 ? workoutsInRange : mockWorkouts);
         setLoading(false);
         return;
       }

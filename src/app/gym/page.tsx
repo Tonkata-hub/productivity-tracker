@@ -7,10 +7,15 @@ import { WorkoutSession } from "@/components/gym/WorkoutSession";
 import { WorkoutHistory } from "@/components/gym/WorkoutHistory";
 import { WorkoutCalendar } from "@/components/gym/WorkoutCalendar";
 import { formatDuration } from "@/lib/gym-utils";
+import { mockWorkouts } from "@/lib/mock-data";
 import { Dumbbell, Plus, History, TrendingUp, CalendarDays, AlertCircle, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "history" | "calendar";
+const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+const mockRecentWorkouts = [...mockWorkouts].sort(
+  (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+);
 
 // const NAME_CHIPS = ["Push", "Pull", "Upper", "Lower"];
 const NAME_CHIPS = [
@@ -45,6 +50,11 @@ export default function GymPage() {
   }, [nameSheetVisible]);
 
   const fetchActiveWorkout = useCallback(async () => {
+    if (useMock) {
+      setActiveWorkout(null);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("workouts")
       .select(
@@ -80,6 +90,11 @@ export default function GymPage() {
   }, []);
 
   const fetchRecentWorkouts = useCallback(async () => {
+    if (useMock) {
+      setRecentWorkouts(mockRecentWorkouts);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("workouts")
       .select("*")
@@ -124,6 +139,12 @@ export default function GymPage() {
   // Create the workout after name is confirmed
   const confirmStartWorkout = async () => {
     if (!pendingName.trim()) return;
+    if (useMock) {
+      setErrorMessage("Mock mode is enabled. Starting workouts is disabled.");
+      closeNameSheet();
+      return;
+    }
+
     setIsStartingWorkout(true);
     setErrorMessage(null);
 
@@ -153,6 +174,7 @@ export default function GymPage() {
 
   const endWorkout = async () => {
     if (!activeWorkout) return;
+    if (useMock) return;
     setErrorMessage(null);
 
     let totalSets = 0;
@@ -190,6 +212,7 @@ export default function GymPage() {
   // Discard the in-progress workout entirely
   const abortWorkout = async () => {
     if (!activeWorkout) return;
+    if (useMock) return;
     await supabase.from("workouts").delete().eq("id", activeWorkout.id);
     setActiveWorkout(null);
   };
@@ -235,6 +258,12 @@ export default function GymPage() {
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Fitness</p>
             <h1 className="text-3xl font-bold tracking-tight text-foreground mt-1">Gym</h1>
           </div>
+
+          {useMock && (
+            <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-xs text-accent">
+              Showing mock gym data. Editing is disabled.
+            </div>
+          )}
 
           {/* View toggle */}
           <div
@@ -287,16 +316,18 @@ export default function GymPage() {
               {/* Start workout CTA */}
               <button
                 onClick={openNameSheet}
+                disabled={useMock}
                 className={cn(
                   "flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold",
                   "bg-accent text-white shadow-lg shadow-accent/30",
                   "transition-all hover:bg-accent/90 active:scale-[0.98]",
-                  "calendar-animate-slide-in-up"
+                  "calendar-animate-slide-in-up",
+                  useMock && "cursor-not-allowed opacity-60 hover:bg-accent"
                 )}
                 style={{ animationDelay: "80ms" }}
               >
                 <Plus className="size-5" />
-                Start Workout
+                {useMock ? "Start Disabled (Mock Mode)" : "Start Workout"}
               </button>
 
               {/* Stats */}
@@ -357,11 +388,11 @@ export default function GymPage() {
             </>
           ) : view === "history" ? (
             <div className="calendar-animate-slide-in-up" style={{ animationDelay: "40ms" }}>
-              <WorkoutHistory workouts={recentWorkouts} onWorkoutDeleted={fetchRecentWorkouts} />
+              <WorkoutHistory workouts={recentWorkouts} onWorkoutDeleted={fetchRecentWorkouts} readOnly={useMock} />
             </div>
           ) : (
             <div className="calendar-animate-slide-in-up" style={{ animationDelay: "40ms" }}>
-              <WorkoutCalendar onWorkoutDeleted={fetchRecentWorkouts} />
+              <WorkoutCalendar workouts={recentWorkouts} onWorkoutDeleted={fetchRecentWorkouts} readOnly={useMock} />
             </div>
           )}
         </div>

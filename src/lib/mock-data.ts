@@ -1,4 +1,4 @@
-import { Task, Workout } from "./types";
+import { ExerciseSet, Task, Workout, WorkoutWithExercises } from "./types";
 
 const getDateOffset = (days: number): string => {
   const date = new Date();
@@ -329,18 +329,94 @@ const buildWorkout = (
 };
 
 export const mockWorkouts: Workout[] = [
-  buildWorkout("mock-workout-1", "Push Day", -33, 7, 3200, 15, 7650),
-  buildWorkout("mock-workout-2", "Pull Day", -30, 18, 3400, 16, 8020),
-  buildWorkout("mock-workout-3", "Leg Day", -27, 7, 3900, 18, 10480),
-  buildWorkout("mock-workout-4", "Upper Body", -24, 18, 3000, 14, 7140),
-  buildWorkout("mock-workout-5", "Full Body", -21, 7, 3600, 17, 9580),
-  buildWorkout("mock-workout-6", "Push Day", -18, 18, 3350, 16, 8220),
-  buildWorkout("mock-workout-7", "Pull Day", -15, 7, 3500, 16, 8470),
-  buildWorkout("mock-workout-8", "Leg Day", -12, 18, 4100, 19, 11200),
-  buildWorkout("mock-workout-9", "Upper Body", -9, 7, 3050, 14, 7360),
-  buildWorkout("mock-workout-10", "Full Body", -6, 18, 3650, 17, 9760),
-  buildWorkout("mock-workout-11", "Push Day", -3, 7, 3300, 15, 7890),
-  buildWorkout("mock-workout-12", "Leg Day", -1, 18, 4000, 19, 10940),
+  buildWorkout("mock-workout-1", "Push Day", -20, 18, 3500, 14, 8320),
+  buildWorkout("mock-workout-2", "Pull Day", -14, 18, 3600, 15, 8940),
+  buildWorkout("mock-workout-3", "Leg Day", -9, 18, 4100, 16, 10440),
+  buildWorkout("mock-workout-4", "Upper Body", -5, 18, 3300, 13, 7750),
+  buildWorkout("mock-workout-5", "Full Body", -2, 18, 3850, 15, 9360),
+  buildWorkout("mock-workout-6", "Push Day", -1, 18, 3450, 14, 8210),
+];
+
+const createSet = (
+  workoutId: string,
+  exerciseId: string,
+  setOrder: number,
+  reps: number,
+  weightKg: number
+): ExerciseSet => ({
+  id: `${workoutId}-${exerciseId}-set-${setOrder}`,
+  workout_exercise_id: `${workoutId}-${exerciseId}`,
+  set_order: setOrder,
+  reps,
+  weight_kg: weightKg,
+  created_at: new Date().toISOString(),
+});
+
+const createExerciseBlock = (
+  workoutId: string,
+  exerciseOrder: number,
+  exerciseName: string,
+  setSpecs: Array<{ reps: number; weight_kg: number }>
+) => {
+  const exerciseId = exerciseName.toLowerCase().replace(/\s+/g, "-");
+  return {
+    id: `${workoutId}-${exerciseId}`,
+    workout_id: workoutId,
+    exercise_id: exerciseId,
+    exercise_order: exerciseOrder,
+    created_at: new Date().toISOString(),
+    exercise: {
+      id: exerciseId,
+      name: exerciseName,
+      name_lower: exerciseName.toLowerCase(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    sets: setSpecs.map((set, idx) => createSet(workoutId, exerciseId, idx + 1, set.reps, set.weight_kg)),
+  };
+};
+
+const createWorkoutWithExercises = (
+  workout: Workout,
+  blocks: Array<{ name: string; sets: Array<{ reps: number; weight_kg: number }> }>
+): WorkoutWithExercises => ({
+  ...workout,
+  workout_exercises: blocks.map((block, idx) =>
+    createExerciseBlock(workout.id, idx + 1, block.name, block.sets)
+  ),
+});
+
+export const mockWorkoutsWithExercises: WorkoutWithExercises[] = [
+  createWorkoutWithExercises(mockWorkouts[0], [
+    { name: "Barbell Bench Press", sets: [{ reps: 8, weight_kg: 70 }, { reps: 8, weight_kg: 70 }, { reps: 7, weight_kg: 72.5 }] },
+    { name: "Incline Dumbbell Press", sets: [{ reps: 10, weight_kg: 26 }, { reps: 9, weight_kg: 26 }, { reps: 8, weight_kg: 28 }] },
+    { name: "Cable Triceps Pushdown", sets: [{ reps: 12, weight_kg: 27.5 }, { reps: 12, weight_kg: 30 }, { reps: 10, weight_kg: 32.5 }] },
+  ]),
+  createWorkoutWithExercises(mockWorkouts[1], [
+    { name: "Lat Pulldown", sets: [{ reps: 10, weight_kg: 55 }, { reps: 10, weight_kg: 57.5 }, { reps: 8, weight_kg: 60 }] },
+    { name: "Seated Cable Row", sets: [{ reps: 12, weight_kg: 50 }, { reps: 10, weight_kg: 55 }, { reps: 10, weight_kg: 55 }] },
+    { name: "Dumbbell Curl", sets: [{ reps: 12, weight_kg: 14 }, { reps: 10, weight_kg: 16 }, { reps: 9, weight_kg: 16 }] },
+  ]),
+  createWorkoutWithExercises(mockWorkouts[2], [
+    { name: "Back Squat", sets: [{ reps: 6, weight_kg: 90 }, { reps: 6, weight_kg: 95 }, { reps: 5, weight_kg: 100 }] },
+    { name: "Romanian Deadlift", sets: [{ reps: 8, weight_kg: 90 }, { reps: 8, weight_kg: 95 }, { reps: 8, weight_kg: 95 }] },
+    { name: "Leg Press", sets: [{ reps: 12, weight_kg: 180 }, { reps: 12, weight_kg: 200 }, { reps: 10, weight_kg: 210 }] },
+  ]),
+  createWorkoutWithExercises(mockWorkouts[3], [
+    { name: "Overhead Press", sets: [{ reps: 8, weight_kg: 45 }, { reps: 7, weight_kg: 47.5 }, { reps: 6, weight_kg: 50 }] },
+    { name: "Chest-Supported Row", sets: [{ reps: 10, weight_kg: 36 }, { reps: 10, weight_kg: 38 }, { reps: 9, weight_kg: 40 }] },
+    { name: "Lateral Raise", sets: [{ reps: 14, weight_kg: 10 }, { reps: 13, weight_kg: 10 }, { reps: 12, weight_kg: 12 }] },
+  ]),
+  createWorkoutWithExercises(mockWorkouts[4], [
+    { name: "Trap Bar Deadlift", sets: [{ reps: 6, weight_kg: 110 }, { reps: 6, weight_kg: 115 }, { reps: 5, weight_kg: 120 }] },
+    { name: "Push-up", sets: [{ reps: 18, weight_kg: 0 }, { reps: 16, weight_kg: 0 }, { reps: 14, weight_kg: 0 }] },
+    { name: "Walking Lunges", sets: [{ reps: 12, weight_kg: 18 }, { reps: 12, weight_kg: 18 }, { reps: 10, weight_kg: 20 }] },
+  ]),
+  createWorkoutWithExercises(mockWorkouts[5], [
+    { name: "Machine Chest Press", sets: [{ reps: 10, weight_kg: 55 }, { reps: 10, weight_kg: 57.5 }, { reps: 9, weight_kg: 60 }] },
+    { name: "Dips (Assisted)", sets: [{ reps: 10, weight_kg: 20 }, { reps: 9, weight_kg: 18 }, { reps: 8, weight_kg: 16 }] },
+    { name: "Skull Crushers", sets: [{ reps: 12, weight_kg: 25 }, { reps: 11, weight_kg: 27.5 }, { reps: 10, weight_kg: 27.5 }] },
+  ]),
 ];
 
 export const filterOptions = [

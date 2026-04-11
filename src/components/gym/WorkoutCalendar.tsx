@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import type { Workout, WorkoutWithExercises } from "@/lib/types";
+import { mockWorkoutsWithExercises } from "@/lib/mock-data";
+import { WorkoutExercisesAccordion } from "./WorkoutExercisesAccordion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,10 +23,12 @@ import { formatDuration } from "@/lib/gym-utils";
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface WorkoutCalendarProps {
+  workouts?: Workout[];
   onWorkoutDeleted: () => void;
+  readOnly?: boolean;
 }
 
-export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
+export function WorkoutCalendar({ workouts = [], onWorkoutDeleted, readOnly = false }: WorkoutCalendarProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [monthWorkouts, setMonthWorkouts] = useState<Workout[]>([]);
 
@@ -43,6 +48,16 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
     const fetchMonth = async () => {
       // Show the month grid immediately; hydrate workout dots when data arrives.
       setMonthWorkouts([]);
+
+      if (readOnly) {
+        const monthFiltered = workouts.filter((workout) => {
+          const workoutDate = new Date(workout.started_at);
+          return workoutDate.getFullYear() === year && workoutDate.getMonth() === month;
+        });
+        setMonthWorkouts(monthFiltered);
+        return;
+      }
+
       const start = new Date(year, month, 1).toISOString();
       const end = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
       const { data } = await supabase
@@ -55,7 +70,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
       setMonthWorkouts((data as Workout[]) ?? []);
     };
     fetchMonth();
-  }, [currentDate]);
+  }, [currentDate, readOnly, workouts]);
 
   // Sheet enter animation
   useEffect(() => {
@@ -102,6 +117,20 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
     setSheetExiting(false);
     setSheetVisible(true);
 
+    if (readOnly) {
+      const detailedWorkout = mockWorkoutsWithExercises.find((workout) => workout.id === workoutId);
+      if (detailedWorkout) {
+        setSheetWorkout(detailedWorkout);
+      } else {
+        const selectedWorkout = monthWorkouts.find((workout) => workout.id === workoutId);
+        if (selectedWorkout) {
+          setSheetWorkout({ ...selectedWorkout, workout_exercises: [] });
+        }
+      }
+      setIsLoadingDetail(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("workouts")
       .select(`*, workout_exercises (*, exercise:exercises (*), sets:exercise_sets (*))`)
@@ -130,6 +159,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
 
   const deleteWorkout = async () => {
     if (!sheetWorkout) return;
+    if (readOnly) return;
     setIsDeleting(true);
     const { error } = await supabase.from("workouts").delete().eq("id", sheetWorkout.id);
     setIsDeleting(false);
@@ -211,10 +241,7 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                       "relative flex size-9 select-none items-center justify-center rounded-full",
                       "text-[13px] font-semibold transition-all duration-150",
                       "cursor-pointer disabled:cursor-not-allowed",
-                      todayDay && [
-                        "bg-accent text-white",
-                        "shadow-[0_0_0_1px_rgba(255,59,59,0.5),0_0_16px_rgba(255,59,59,0.35)]",
-                      ],
+                      todayDay && "border border-white/15 bg-white/6 text-foreground",
                       !todayDay && hasW && ["text-white/90 hover:bg-white/8 active:bg-white/12"],
                       !todayDay && !hasW && futureDay && "text-white/15",
                       !todayDay && !hasW && !futureDay && "text-white/30"
@@ -254,8 +281,9 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
       </div>
 
       {/* ── Detail sheet ──────────────────────────────────────── */}
-      {sheetVisible && (
-        <>
+      {sheetVisible &&
+        createPortal(
+          <>
           {/* Backdrop */}
           <div
             className={cn(
@@ -336,98 +364,71 @@ export function WorkoutCalendar({ onWorkoutDeleted }: WorkoutCalendarProps) {
                           label: `${Math.round(sheetWorkout.total_volume_kg)} kg`,
                         },
                       ].map(({ icon: Icon, label }) => (
-                        <div key={label} className="flex-1 flex items-center gap-1.5 bg-white/5 rounded-xl px-3 py-2">
+                        <div
+                          key={label}
+                          className="flex flex-1 items-center justify-center gap-1.5 bg-white/5 rounded-xl px-3 py-2 text-center min-w-0"
+                        >
                           <Icon className="size-3.5 text-muted-foreground shrink-0" />
                           <span className="text-xs font-medium text-foreground truncate">{label}</span>
                         </div>
                       ))}
                     </div>
 
-                    {sheetWorkout.workout_exercises.length > 0 && (
-                      <div className="rounded-2xl border border-white/8 overflow-hidden divide-y divide-border mb-4">
-                        {sheetWorkout.workout_exercises.map((we) => {
-                          const vol = we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0);
-                          const bestSet =
-                            we.sets.length > 0
-                              ? we.sets.reduce(
-                                  (best, s) => (s.reps * s.weight_kg > best.reps * best.weight_kg ? s : best),
-                                  we.sets[0]
-                                )
-                              : null;
-                          return (
-                            <div key={we.id} className="flex items-center justify-between px-4 py-3">
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {we.sets.length} sets · {Math.round(vol)} kg
-                                </p>
-                              </div>
-                              {bestSet && (
-                                <div className="shrink-0 text-right">
-                                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                                    Best set
-                                  </p>
-                                  <p className="text-sm font-semibold text-foreground">
-                                    {bestSet.weight_kg} kg × {bestSet.reps}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <WorkoutExercisesAccordion exercises={sheetWorkout.workout_exercises} />
                   </>
                 )}
               </div>
 
               {/* Footer — delete */}
-              <div className="px-5 pt-4 shrink-0 border-t border-white/5 mt-2">
-                {confirmDelete ? (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <AlertTriangle className="size-4 text-accent shrink-0" />
-                      <span>This will permanently delete the workout and all its data.</span>
+              {!readOnly && (
+                <div className="px-5 pt-4 shrink-0 border-t border-white/5 mt-2">
+                  {confirmDelete ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <AlertTriangle className="size-4 text-accent shrink-0" />
+                        <span>This will permanently delete the workout and all its data.</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={deleteWorkout}
+                          disabled={isDeleting}
+                          className="flex-1 cursor-pointer rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isDeleting ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <Loader2 className="size-4 animate-spin" />
+                              Deleting…
+                            </span>
+                          ) : (
+                            "Yes, delete"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(false)}
+                          disabled={isDeleting}
+                          className="flex-1 cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={deleteWorkout}
-                        disabled={isDeleting}
-                        className="flex-1 cursor-pointer rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isDeleting ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <Loader2 className="size-4 animate-spin" />
-                            Deleting…
-                          </span>
-                        ) : (
-                          "Yes, delete"
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(false)}
-                        disabled={isDeleting}
-                        className="flex-1 cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    disabled={isLoadingDetail}
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-accent/25 hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <Trash2 className="size-4" />
-                    Delete workout
-                  </button>
-                )}
-              </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      disabled={isLoadingDetail}
+                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-accent/25 hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete workout
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </>
   );
 }

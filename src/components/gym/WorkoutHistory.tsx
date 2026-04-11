@@ -4,16 +4,19 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import type { Workout, WorkoutWithExercises } from "@/lib/types";
+import { mockWorkoutsWithExercises } from "@/lib/mock-data";
 import { formatDuration } from "@/lib/gym-utils";
+import { WorkoutExercisesAccordion } from "./WorkoutExercisesAccordion";
 import { Calendar, Clock, Dumbbell, TrendingUp, ChevronRight, X, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WorkoutHistoryProps {
   workouts: Workout[];
   onWorkoutDeleted: () => void;
+  readOnly?: boolean;
 }
 
-export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryProps) {
+export function WorkoutHistory({ workouts, onWorkoutDeleted, readOnly = false }: WorkoutHistoryProps) {
   const [sheetWorkout, setSheetWorkout] = useState<WorkoutWithExercises | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetAnimated, setSheetAnimated] = useState(false);
@@ -21,7 +24,6 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
 
   // Enter animation — two RAF frames after sheet mounts
   useEffect(() => {
@@ -43,10 +45,23 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
   const openSheet = async (workoutId: string) => {
     setSheetAnimated(false);
     setConfirmDelete(false);
-    setExpandedExercises(new Set());
     setIsLoadingDetail(true);
     setSheetExiting(false);
     setSheetVisible(true);
+
+    if (readOnly) {
+      const detailedWorkout = mockWorkoutsWithExercises.find((workout) => workout.id === workoutId);
+      if (detailedWorkout) {
+        setSheetWorkout(detailedWorkout);
+      } else {
+        const selectedWorkout = workouts.find((workout) => workout.id === workoutId);
+        if (selectedWorkout) {
+          setSheetWorkout({ ...selectedWorkout, workout_exercises: [] });
+        }
+      }
+      setIsLoadingDetail(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("workouts")
@@ -80,12 +95,12 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
       setSheetVisible(false);
       setSheetExiting(false);
       setSheetWorkout(null);
-      setExpandedExercises(new Set());
     }, 300);
   };
 
   const deleteWorkout = async () => {
     if (!sheetWorkout) return;
+    if (readOnly) return;
     setIsDeleting(true);
 
     const { error } = await supabase.from("workouts").delete().eq("id", sheetWorkout.id);
@@ -98,15 +113,6 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
 
     closeSheet();
     onWorkoutDeleted();
-  };
-
-  const toggleExercise = (id: string) => {
-    setExpandedExercises((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
   };
 
   const groupByMonth = (ws: Workout[]) => {
@@ -272,150 +278,66 @@ export function WorkoutHistory({ workouts, onWorkoutDeleted }: WorkoutHistoryPro
                             label: `${Math.round(sheetWorkout.total_volume_kg)} kg`,
                           },
                         ].map(({ icon: Icon, label }) => (
-                          <div key={label} className="flex-1 flex items-center gap-1.5 bg-white/5 rounded-xl px-3 py-2">
+                          <div
+                            key={label}
+                            className="flex flex-1 items-center justify-center gap-1.5 bg-white/5 rounded-xl px-3 py-2 text-center min-w-0"
+                          >
                             <Icon className="size-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs font-medium text-foreground truncate">{label}</span>
                           </div>
                         ))}
                       </div>
 
-                      {/* Exercises — expandable accordion */}
-                      {sheetWorkout.workout_exercises.length > 0 && (
-                        <div className="rounded-2xl border border-white/8 overflow-hidden divide-y divide-border mb-4">
-                          {sheetWorkout.workout_exercises.map((we) => {
-                            const vol = we.sets.reduce((s, set) => s + set.reps * set.weight_kg, 0);
-                            const bestSet =
-                              we.sets.length > 0
-                                ? we.sets.reduce(
-                                    (best, s) => (s.reps * s.weight_kg > best.reps * best.weight_kg ? s : best),
-                                    we.sets[0]
-                                  )
-                                : null;
-                            const isExpanded = expandedExercises.has(we.id);
-
-                            return (
-                              <div key={we.id}>
-                                {/* Exercise header row — tap to expand */}
-                                <button
-                                  onClick={() => toggleExercise(we.id)}
-                                  className="group flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/3"
-                                >
-                                  <div>
-                                    <p className="text-sm font-medium text-foreground">{we.exercise.name}</p>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                                      {we.sets.length} {we.sets.length === 1 ? "set" : "sets"} · {Math.round(vol)} kg
-                                    </p>
-                                  </div>
-                                  <ChevronRight
-                                    className={cn(
-                                      "size-4 text-muted-foreground/40 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                                      isExpanded && "rotate-90"
-                                    )}
-                                  />
-                                </button>
-
-                                {/* Expandable set list */}
-                                <div
-                                  className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                                  style={{
-                                    gridTemplateRows: isExpanded ? "1fr" : "0fr",
-                                  }}
-                                >
-                                  <div className="overflow-hidden">
-                                    <div className="border-t border-white/5">
-                                      {we.sets.map((set, i) => {
-                                        const isBest = bestSet?.id === set.id;
-                                        return (
-                                          <div
-                                            key={set.id}
-                                            className={cn(
-                                              "flex items-center gap-3 px-4 py-2.5 transition-all duration-200",
-                                              isBest
-                                                ? "bg-accent/8 border-l-2 border-accent/50"
-                                                : "border-l-2 border-transparent",
-                                              isExpanded ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
-                                            )}
-                                            style={{
-                                              transitionDelay: isExpanded ? `${i * 40}ms` : "0ms",
-                                            }}
-                                          >
-                                            {/* Set number */}
-                                            <span className="flex size-5 items-center justify-center rounded-md bg-white/6 text-[10px] font-bold text-muted-foreground shrink-0">
-                                              {set.set_order}
-                                            </span>
-
-                                            {/* Weight × reps */}
-                                            <span className="flex-1 text-sm text-foreground">
-                                              <span className="font-semibold">{set.weight_kg}</span>
-                                              <span className="text-muted-foreground/60 text-xs"> kg</span>
-                                              <span className="text-muted-foreground/40 mx-1.5">×</span>
-                                              <span className="font-semibold">{set.reps}</span>
-                                            </span>
-
-                                            {/* Best badge */}
-                                            {isBest && (
-                                              <span className="text-[9px] font-bold uppercase tracking-widest text-accent shrink-0">
-                                                Best
-                                              </span>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      <WorkoutExercisesAccordion exercises={sheetWorkout.workout_exercises} />
                     </>
                   )}
                 </div>
 
                 {/* Fixed sheet footer — delete */}
-                <div className="px-5 pt-4 shrink-0 border-t border-white/5 mt-2">
-                  {confirmDelete ? (
-                    <div className="space-y-2.5">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <AlertTriangle className="size-4 text-accent shrink-0" />
-                        <span>This will permanently delete the workout and all its data.</span>
+                {!readOnly && (
+                  <div className="px-5 pt-4 shrink-0 border-t border-white/5 mt-2">
+                    {confirmDelete ? (
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <AlertTriangle className="size-4 text-accent shrink-0" />
+                          <span>This will permanently delete the workout and all its data.</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={deleteWorkout}
+                            disabled={isDeleting}
+                            className="flex-1 cursor-pointer rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isDeleting ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <Loader2 className="size-4 animate-spin" />
+                                Deleting…
+                              </span>
+                            ) : (
+                              "Yes, delete"
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(false)}
+                            disabled={isDeleting}
+                            className="flex-1 cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={deleteWorkout}
-                          disabled={isDeleting}
-                          className="flex-1 cursor-pointer rounded-2xl bg-accent py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isDeleting ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <Loader2 className="size-4 animate-spin" />
-                              Deleting…
-                            </span>
-                          ) : (
-                            "Yes, delete"
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(false)}
-                          disabled={isDeleting}
-                          className="flex-1 cursor-pointer rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDelete(true)}
-                      disabled={isLoadingDetail}
-                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-accent/25 hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      <Trash2 className="size-4" />
-                      Delete workout
-                    </button>
-                  )}
-                </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDelete(true)}
+                        disabled={isLoadingDetail}
+                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/3 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-accent/25 hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <Trash2 className="size-4" />
+                        Delete workout
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </>,
