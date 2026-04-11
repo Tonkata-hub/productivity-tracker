@@ -11,14 +11,23 @@ interface QuantLogInputProps {
 }
 
 function getQuickIncrements(unit: string | null, target: number): number[] {
+  const withTarget = (values: number[]): number[] => {
+    const normalized = [...values];
+    if (Number.isFinite(target) && target > 0) normalized.push(target);
+    return Array.from(new Set(normalized.map((n) => (Number.isInteger(n) ? n : Number(n.toFixed(2)))))).sort(
+      (a, b) => a - b
+    );
+  };
+
   const u = (unit ?? "").toLowerCase();
-  if (u === "ml") return [250, 500];
-  if (u === "steps") return [1000, 2000];
-  if (u === "l" || u === "liters" || u === "litres") return [0.25, 0.5];
-  if (u === "min" || u === "mins" || u === "minutes") return [15, 30];
-  if (u === "pages") return [10, 25];
+  if (u === "ml") return withTarget([250, 500]);
+  if (u === "steps") return withTarget([1000, 2000]);
+  if (u === "l" || u === "liters" || u === "litres") return withTarget([0.25, 0.5]);
+  if (u === "min" || u === "mins" || u === "minutes") return withTarget([15, 30]);
+  if (u === "pages") return withTarget([10, 25]);
+  if (u === "times" || u === "reps") return withTarget([1, 2, Math.ceil(target / 2)]);
   const quarter = Math.ceil(target / 4);
-  return quarter > 1 ? [1, quarter] : [1];
+  return withTarget(quarter > 1 ? [1, quarter] : [1]);
 }
 
 export function QuantLogInput({ unit, targetValue, onLogValue }: QuantLogInputProps) {

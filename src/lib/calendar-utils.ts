@@ -26,6 +26,11 @@ export function formatDateISO(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+function formatLocalDateFromTimestamp(timestamp: string | null): string | null {
+  if (!timestamp) return null;
+  return formatDateISO(new Date(timestamp));
+}
+
 export function getTaskStatusForDate(
   task: Task,
   dateISO: string,
@@ -52,7 +57,7 @@ export function getTaskStatusForDate(
   // Date-based flags for one-time tasks (applies whether tracked or not)
   if (task.type === "one_time") {
     isDueToday = task.due_date === today;
-    isOverdue = !!task.due_date && task.due_date < today && !isCompleted;
+    isOverdue = !!task.due_date && task.due_date < today;
   }
 
   return {
@@ -84,7 +89,7 @@ export function getTasksForDate(
 
       if (task.is_completed) {
         // Show on the day it was actually completed
-        const completedDate = task.completed_at ? task.completed_at.split("T")[0] : task.due_date;
+        const completedDate = formatLocalDateFromTimestamp(task.completed_at) ?? task.due_date;
         shouldShow = completedDate === dateISO;
       } else if (task.due_date && task.due_date < today) {
         // Overdue and not completed: only show on today
@@ -104,9 +109,9 @@ export function getTasksForDate(
   const getPriority = (t: TaskWithStatus) => priorityOrder[t.priority ?? ""] ?? 3;
 
   return result.sort((a, b) => {
-    // Overdue first
-    const aOverdue = a.isOverdue && !a.isCompleted ? 0 : 1;
-    const bOverdue = b.isOverdue && !b.isCompleted ? 0 : 1;
+    // Overdue first (keep overdue one-time tasks in this bucket even after completion)
+    const aOverdue = a.type === "one_time" && !!a.due_date && a.due_date < today ? 0 : 1;
+    const bOverdue = b.type === "one_time" && !!b.due_date && b.due_date < today ? 0 : 1;
     if (aOverdue !== bOverdue) return aOverdue - bOverdue;
 
     // Due today second

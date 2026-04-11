@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Task, TaskWithStatus } from "@/lib/types";
+import { Task } from "@/lib/types";
 import { getMonthDates, formatDateISO, getTasksForDate } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
 
@@ -88,9 +88,9 @@ export function MonthGrid({
       </div>
 
       {/* Grid */}
-      <div className="grid gap-y-1">
+      <div className="grid gap-y-1 lg:gap-y-1.5">
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-x-1">
+          <div key={wi} className="grid grid-cols-7 gap-x-1 lg:gap-x-1">
             {week.map((date) => {
               const dateISO = formatDateISO(date);
               const isCurrentMonth = date.getMonth() === currentMonth;
@@ -103,7 +103,7 @@ export function MonthGrid({
                   key={dateISO}
                   onClick={() => onDayClick(date)}
                   className={cn(
-                    "group relative flex min-h-[56px] lg:min-h-[76px] flex-col items-center justify-between gap-1 rounded-lg p-1.5 lg:p-2",
+                    "group relative flex min-h-[56px] lg:min-h-0 lg:aspect-[1.55/1] flex-col items-center justify-between lg:justify-start gap-1 rounded-lg p-1.5 lg:px-1.5 lg:py-1.5",
                     "transition-all duration-150 active:scale-95",
                     "hover:bg-white/[0.06]",
                     isCurrentMonth ? "text-foreground" : "text-muted-foreground/20",
@@ -131,7 +131,7 @@ export function MonthGrid({
 
                   {/* Count + progress bar */}
                   {stats.totalCount > 0 && isCurrentMonth && (
-                    <div className="w-full flex flex-col items-center gap-1">
+                    <div className="w-full max-w-[92px] lg:max-w-[82px] flex flex-col items-center gap-1 lg:absolute lg:bottom-1.5 lg:left-1/2 lg:-translate-x-1/2">
                       <span
                         className={cn(
                           "text-[10px] lg:text-xs font-medium tabular-nums leading-none",
@@ -140,7 +140,7 @@ export function MonthGrid({
                       >
                         {stats.completedCount}/{stats.totalCount}
                       </span>
-                      <div className="w-full h-[2px] lg:h-[3px] rounded-full bg-white/10 overflow-hidden">
+                      <div className="w-full h-[2px] rounded-full bg-white/10 overflow-hidden">
                         <div
                           className={cn(
                             "h-full rounded-full transition-all duration-500",

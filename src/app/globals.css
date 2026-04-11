@@ -275,6 +275,18 @@
   display: none;
 }
 
+/* Hide native spinner arrows on selected numeric inputs */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Noise texture overlay */
 .noise-overlay::before {
   content: "";

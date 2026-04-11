@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { getTasksForDate, formatDateISO, getWeekDates } from "@/lib/calendar-utils";
 import type { Task, TaskWithStatus } from "@/lib/types";
@@ -15,6 +15,8 @@ import {
   Moon,
   FileText,
   ListChecks,
+  Plus,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,45 @@ function getGreeting() {
   return "Good evening";
 }
 
+function getQuickIncrements(unit: string | null, target: number): number[] {
+  const withTarget = (values: number[]): number[] => {
+    const normalized = [...values];
+    if (Number.isFinite(target) && target > 0) normalized.push(target);
+    return Array.from(new Set(normalized.map((n) => (Number.isInteger(n) ? n : Number(n.toFixed(2)))))).sort(
+      (a, b) => a - b
+    );
+  };
+
+  const u = (unit ?? "").toLowerCase();
+  if (u === "ml") return withTarget([250, 500]);
+  if (u === "steps") return withTarget([1000, 2000]);
+  if (u === "l" || u === "liters" || u === "litres") return withTarget([0.25, 0.5]);
+  if (u === "min" || u === "mins" || u === "minutes") return withTarget([15, 30]);
+  if (u === "pages") return withTarget([5, 10]);
+  if (u === "times" || u === "reps") return withTarget([1, 2, Math.ceil(target / 2)]);
+  const quarter = Math.ceil(target / 4);
+  return withTarget(quarter > 1 ? [1, quarter] : [1]);
+}
+
+function parseISODateToLocalMidnight(dateISO: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateISO);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  return new Date(year, monthIndex, day);
+}
+
+function getOverdueDayCount(dueDateISO: string): number | null {
+  const dueDate = parseISODateToLocalMidnight(dueDateISO);
+  if (!dueDate) return null;
+  const today = parseISODateToLocalMidnight(formatDateISO(new Date()));
+  if (!today) return null;
+  const diffMs = today.getTime() - dueDate.getTime();
+  if (diffMs <= 0) return null;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [todayCompletions, setTodayCompletions] = useState<Set<string>>(new Set());
@@ -45,6 +86,8 @@ export default function HomePage() {
   const [gymSessions, setGymSessions] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [toggling, setToggling] = useState<Set<string>>(new Set());
+  const [openQuantInputTaskId, setOpenQuantInputTaskId] = useState<string | null>(null);
+  const [quantInputValue, setQuantInputValue] = useState("");
 
   const today = formatDateISO(new Date());
   const weekDates = getWeekDates(new Date());
@@ -138,6 +181,15 @@ export default function HomePage() {
       }
       return n;
     });
+    setWeekCompletions((prev) => {
+      const n = new Set(prev);
+      if (wasCompleted) {
+        n.delete(key);
+      } else {
+        n.add(key);
+      }
+      return n;
+    });
 
     if (task.type === "daily") {
       if (wasCompleted) {
@@ -163,6 +215,54 @@ export default function HomePage() {
             : t
         )
       );
+    }
+
+    setToggling((prev) => {
+      const n = new Set(prev);
+      n.delete(task.id);
+      return n;
+    });
+  };
+
+  const logTaskValue = async (task: TaskWithStatus, amount: number) => {
+    if (task.target_value == null || !Number.isFinite(amount) || amount === 0) return;
+
+    const key = `${task.id}:${today}`;
+    setToggling((prev) => new Set([...prev, task.id]));
+
+    // Optimistic
+    setTodayQuantValues((prev) => {
+      const n = new Map(prev);
+      n.set(key, (n.get(key) ?? 0) + amount);
+      return n;
+    });
+    setWeekQuantValues((prev) => {
+      const n = new Map(prev);
+      n.set(key, (n.get(key) ?? 0) + amount);
+      return n;
+    });
+
+    const { error } = await supabase
+      .from("task_completions")
+      .insert({ task_id: task.id, date: today, value: amount, completed_at: new Date().toISOString() });
+
+    if (error) {
+      setTodayQuantValues((prev) => {
+        const n = new Map(prev);
+        const current = n.get(key) ?? 0;
+        const rolledBack = current - amount;
+        if (rolledBack <= 0) n.delete(key);
+        else n.set(key, rolledBack);
+        return n;
+      });
+      setWeekQuantValues((prev) => {
+        const n = new Map(prev);
+        const current = n.get(key) ?? 0;
+        const rolledBack = current - amount;
+        if (rolledBack <= 0) n.delete(key);
+        else n.set(key, rolledBack);
+        return n;
+      });
     }
 
     setToggling((prev) => {
@@ -213,9 +313,12 @@ export default function HomePage() {
               className="glass rounded-2xl p-4 space-y-4 calendar-animate-slide-in-up"
               style={{ animationDelay: "110ms" }}
             >
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">This Week</h2>
-                <ListChecks className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">This Week</h2>
+                  <p className="text-[10px] text-muted-foreground">Daily tasks only</p>
+                </div>
+                <ListChecks className="w-4 h-4 text-muted-foreground mt-0.5" />
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {weekStreak.map(({ day, fraction, isFuture }) => {
@@ -303,7 +406,19 @@ export default function HomePage() {
                     key={task.id}
                     task={task}
                     onToggle={() => toggleTask(task)}
+                    onLogValue={(amount) => logTaskValue(task, amount)}
                     isToggling={toggling.has(task.id)}
+                    showQuantInput={openQuantInputTaskId === task.id}
+                    quantInputValue={quantInputValue}
+                    onToggleQuantInput={() => {
+                      setOpenQuantInputTaskId((prev) => (prev === task.id ? null : task.id));
+                      setQuantInputValue("");
+                    }}
+                    onQuantInputChange={setQuantInputValue}
+                    onCloseQuantInput={() => {
+                      setOpenQuantInputTaskId(null);
+                      setQuantInputValue("");
+                    }}
                   />
                 ))}
               </div>
@@ -350,55 +465,202 @@ function StatCard({
   );
 }
 
-function TaskRow({ task, onToggle, isToggling }: { task: TaskWithStatus; onToggle: () => void; isToggling: boolean }) {
+function TaskRow({
+  task,
+  onToggle,
+  onLogValue,
+  isToggling,
+  showQuantInput,
+  quantInputValue,
+  onToggleQuantInput,
+  onQuantInputChange,
+  onCloseQuantInput,
+}: {
+  task: TaskWithStatus;
+  onToggle: () => void;
+  onLogValue: (amount: number) => void;
+  isToggling: boolean;
+  showQuantInput: boolean;
+  quantInputValue: string;
+  onToggleQuantInput: () => void;
+  onQuantInputChange: (value: string) => void;
+  onCloseQuantInput: () => void;
+}) {
+  const quickLogContainerRef = useRef<HTMLDivElement | null>(null);
   const priorityDot: Record<string, string> = {
     high: "bg-red-500",
     medium: "bg-yellow-500",
     low: "bg-zinc-500",
   };
 
+  const isQuantitative = task.target_value != null;
+  const handleCardClick = () => {
+    if (isQuantitative) {
+      onToggleQuantInput();
+      return;
+    }
+    onToggle();
+  };
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleCardClick();
+    }
+  };
+  const handleSubmit = () => {
+    const amount = Number(quantInputValue);
+    if (!Number.isFinite(amount) || amount === 0) return;
+    onLogValue(amount);
+    onCloseQuantInput();
+  };
+  const quickIncrements = isQuantitative ? getQuickIncrements(task.unit, task.target_value ?? 1) : [];
+  const overdueDays = task.due_date ? getOverdueDayCount(task.due_date) : null;
+  const overdueSuffix = overdueDays ? ` by ${overdueDays} day${overdueDays === 1 ? "" : "s"}` : "";
+  const overdueLabel = task.isCompleted ? `Was overdue${overdueSuffix}` : `Overdue${overdueSuffix}`;
+
+  useEffect(() => {
+    if (!showQuantInput) return;
+
+    const handleOutsidePointer = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (quickLogContainerRef.current?.contains(target)) return;
+      onCloseQuantInput();
+    };
+
+    document.addEventListener("mousedown", handleOutsidePointer);
+    document.addEventListener("touchstart", handleOutsidePointer, { passive: true });
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsidePointer);
+      document.removeEventListener("touchstart", handleOutsidePointer);
+    };
+  }, [showQuantInput, onCloseQuantInput]);
+
   return (
     <div
+      ref={quickLogContainerRef}
       className={cn(
-        "glass rounded-xl px-4 py-3 flex items-center gap-3 transition-opacity",
+        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-white/[0.06] hover:border-white/15",
         task.isCompleted && "opacity-40"
       )}
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      aria-label={isQuantitative ? `Open quick log for ${task.title}` : `Toggle ${task.title}`}
     >
-      <button
-        onClick={onToggle}
-        disabled={isToggling || task.target_value != null}
-        className="shrink-0 transition-transform active:scale-90 disabled:cursor-default"
-        aria-label={task.isCompleted ? "Mark incomplete" : "Mark complete"}
-      >
-        {task.isCompleted ? (
-          <CheckCircle2 className="w-5 h-5 text-accent" />
-        ) : (
-          <Circle className="w-5 h-5 text-muted-foreground" />
-        )}
-      </button>
-
-      <div className="flex-1 min-w-0">
-        <p
-          className={cn(
-            "text-sm font-medium truncate",
-            task.isCompleted ? "line-through text-muted-foreground" : "text-foreground"
-          )}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            handleCardClick();
+          }}
+          disabled={isToggling}
+          className="shrink-0 cursor-pointer transition-transform active:scale-90 disabled:cursor-default"
+          aria-label={
+            isQuantitative ? `Open quick log for ${task.title}` : task.isCompleted ? "Mark incomplete" : "Mark complete"
+          }
         >
-          {task.title}
-        </p>
-        {task.isOverdue && <p className="text-[10px] text-red-400 font-medium">Overdue</p>}
-        {task.target_value != null && (
-          <p className="text-[10px] text-muted-foreground">
-            {task.currentValue} / {task.target_value} {task.unit}
+          {isQuantitative ? (
+            <div className="flex size-5 items-center justify-center rounded-full border border-white/20 text-muted-foreground">
+              <Plus className="w-3 h-3" />
+            </div>
+          ) : task.isCompleted ? (
+            <CheckCircle2 className="w-5 h-5 text-accent" />
+          ) : (
+            <Circle className="w-5 h-5 text-muted-foreground" />
+          )}
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <p
+            className={cn(
+              "text-sm font-medium truncate",
+              task.isCompleted ? "line-through text-muted-foreground" : "text-foreground"
+            )}
+          >
+            {task.title}
           </p>
+          {task.isOverdue && (
+            <p className={cn("text-[10px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
+              {overdueLabel}
+            </p>
+          )}
+          {isQuantitative && (
+            <p className="text-[10px] text-muted-foreground">
+              {task.currentValue} / {task.target_value} {task.unit}
+            </p>
+          )}
+        </div>
+
+        {task.priority && (
+          <div
+            className={cn("w-1.5 h-1.5 rounded-full shrink-0", priorityDot[task.priority] ?? "")}
+            title={task.priority}
+          />
         )}
       </div>
 
-      {task.priority && (
+      {isQuantitative && showQuantInput && (
         <div
-          className={cn("w-1.5 h-1.5 rounded-full shrink-0", priorityDot[task.priority] ?? "")}
-          title={task.priority}
-        />
+          className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-2.5"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex flex-wrap items-center gap-1.5">
+            {quickIncrements.map((inc) => (
+              <button
+                key={inc}
+                onClick={() => {
+                  onLogValue(inc);
+                  onCloseQuantInput();
+                }}
+                disabled={isToggling}
+                className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground transition-all hover:border-accent/30 hover:bg-accent/10 hover:text-accent disabled:opacity-60"
+              >
+                +{inc}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                autoFocus
+                type="number"
+                step="any"
+                value={quantInputValue}
+                onChange={(event) => onQuantInputChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleSubmit();
+                  if (event.key === "Escape") onCloseQuantInput();
+                }}
+                className="no-spinner h-9 w-full rounded-lg border border-white/20 bg-background/40 px-3 pr-14 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20"
+                placeholder="Custom"
+                aria-label={`Amount for ${task.title}`}
+              />
+              {task.unit && (
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                  {task.unit}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={isToggling}
+              className="h-9 cursor-pointer rounded-lg bg-accent/20 px-3 text-xs font-semibold text-accent transition-colors hover:bg-accent/30 disabled:cursor-default disabled:opacity-60"
+            >
+              Log
+            </button>
+            <button
+              onClick={onCloseQuantInput}
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Close quick log"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

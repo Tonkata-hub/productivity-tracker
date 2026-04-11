@@ -16,12 +16,13 @@ export function WeekSummaryBar({ weekData, selectedIndex, onSelectDay }: WeekSum
         const isSelected = selectedIndex === index;
         const totalCount = day.tasks.length;
         const completedCount = day.tasks.filter((t) => t.isCompleted).length;
-        const fraction = totalCount > 0
-          ? day.tasks.reduce((sum, t) => {
-              if (t.target_value != null) return sum + Math.min(t.currentValue / t.target_value, 1);
-              return sum + (t.isCompleted ? 1 : 0);
-            }, 0) / totalCount
-          : 0;
+        const fraction =
+          totalCount > 0
+            ? day.tasks.reduce((sum, t) => {
+                if (t.target_value != null) return sum + Math.min(t.currentValue / t.target_value, 1);
+                return sum + (t.isCompleted ? 1 : 0);
+              }, 0) / totalCount
+            : 0;
 
         return (
           <button
@@ -29,9 +30,7 @@ export function WeekSummaryBar({ weekData, selectedIndex, onSelectDay }: WeekSum
             onClick={() => onSelectDay(index)}
             className={cn(
               "flex cursor-pointer flex-col items-center gap-1 rounded-xl px-2 py-2 transition-all duration-200",
-              isSelected
-                ? "bg-white/[0.08] ring-1 ring-white/10"
-                : "hover:bg-white/[0.04]",
+              isSelected ? "bg-white/8 ring-1 ring-white/10" : "hover:bg-white/4",
               day.isFuture && "opacity-35"
             )}
           >
