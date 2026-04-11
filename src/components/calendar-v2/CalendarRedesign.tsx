@@ -134,6 +134,24 @@ export function CalendarRedesign() {
 
   // Resolve which day is focused on desktop
   const effectiveDayIndex = selectedDayIndex >= 0 ? selectedDayIndex : todayIndex;
+  const upcomingByDay = useMemo(() => {
+    return weekData
+      .slice(effectiveDayIndex + 1)
+      .map((day) => {
+        const upcomingOneTime = day.tasks.filter((task) => task.type === "one_time" && !task.isCompleted);
+        const fallbackIncomplete = day.tasks.filter((task) => !task.isCompleted);
+        const items = (upcomingOneTime.length > 0 ? upcomingOneTime : fallbackIncomplete).slice(0, 3);
+        return {
+          date: day.date,
+          dayName: day.dayName,
+          dayNumber: day.dayNumber,
+          items,
+          remainingCount: Math.max((upcomingOneTime.length > 0 ? upcomingOneTime : fallbackIncomplete).length - 3, 0),
+        };
+      })
+      .filter((entry) => entry.items.length > 0)
+      .slice(0, 3);
+  }, [weekData, effectiveDayIndex]);
 
   // Reset selectedDayIndex when week changes
   useEffect(() => {
@@ -407,7 +425,7 @@ export function CalendarRedesign() {
       </div>
 
       <main className="relative flex-1 px-4 pt-6 pb-8 lg:px-6 lg:pb-10">
-        <div className="mx-auto w-full max-w-5xl space-y-4 lg:space-y-5">
+        <div className="mx-auto w-full max-w-4xl space-y-4 lg:space-y-5">
           {/* Page header */}
           <div className="flex items-end justify-between calendar-animate-slide-in-up">
             <div>
@@ -455,7 +473,7 @@ export function CalendarRedesign() {
           {/* Month View */}
           {isMonthView && (
             <div
-              className="glass rounded-2xl p-4 calendar-animate-slide-in-up lg:mx-auto lg:max-w-2xl"
+              className="glass rounded-2xl p-4 calendar-animate-slide-in-up lg:mx-auto lg:max-w-xl"
               style={{ animationDelay: "60ms" }}
             >
               <MonthGrid
@@ -514,13 +532,48 @@ export function CalendarRedesign() {
 
                   {/* Selected day panel */}
                   {weekData[effectiveDayIndex] && (
-                    <div className="max-w-xl mx-auto">
+                    <div className="mx-auto w-full max-w-4xl lg:grid lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start lg:gap-4">
                       <DayPanel
                         dayData={weekData[effectiveDayIndex]}
                         onToggleTask={handleToggleTask}
                         onLogQuantitative={handleLogQuantitative}
                         isHighlighted={highlightedDate === weekData[effectiveDayIndex].date}
                       />
+
+                      <aside className="glass mt-4 rounded-2xl p-4 lg:mt-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-semibold uppercase tracking-widest text-foreground">Upcoming</h3>
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                            Next days
+                          </span>
+                        </div>
+
+                        {upcomingByDay.length === 0 ? (
+                          <p className="mt-4 text-xs text-muted-foreground">No upcoming tasks this week.</p>
+                        ) : (
+                          <div className="mt-3 space-y-3">
+                            {upcomingByDay.map((day) => (
+                              <div key={day.date} className="rounded-xl border border-white/8 bg-white/3 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                  {day.dayName} {day.dayNumber}
+                                </p>
+                                <ul className="mt-2 space-y-1.5">
+                                  {day.items.map((task) => (
+                                    <li key={task.id} className="truncate text-xs text-foreground">
+                                      {task.title}
+                                    </li>
+                                  ))}
+                                </ul>
+                                {day.remainingCount > 0 && (
+                                  <p className="mt-2 text-[10px] text-muted-foreground">
+                                    +{day.remainingCount} more task{day.remainingCount === 1 ? "" : "s"}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </aside>
                     </div>
                   )}
                 </div>

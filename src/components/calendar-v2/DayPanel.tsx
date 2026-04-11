@@ -34,6 +34,21 @@ export function DayPanel({
   const totalCount = tasks.length;
   const allCompleted = totalCount > 0 && completedCount === totalCount;
   const completionPercentage = totalCount > 0 ? (completionScore / totalCount) * 100 : 0;
+  const firstOneTimeTaskIndex = tasks.findIndex((task) => task.type === "one_time");
+  const endOfFirstOneTimeBlockIndex = (() => {
+    if (firstOneTimeTaskIndex < 0) return -1;
+    let end = firstOneTimeTaskIndex;
+    while (end + 1 < tasks.length && tasks[end + 1]?.type === "one_time") {
+      end += 1;
+    }
+    return end;
+  })();
+  const firstFutureOneTimeTaskIndex = tasks.findIndex(
+    (task) => task.type === "one_time" && !!task.due_date && task.due_date > date
+  );
+  const hasDailyBeforeFutureOneTime =
+    firstFutureOneTimeTaskIndex > 0 &&
+    tasks.slice(0, firstFutureOneTimeTaskIndex).some((task) => task.type === "daily");
 
   return (
     <div
@@ -107,17 +122,26 @@ export function DayPanel({
         {tasks.length === 0 ? (
           <span className="text-xs italic text-muted-foreground/50">No tasks scheduled</span>
         ) : (
-          tasks.map((task) => (
-            <TaskItemV2
-              key={task.id}
-              task={task}
-              onToggle={task.target_value == null ? (id) => onToggleTask?.(id, date) : undefined}
-              onLogValue={
-                task.target_value != null
-                  ? (id, amount) => onLogQuantitative?.(id, date, amount)
-                  : undefined
-              }
-            />
+          tasks.map((task, index) => (
+            <div key={task.id}>
+              {index === endOfFirstOneTimeBlockIndex + 1 &&
+                endOfFirstOneTimeBlockIndex >= 0 &&
+                endOfFirstOneTimeBlockIndex < tasks.length - 1 && (
+                  <div className="my-2.5 h-px bg-white/14" aria-hidden="true" />
+                )}
+              {index === firstFutureOneTimeTaskIndex && hasDailyBeforeFutureOneTime && (
+                <div className="my-2.5 h-px bg-white/14" aria-hidden="true" />
+              )}
+              <TaskItemV2
+                task={task}
+                onToggle={task.target_value == null ? (id) => onToggleTask?.(id, date) : undefined}
+                onLogValue={
+                  task.target_value != null
+                    ? (id, amount) => onLogQuantitative?.(id, date, amount)
+                    : undefined
+                }
+              />
+            </div>
           ))
         )}
       </div>
