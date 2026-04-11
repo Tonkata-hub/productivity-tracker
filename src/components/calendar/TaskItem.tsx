@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { TaskWithStatus, TaskPriority } from "@/lib/types";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useRef, useEffect, useState } from "react";
+import { TaskWithStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Repeat, Clock, AlertCircle, Calendar, Plus, Check } from "lucide-react";
+import { CheckCircle2, Circle, Plus, X, AlertCircle, Calendar } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 
 interface TaskItemProps {
@@ -13,31 +12,55 @@ interface TaskItemProps {
   onLogValue?: (taskId: string, amount: number) => void;
 }
 
-function PriorityIndicator({ priority }: { priority: TaskPriority | null }) {
-  if (!priority || priority === "low") return null;
-  return (
-    <div
-      className={cn(
-        "absolute left-0 top-1 bottom-1 w-[3px] rounded-full",
-        priority === "high" ? "bg-mars-red" : "bg-amber-400"
-      )}
-    />
-  );
+const PRIORITY_DOT: Record<string, string> = {
+  high: "bg-red-500",
+  medium: "bg-yellow-500",
+  low: "bg-zinc-500",
+};
+
+function getQuickIncrements(unit: string | null, target: number): number[] {
+  const withTarget = (values: number[]): number[] => {
+    const normalized = [...values];
+    if (Number.isFinite(target) && target > 0) normalized.push(target);
+    return Array.from(
+      new Set(normalized.map((n) => (Number.isInteger(n) ? n : Number(n.toFixed(2)))))
+    ).sort((a, b) => a - b);
+  };
+
+  const u = (unit ?? "").toLowerCase();
+  if (u === "ml") return withTarget([250, 500]);
+  if (u === "steps") return withTarget([1000, 2000]);
+  if (u === "l" || u === "liters" || u === "litres") return withTarget([0.25, 0.5]);
+  if (u === "min" || u === "mins" || u === "minutes") return withTarget([15, 30]);
+  if (u === "pages") return withTarget([5, 10]);
+  if (u === "times" || u === "reps") return withTarget([1, 2, Math.ceil(target / 2)]);
+  const quarter = Math.ceil(target / 4);
+  return withTarget(quarter > 1 ? [1, quarter] : [1]);
 }
 
-function overdueDays(dueDate: string): number {
+function overdueDayCount(dueDate: string): number {
   return differenceInDays(new Date(), parseISO(dueDate));
 }
 
 export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
-  const [isPressed, setIsPressed] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const isQuantitative = task.target_value != null;
+  const hasMeta = task.due_date || task.isOverdue || task.isDueToday;
 
   const handleToggle = () => {
-    setIsPressed(true);
-    setTimeout(() => setIsPressed(false), 200);
     onToggle?.(task.id);
+  };
+
+  const handleCardClick = () => {
+    if (isQuantitative) {
+      setShowInput((prev) => !prev);
+      setInputValue("");
+    } else {
+      handleToggle();
+    }
   };
 
   const handleLogSubmit = () => {
@@ -49,222 +72,215 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
     setInputValue("");
   };
 
-  const hasMeta = task.due_date || task.isOverdue || task.isDueToday;
+  const closeInput = () => {
+    setShowInput(false);
+    setInputValue("");
+  };
 
-  if (task.target_value != null) {
-    const progress = Math.min((task.currentValue / task.target_value) * 100, 100);
+  // Close on outside click
+  useEffect(() => {
+    if (!showInput) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) closeInput();
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [showInput]);
 
-    return (
-      <div
-        className={cn(
-          "group relative cursor-pointer rounded-xl p-2.5 transition-all duration-200",
-          "bg-white/3 hover:bg-white/6",
-          "border border-transparent hover:border-white/5",
-          task.isCompleted && "opacity-60"
-        )}
-        role="listitem"
-        onClick={() => setShowInput(true)}
-      >
-        <PriorityIndicator priority={task.priority} />
-        {/* Main row */}
-        <div className="flex items-center gap-3">
-          {/* + button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowInput((prev) => !prev);
-              setInputValue("");
-            }}
-            className={cn(
-              "shrink-0 flex size-5 items-center justify-center rounded-md border-2 transition-all duration-200",
-              showInput ? "border-mars-red/60 bg-mars-red/20" : "border-white/20 bg-transparent hover:border-white/40"
-            )}
-            aria-label={`Log amount for ${task.title}`}
-          >
-            <Plus className="size-3 text-foreground/70" />
-          </button>
+  const quickIncrements = isQuantitative
+    ? getQuickIncrements(task.unit, task.target_value ?? 1)
+    : [];
 
-          {/* Content */}
-          <div className="min-w-0 flex-1">
-            <span
-              className={cn(
-                "text-base font-semibold leading-snug transition-all duration-200",
-                task.isCompleted && "line-through text-muted-foreground"
-              )}
-            >
-              {task.title}
-            </span>
-            <div className="mt-0.5">
-              <span className="text-sm tabular-nums text-muted-foreground">
-                {task.currentValue} / {task.target_value} {task.unit}
-              </span>
-            </div>
-            {/* Progress bar */}
-            <div className="mt-1.5 h-[2px] overflow-hidden rounded-full bg-white/10">
-              <div
-                className={cn(
-                  "h-full transition-all duration-500 ease-out",
-                  task.isCompleted ? "bg-mars-red" : "bg-white/30"
-                )}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            {/* Meta info below progress bar */}
-            {hasMeta && (
-              <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                {task.isOverdue && !task.isCompleted && task.due_date && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
-                    <AlertCircle className="size-3 shrink-0" />
-                    Overdue {overdueDays(task.due_date)}d
-                  </span>
-                )}
-                {task.isDueToday && !task.isCompleted && !task.isOverdue && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
-                    Due Today
-                  </span>
-                )}
-                {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
-                    <Calendar className="size-3 shrink-0" />
-                    {format(parseISO(task.due_date), "MMM d")}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Type icon */}
-          {task.type === "daily" ? (
-            <Repeat className="shrink-0 size-4 text-muted-foreground" />
-          ) : (
-            <Clock className="shrink-0 size-4 text-muted-foreground" />
-          )}
-        </div>
-
-        {/* Inline log input */}
-        {showInput && (
-          <div className="mt-2.5 flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <input
-              autoFocus
-              type="number"
-              min="0"
-              step="any"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleLogSubmit();
-                if (e.key === "Escape") {
-                  setShowInput(false);
-                  setInputValue("");
-                }
-              }}
-              className="w-28 min-h-10 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-base leading-none text-foreground placeholder-muted-foreground outline-none focus:border-mars-red/50 focus:ring-1 focus:ring-mars-red/20"
-              placeholder={task.unit ?? "amount"}
-            />
-            <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handleLogSubmit}
-              className="flex min-h-10 items-center gap-1 rounded-lg bg-mars-red/20 px-3 py-2 text-base font-medium text-mars-red transition-colors hover:bg-mars-red/30"
-            >
-              <Check className="size-4 shrink-0" />
-              Log
-            </button>
-            <button
-              onClick={() => {
-                setShowInput(false);
-                setInputValue("");
-              }}
-              className="min-h-10 px-1 text-base text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
+  const progress = isQuantitative
+    ? Math.min((task.currentValue / (task.target_value ?? 1)) * 100, 100)
+    : 0;
 
   return (
     <div
+      ref={containerRef}
       className={cn(
-        "group relative flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-all duration-200",
-        "bg-white/3 hover:bg-white/6",
-        "border border-transparent hover:border-white/5",
-        isPressed && "scale-[0.98] bg-white/8",
+        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-white/10!",
         task.isCompleted && "opacity-40"
       )}
       role="listitem"
-      onClick={handleToggle}
+      onClick={handleCardClick}
     >
-      <PriorityIndicator priority={task.priority} />
-      {/* Checkbox with custom styling */}
-      <div className="relative flex shrink-0 items-center self-center">
-        <Checkbox
-          checked={task.isCompleted}
-          onCheckedChange={handleToggle}
-          onClick={(e) => e.stopPropagation()}
-          className={cn(
-            "size-5 rounded-full border-2 transition-all duration-200",
-            "border-white/20 bg-transparent",
-            "data-[state=checked]:border-white/40 data-[state=checked]:bg-white/10",
-            "hover:border-white/30"
+      <div className="flex items-center gap-3">
+        {/* Left icon */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCardClick();
+          }}
+          className="shrink-0 cursor-pointer transition-transform active:scale-90"
+          aria-label={
+            isQuantitative
+              ? `Log amount for ${task.title}`
+              : task.isCompleted
+              ? "Mark incomplete"
+              : "Mark complete"
+          }
+        >
+          {isQuantitative ? (
+            <div
+              className={cn(
+                "flex size-5 items-center justify-center rounded-full border transition-colors",
+                showInput ? "border-accent/60 bg-accent/20" : "border-white/20"
+              )}
+            >
+              <Plus className="w-3 h-3 text-muted-foreground" />
+            </div>
+          ) : task.isCompleted ? (
+            <CheckCircle2 className="w-5 h-5 text-accent" />
+          ) : (
+            <Circle className="w-5 h-5 text-muted-foreground" />
           )}
-          aria-label={`Mark "${task.title}" as ${task.isCompleted ? "incomplete" : "complete"}`}
-        />
-      </div>
+        </button>
 
-      {/* Task content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-col gap-1">
-          {/* Task title */}
-          <span
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p
             className={cn(
-              "text-base font-semibold leading-snug transition-all duration-200",
-              task.isCompleted && "line-through text-muted-foreground",
+              "text-sm font-medium truncate",
+              task.isCompleted ? "line-through text-muted-foreground" : "text-foreground",
               task.isOverdue && !task.isCompleted && "text-mars-red"
             )}
           >
             {task.title}
-          </span>
+          </p>
 
-          {/* Meta info row - priority, due date, status badges */}
-          {hasMeta && (
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Due date for one-time tasks */}
-              {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
-                  <Calendar className="size-3 shrink-0" />
-                  {format(parseISO(task.due_date), "MMM d")}
-                </span>
-              )}
+          {/* Quantitative progress */}
+          {isQuantitative && (
+            <>
+              <p className="text-[10px] text-muted-foreground tabular-nums">
+                {task.currentValue} / {task.target_value} {task.unit}
+              </p>
+              <div className="mt-1 h-[2px] overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={cn(
+                    "h-full transition-all duration-500 ease-out",
+                    task.isCompleted ? "bg-accent" : "bg-white/30"
+                  )}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </>
+          )}
 
-              {/* Overdue badge */}
+          {/* Meta info */}
+          {hasMeta && !isQuantitative && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               {task.isOverdue && !task.isCompleted && task.due_date && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
-                  <AlertCircle className="size-3 shrink-0" />
-                  Overdue {overdueDays(task.due_date)}d
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-400">
+                  <AlertCircle className="size-2.5 shrink-0" />
+                  Overdue {overdueDayCount(task.due_date)}d
                 </span>
               )}
-
-              {/* Due today badge */}
               {task.isDueToday && !task.isCompleted && !task.isOverdue && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-mars-red/15 px-2 py-0.5 text-sm font-semibold text-mars-red">
-                  Due Today
+                <span className="text-[10px] font-medium text-red-400">Due Today</span>
+              )}
+              {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                  <Calendar className="size-2.5 shrink-0" />
+                  {format(parseISO(task.due_date), "MMM d")}
                 </span>
               )}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Type icon - always visible, vertically centered */}
-      <div className="shrink-0 self-center">
-        {task.type === "daily" ? (
-          <Repeat className="size-4 text-muted-foreground" />
-        ) : (
-          <Clock className="size-4 text-muted-foreground" />
+          {/* Meta info for quantitative */}
+          {hasMeta && isQuantitative && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              {task.isOverdue && !task.isCompleted && task.due_date && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-400">
+                  <AlertCircle className="size-2.5 shrink-0" />
+                  Overdue {overdueDayCount(task.due_date)}d
+                </span>
+              )}
+              {task.isDueToday && !task.isCompleted && !task.isOverdue && (
+                <span className="text-[10px] font-medium text-red-400">Due Today</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Priority dot */}
+        {task.priority && (
+          <div
+            className={cn("w-1.5 h-1.5 rounded-full shrink-0", PRIORITY_DOT[task.priority] ?? "")}
+            title={task.priority}
+          />
         )}
       </div>
+
+      {/* Quantitative quick-log panel */}
+      {isQuantitative && showInput && (
+        <div
+          className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/3 p-2.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Quick increment buttons */}
+          {quickIncrements.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {quickIncrements.map((inc) => (
+                <button
+                  key={inc}
+                  onClick={() => {
+                    onLogValue?.(task.id, inc);
+                    closeInput();
+                  }}
+                  className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground transition-all hover:border-accent/30 hover:bg-accent/10 hover:text-accent"
+                >
+                  +{inc}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Custom input row */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                autoFocus
+                type="number"
+                step="any"
+                min="0"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleLogSubmit();
+                  if (e.key === "Escape") closeInput();
+                }}
+                className="no-spinner h-9 w-full rounded-lg border border-white/20 bg-background/40 px-3 pr-14 text-base text-foreground placeholder-muted-foreground outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20"
+                placeholder="Custom"
+                aria-label={`Amount for ${task.title}`}
+              />
+              {task.unit && (
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                  {task.unit}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleLogSubmit}
+              className="h-9 cursor-pointer rounded-lg bg-accent/20 px-3 text-xs font-semibold text-accent transition-colors hover:bg-accent/30"
+            >
+              Log
+            </button>
+            <button
+              onClick={closeInput}
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Close quick log"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

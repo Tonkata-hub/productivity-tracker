@@ -114,9 +114,9 @@ export function getTasksForDate(
     const bOverdue = b.type === "one_time" && !!b.due_date && b.due_date < today ? 0 : 1;
     if (aOverdue !== bOverdue) return aOverdue - bOverdue;
 
-    // Due today second
-    const aToday = a.isDueToday && !a.isCompleted ? 0 : 1;
-    const bToday = b.isDueToday && !b.isCompleted ? 0 : 1;
+    // Due today second (keep them here even after completion)
+    const aToday = a.isDueToday ? 0 : 1;
+    const bToday = b.isDueToday ? 0 : 1;
     if (aToday !== bToday) return aToday - bToday;
 
     // Daily before one_time

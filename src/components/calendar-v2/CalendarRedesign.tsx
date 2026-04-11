@@ -42,9 +42,11 @@ export function CalendarRedesign() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(-1); // -1 = auto (today)
   const [currentDayIndex, setCurrentDayIndex] = useState(0); // mobile scroll position
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
+  const [scrollToTodaySignal, setScrollToTodaySignal] = useState(0);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasInitialScrollRun = useRef(false);
+  const headerSelectResetTimeoutRef = useRef<number | null>(null);
 
   // ── Fetch tasks ────────────────────────────────────────
   useEffect(() => {
@@ -138,6 +140,14 @@ export function CalendarRedesign() {
     setSelectedDayIndex(-1);
   }, [weekOffset]);
 
+  useEffect(() => {
+    return () => {
+      if (headerSelectResetTimeoutRef.current != null) {
+        window.clearTimeout(headerSelectResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // ── Mobile scroll management ───────────────────────────
   useEffect(() => {
     if (hasInitialScrollRun.current || !scrollContainerRef.current || highlightedDate) return;
@@ -146,6 +156,32 @@ export function CalendarRedesign() {
     container.scrollTo({ left: todayIndex * cardWidth, behavior: "smooth" });
     hasInitialScrollRun.current = true;
   }, [todayIndex, highlightedDate]);
+
+  // Explicit mobile "Today" scroll trigger (used by header Today button)
+  useEffect(() => {
+    if (!scrollToTodaySignal || !scrollContainerRef.current || isMonthView) return;
+    const container = scrollContainerRef.current;
+    const todayIdx = weekData.findIndex((d) => d.isToday);
+    const targetIndex = todayIdx >= 0 ? todayIdx : 0;
+
+    let attempts = 0;
+    let rafId = 0;
+    const scrollWhenReady = () => {
+      const width = container.offsetWidth;
+      if (width > 0) {
+        container.scrollTo({ left: targetIndex * width, behavior: "smooth" });
+        setCurrentDayIndex(targetIndex);
+        return;
+      }
+      attempts += 1;
+      if (attempts < 10) {
+        rafId = window.requestAnimationFrame(scrollWhenReady);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(scrollWhenReady);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [scrollToTodaySignal, isMonthView, weekData]);
 
   useEffect(() => {
     if (!scrollContainerRef.current || !highlightedDate) return;
@@ -161,7 +197,19 @@ export function CalendarRedesign() {
     const container = scrollContainerRef.current;
     const newIndex = Math.round(container.scrollLeft / container.offsetWidth);
     setCurrentDayIndex(newIndex);
-  }, []);
+
+    // Keep header selection pinned during animated scroll.
+    // Release only after scroll events settle.
+    if (selectedDayIndex >= 0) {
+      if (headerSelectResetTimeoutRef.current != null) {
+        window.clearTimeout(headerSelectResetTimeoutRef.current);
+      }
+      headerSelectResetTimeoutRef.current = window.setTimeout(() => {
+        setSelectedDayIndex(-1);
+        headerSelectResetTimeoutRef.current = null;
+      }, 140);
+    }
+  }, [selectedDayIndex]);
 
   const scrollToDay = useCallback((index: number) => {
     if (scrollContainerRef.current) {
@@ -171,9 +219,13 @@ export function CalendarRedesign() {
     }
   }, []);
 
-  const scrollToToday = useCallback(() => {
-    scrollToDay(todayIndex);
-  }, [scrollToDay, todayIndex]);
+  const handleHeaderDaySelect = useCallback(
+    (index: number) => {
+      scrollToDay(index);
+      setSelectedDayIndex(index);
+    },
+    [scrollToDay]
+  );
 
   // ── Navigation handlers ────────────────────────────────
   const handlePreviousWeek = useCallback(() => {
@@ -231,6 +283,7 @@ export function CalendarRedesign() {
     setSelectedDayIndex(-1);
     setHighlightedDate(null);
     hasInitialScrollRun.current = false;
+    setScrollToTodaySignal((s) => s + 1);
   }, []);
 
   // ── Task toggle ────────────────────────────────────────
@@ -341,7 +394,8 @@ export function CalendarRedesign() {
 
   // ── Active day index for mobile pill highlight ─────────
   const highlightedDayIndex = highlightedDate ? weekData.findIndex((d) => d.date === highlightedDate) : -1;
-  const activeDayIndex = highlightedDayIndex >= 0 ? highlightedDayIndex : currentDayIndex;
+  const activeDayIndex =
+    highlightedDayIndex >= 0 ? highlightedDayIndex : selectedDayIndex >= 0 ? selectedDayIndex : currentDayIndex;
 
   // ── Render ─────────────────────────────────────────────
   return (
@@ -393,10 +447,7 @@ export function CalendarRedesign() {
               monthBaseDate={monthBaseDate}
               onPreviousMonth={handlePreviousMonth}
               onNextMonth={handleNextMonth}
-              onScrollToDay={(i) => {
-                scrollToDay(i);
-                setSelectedDayIndex(i);
-              }}
+              onScrollToDay={handleHeaderDaySelect}
               activeDayIndex={activeDayIndex}
             />
           </div>
@@ -432,13 +483,10 @@ export function CalendarRedesign() {
               <MobileWeekScroll
                 ref={scrollContainerRef}
                 weekData={weekData}
-                currentDayIndex={currentDayIndex}
-                todayIndex={todayIndex}
                 highlightedDate={highlightedDate}
                 onScroll={handleScroll}
                 onToggleTask={handleToggleTask}
                 onLogQuantitative={handleLogQuantitative}
-                onScrollToToday={scrollToToday}
               />
 
               {/* ── Tablet: 2-column grid ────────────────── */}

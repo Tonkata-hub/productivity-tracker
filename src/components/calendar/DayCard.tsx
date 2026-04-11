@@ -121,7 +121,7 @@ export function DayCard({
 
         {/* Tasks list */}
         <div
-          className={cn("space-y-1 px-2 pb-3", tasks.length === 0 && "flex min-h-[80px] items-center justify-center")}
+          className={cn("space-y-1.5 px-2 pb-3", tasks.length === 0 && "flex min-h-[80px] items-center justify-center")}
           role="list"
           aria-label={`${totalCount} tasks`}
         >

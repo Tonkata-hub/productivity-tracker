@@ -39,7 +39,6 @@ export function DayPanel({
     <div
       className={cn(
         "glass flex h-full flex-col rounded-2xl overflow-hidden transition-all duration-300",
-        isToday && "ring-1 ring-accent/40 shadow-lg shadow-accent/5",
         isHighlighted && "ring-2 ring-accent animate-pulse",
         isPast && !isToday && "opacity-65",
         className
@@ -100,7 +99,7 @@ export function DayPanel({
       {/* Task list */}
       <div
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto space-y-1 px-2 pb-3",
+          "min-h-0 flex-1 space-y-1 px-2 pb-3",
           tasks.length === 0 && "flex min-h-[80px] items-center justify-center"
         )}
         role="list"

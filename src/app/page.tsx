@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useEffect, useRef, type KeyboardEvent } from "react";
+import { Fragment, useState, useEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { getTasksForDate, formatDateISO, getWeekDates } from "@/lib/calendar-utils";
 import type { Task, TaskWithStatus } from "@/lib/types";
@@ -75,6 +75,15 @@ function getOverdueDayCount(dueDateISO: string): number | null {
   const diffMs = today.getTime() - dueDate.getTime();
   if (diffMs <= 0) return null;
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function formatDueDateLabel(dateISO: string): string {
+  const parsed = parseISODateToLocalMidnight(dateISO);
+  if (!parsed) return dateISO;
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function HomePage() {
@@ -532,6 +541,7 @@ function TaskRow({
   onCloseQuantInput: () => void;
 }) {
   const quickLogContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isPressed, setIsPressed] = useState(false);
   const priorityDot: Record<string, string> = {
     high: "bg-red-500",
     medium: "bg-yellow-500",
@@ -540,6 +550,7 @@ function TaskRow({
 
   const isQuantitative = task.target_value != null;
   const handleCardClick = () => {
+    setIsPressed(false);
     if (isQuantitative) {
       onToggleQuantInput();
       return;
@@ -552,6 +563,15 @@ function TaskRow({
       handleCardClick();
     }
   };
+  const handleCardPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (isToggling) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("input")) return;
+    setIsPressed(true);
+  };
+  const handleCardPointerUp = () => setIsPressed(false);
+  const handleCardPointerCancel = () => setIsPressed(false);
+  const handleCardPointerLeave = () => setIsPressed(false);
   const handleSubmit = () => {
     const amount = Number(quantInputValue);
     if (!Number.isFinite(amount) || amount === 0) return;
@@ -562,6 +582,8 @@ function TaskRow({
   const overdueDays = task.due_date ? getOverdueDayCount(task.due_date) : null;
   const overdueSuffix = overdueDays ? ` by ${overdueDays} day${overdueDays === 1 ? "" : "s"}` : "";
   const overdueLabel = task.isCompleted ? `Was overdue${overdueSuffix}` : `Overdue${overdueSuffix}`;
+  const futureDueLabel =
+    task.due_date && task.due_date > formatDateISO(new Date()) ? `Due ${formatDueDateLabel(task.due_date)}` : null;
 
   useEffect(() => {
     if (!showQuantInput) return;
@@ -586,14 +608,21 @@ function TaskRow({
     <div
       ref={quickLogContainerRef}
       className={cn(
-        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-white/10!",
-        task.isCompleted && "opacity-40"
+        "glass cursor-pointer rounded-xl px-4 py-3 select-none transition-all duration-150 ease-out hover:bg-white/10! will-change-transform",
+        task.isCompleted && "opacity-40",
+        isPressed && "translate-y-px scale-[0.985] bg-white/12! border-white/20 shadow-[0_8px_18px_rgba(0,0,0,0.22)]",
+        isToggling && "pointer-events-none"
       )}
       role="button"
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
+      onPointerDown={handleCardPointerDown}
+      onPointerUp={handleCardPointerUp}
+      onPointerCancel={handleCardPointerCancel}
+      onPointerLeave={handleCardPointerLeave}
       aria-label={isQuantitative ? `Open quick log for ${task.title}` : `Toggle ${task.title}`}
+      aria-pressed={!isQuantitative ? task.isCompleted : showQuantInput}
     >
       <div className="flex items-center gap-3">
         <button
@@ -601,18 +630,38 @@ function TaskRow({
             event.stopPropagation();
             handleCardClick();
           }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            if (!isToggling) setIsPressed(true);
+          }}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+            setIsPressed(false);
+          }}
+          onPointerCancel={(event) => {
+            event.stopPropagation();
+            setIsPressed(false);
+          }}
+          onPointerLeave={(event) => {
+            event.stopPropagation();
+            setIsPressed(false);
+          }}
           disabled={isToggling}
-          className="shrink-0 cursor-pointer transition-transform active:scale-90 disabled:cursor-default"
+          className="shrink-0 cursor-pointer transition-transform duration-150 active:scale-90 disabled:cursor-default"
           aria-label={
             isQuantitative ? `Open quick log for ${task.title}` : task.isCompleted ? "Mark incomplete" : "Mark complete"
           }
         >
           {isQuantitative ? (
-            <div className="flex size-5 items-center justify-center rounded-full border border-white/20 text-muted-foreground">
-              <Plus className="w-3 h-3" />
-            </div>
+            task.isCompleted ? (
+              <CheckCircle2 className="w-5 h-5 text-accent animate-task-check-pop" />
+            ) : (
+              <div className="flex size-5 items-center justify-center rounded-full border border-white/20 text-muted-foreground">
+                <Plus className="w-3 h-3" />
+              </div>
+            )
           ) : task.isCompleted ? (
-            <CheckCircle2 className="w-5 h-5 text-accent" />
+            <CheckCircle2 className="w-5 h-5 text-accent animate-task-check-pop" />
           ) : (
             <Circle className="w-5 h-5 text-muted-foreground" />
           )}
@@ -632,7 +681,14 @@ function TaskRow({
               {overdueLabel}
             </p>
           )}
-          {task.isDueToday && !task.isCompleted && <p className="text-[10px] font-medium text-red-400">Due Today</p>}
+          {task.isDueToday && (
+            <p className={cn("text-[10px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
+              Due Today
+            </p>
+          )}
+          {futureDueLabel && !task.isDueToday && !task.isOverdue && (
+            <p className="text-[10px] text-muted-foreground">{futureDueLabel}</p>
+          )}
           {isQuantitative && (
             <p className="text-[10px] text-muted-foreground">
               {task.currentValue} / {task.target_value} {task.unit}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Check, ListChecks } from "lucide-react";
+import { Check, ListChecks, X } from "lucide-react";
 import { Task } from "@/lib/types";
 import { getMonthDates, formatDateISO, getTasksForDate } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
@@ -107,6 +107,7 @@ export function MonthGrid({
               const isFuture = dateISO > todayISO;
               const stats = dayStatsMap.get(dateISO) ?? { totalCount: 0, completedCount: 0, fraction: 0 };
               const allDone = stats.totalCount > 0 && stats.fraction >= 1;
+              const hasNoTasks = !isFuture && stats.totalCount === 0;
               const progressStroke = allDone ? "#34d399" : "rgba(255,59,59,0.45)";
               const circumference = 2 * Math.PI * 11;
               const dash = Math.max(0, Math.min(stats.fraction, 1)) * circumference;
@@ -161,6 +162,15 @@ export function MonthGrid({
                       {allDone && (
                         <div className="absolute inset-0 flex items-center justify-center text-completed-green">
                           <Check className="size-3.5" strokeWidth={3.5} />
+                        </div>
+                      )}
+
+                      {hasNoTasks && (
+                        <div
+                          className="absolute inset-0 flex items-center justify-center"
+                          style={{ color: "#25272c" }}
+                        >
+                          <X className="size-3.5" strokeWidth={3.8} />
                         </div>
                       )}
 
