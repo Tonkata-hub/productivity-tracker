@@ -173,11 +173,11 @@ export default function HomePage() {
     const iso = formatDateISO(date);
     const isFuture = iso > today;
     const isToday = iso === today;
-    if (isFuture) return { day: DAY_NAMES[i], fraction: 0, isFuture: true, isToday: false };
+    if (isFuture) return { day: DAY_NAMES[i], fraction: 0, isFuture: true, isToday: false, hasNoTasks: false };
     const dayTasks = getTasksForDate(tasks, iso, weekCompletions, weekQuantValues).filter((t) => t.type === "daily");
-    if (dayTasks.length === 0) return { day: DAY_NAMES[i], fraction: 1, isFuture: false, isToday };
+    if (dayTasks.length === 0) return { day: DAY_NAMES[i], fraction: 0, isFuture: false, isToday, hasNoTasks: true };
     const done = dayTasks.filter((t) => t.isCompleted).length;
-    return { day: DAY_NAMES[i], fraction: done / dayTasks.length, isFuture: false, isToday };
+    return { day: DAY_NAMES[i], fraction: done / dayTasks.length, isFuture: false, isToday, hasNoTasks: false };
   });
 
   const toggleTask = async (task: TaskWithStatus) => {
@@ -336,15 +336,16 @@ export default function HomePage() {
                 <ListChecks className="w-4 h-4 text-muted-foreground mt-0.5" />
               </div>
               <div className="grid grid-cols-7 gap-1">
-                {weekStreak.map(({ day, fraction, isFuture }) => {
+                {weekStreak.map(({ day, fraction, isFuture, hasNoTasks }) => {
                   const circumference = 2 * Math.PI * 11;
                   const dash = fraction * circumference;
+                  const emptyDayColor = "#23252c";
                   return (
                     <div
                       key={day}
                       className="flex flex-col items-center gap-1.5 rounded-xl px-1 py-1.5 transition-colors"
                     >
-                      <div className="relative w-9 h-9">
+                      <div className="relative w-9 h-9 rounded-full">
                         <svg viewBox="0 0 28 28" className="w-9 h-9 -rotate-90">
                           <circle
                             cx="14"
@@ -367,7 +368,15 @@ export default function HomePage() {
                             />
                           )}
                         </svg>
-                        {fraction >= 1 && !isFuture && (
+                        {hasNoTasks && !isFuture ? (
+                          <div
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{ color: emptyDayColor }}
+                          >
+                            <X className="w-4.5 h-4.5" strokeWidth={4} />
+                          </div>
+                        ) : null}
+                        {fraction >= 1 && !isFuture && !hasNoTasks && (
                           <div className="absolute inset-0 flex items-center justify-center text-completed-green">
                             <Check className="w-3.5 h-3.5" strokeWidth={3.5} />
                           </div>
@@ -378,6 +387,8 @@ export default function HomePage() {
                           "text-[10px] font-medium transition-colors",
                           isFuture
                             ? "text-muted-foreground/30"
+                            : hasNoTasks
+                              ? "text-muted-foreground"
                             : fraction >= 1
                               ? "text-completed-green"
                               : "text-muted-foreground"
@@ -575,7 +586,7 @@ function TaskRow({
     <div
       ref={quickLogContainerRef}
       className={cn(
-        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-accent/5! hover:border-accent/20!",
+        "glass cursor-pointer rounded-xl px-4 py-3 transition-all duration-200 hover:bg-white/10!",
         task.isCompleted && "opacity-40"
       )}
       role="button"

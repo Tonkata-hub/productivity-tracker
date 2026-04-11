@@ -223,7 +223,6 @@ export function CalendarRedesign() {
   }, []);
 
   const handleSelectToday = useCallback(() => {
-    const todayISO = formatDateISO(new Date());
     setWeekDirection("none");
     setWeekAnimKey((k) => k + 1);
     setWeekOffset(0);
@@ -232,10 +231,6 @@ export function CalendarRedesign() {
     setSelectedDayIndex(-1);
     setHighlightedDate(null);
     hasInitialScrollRun.current = false;
-    window.setTimeout(() => {
-      setHighlightedDate(todayISO);
-      window.setTimeout(() => setHighlightedDate(null), 2000);
-    }, 0);
   }, []);
 
   // ── Task toggle ────────────────────────────────────────

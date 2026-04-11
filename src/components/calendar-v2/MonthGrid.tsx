@@ -122,9 +122,7 @@ export function MonthGrid({
                     isCurrentMonth ? "text-foreground" : "text-muted-foreground/20 opacity-55",
                     isToday
                       ? "bg-white/[0.04]"
-                      : allDone
-                        ? "bg-completed-green/8 ring-1 ring-completed-green/20"
-                        : "bg-transparent"
+                      : "bg-transparent"
                   )}
                   aria-label={`${date.toLocaleDateString("en-US", {
                     weekday: "long",
