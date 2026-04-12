@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlannerBlock, TaskWithStatus } from "@/lib/types";
+import { minutesToTimeStr } from "@/lib/planner-utils";
 import { TimeBlock } from "./TimeBlock";
 
 export const START_MINUTES = 0;       // 00:00
@@ -11,12 +12,6 @@ export const END_SLOT_MINUTES = 1410; // 23:30 (last slot; ends 24:00)
 export const SLOT_HEIGHT = 40;        // px per 30-min slot
 export const SLOT_MINUTES = 30;
 const TOTAL_SLOTS = (END_SLOT_MINUTES - START_MINUTES) / SLOT_MINUTES + 1; // 36
-
-function minutesToTimeStr(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h}:${String(m).padStart(2, "0")}`;
-}
 
 interface Props {
   blocks: PlannerBlock[];

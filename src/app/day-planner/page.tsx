@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { formatDateISO, getTasksForDate } from "@/lib/calendar-utils";
 import { supabase } from "@/lib/supabase";
 import { Task, TaskWithStatus, PlannerBlock } from "@/lib/types";
@@ -11,6 +11,7 @@ import { AddBlockPicker } from "@/components/day-planner/AddBlockPicker";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 const DAY_END_MINUTES = 24 * 60;
+const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
 
 type RawCompletion = {
   id?: string;
@@ -43,6 +44,18 @@ function buildSets(completions: RawCompletion[], dateISO: string) {
   return { completionSet, quantMap };
 }
 
+function subscribeDesktopQuery(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+  mediaQuery.addEventListener("change", onStoreChange);
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function getDesktopSnapshot() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
+}
+
 export default function DayPlannerPage() {
   const [tasks, setTasks] = useState<Task[]>(useMock ? mockTasks : []);
   const [rawCompletions, setRawCompletions] = useState<RawCompletion[]>(
@@ -54,6 +67,7 @@ export default function DayPlannerPage() {
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [pendingTask, setPendingTask] = useState<TaskWithStatus | null>(null);
   const [loading, setLoading] = useState(!useMock);
+  const isDesktop = useSyncExternalStore(subscribeDesktopQuery, getDesktopSnapshot, () => false);
 
   // Task interaction state (mirrors homepage)
   const [toggling, setToggling] = useState<Set<string>>(new Set());
@@ -434,19 +448,21 @@ export default function DayPlannerPage() {
           />
         </div>
 
-        {/* Unscheduled sidebar — desktop */}
-        <div className="scrollbar-subtle hidden md:flex w-80 shrink-0 flex-col overflow-y-auto border-l border-white/[0.04] px-4 py-4">
-          <UnscheduledPanel {...panelProps} />
-        </div>
+        {isDesktop && (
+          <div className="scrollbar-subtle w-80 shrink-0 flex flex-col overflow-y-auto border-l border-white/[0.04] px-4 py-4">
+            <UnscheduledPanel {...panelProps} />
+          </div>
+        )}
       </div>
 
-      {/* Unscheduled panel — mobile */}
-      <div
-        className="scrollbar-subtle md:hidden shrink-0 border-t border-white/[0.04] overflow-y-auto px-4 py-3"
-        style={{ maxHeight: "40vh" }}
-      >
-        <UnscheduledPanel {...panelProps} />
-      </div>
+      {!isDesktop && (
+        <div
+          className="scrollbar-subtle shrink-0 border-t border-white/[0.04] overflow-y-auto px-4 py-3"
+          style={{ maxHeight: "40vh" }}
+        >
+          <UnscheduledPanel {...panelProps} />
+        </div>
+      )}
 
       {/* Add block modal */}
       {activeSlot !== null && (

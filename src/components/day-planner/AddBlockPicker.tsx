@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlannerBlock, TaskWithStatus } from "@/lib/types";
+import { minutesToTimeStr } from "@/lib/planner-utils";
 
 interface Props {
   startMinutes: number;
@@ -28,12 +29,6 @@ const PRIORITY_DOT: Record<string, string> = {
 };
 const DAY_END_MINUTES = 24 * 60;
 
-function minutesToTimeStr(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h}:${String(m).padStart(2, "0")}`;
-}
-
 function hasOverlap(startMinutes: number, durationMinutes: number, blocks: PlannerBlock[]) {
   const candidateEnd = startMinutes + durationMinutes;
   if (candidateEnd > DAY_END_MINUTES) return true;
@@ -55,16 +50,9 @@ export function AddBlockPicker({
   const [title, setTitle] = useState(initialTask?.title ?? "");
   const [selectedTask, setSelectedTask] = useState<TaskWithStatus | null>(initialTask ?? null);
   const [duration, setDuration] = useState(30);
-  const inputRef = useRef<HTMLInputElement>(null);
   const isDurationDisabled = (durationMinutes: number) =>
     hasOverlap(startMinutes, durationMinutes, blocks);
   const hasValidDuration = DURATIONS.some((opt) => !isDurationDisabled(opt.value));
-
-  useEffect(() => {
-    if (!initialTask) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [initialTask]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -171,11 +159,11 @@ export function AddBlockPicker({
             {unscheduledTasks.length > 0 ? "Or custom block title" : "Block title"}
           </p>
           <input
-            ref={inputRef}
             type="text"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            autoFocus={!initialTask}
             placeholder="Focus time, meeting, break..."
             className="w-full px-3 py-2.5 text-base rounded-xl glass-subtle text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-accent/50 transition-colors border border-white/10"
           />
