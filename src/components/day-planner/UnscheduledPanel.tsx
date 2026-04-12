@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect, useRef } from "react";
-import { CheckCircle2, Circle, Clock, Plus, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Clock, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskWithStatus } from "@/lib/types";
 
@@ -308,6 +308,7 @@ export interface UnscheduledPanelProps {
   onQuantInputChange: (v: string) => void;
   onCloseQuantInput: () => void;
   onAddTask: (title: string) => void;
+  onClosePanel?: () => void;
 }
 
 export function UnscheduledPanel({
@@ -323,6 +324,7 @@ export function UnscheduledPanel({
   onQuantInputChange,
   onCloseQuantInput,
   onAddTask,
+  onClosePanel,
 }: UnscheduledPanelProps) {
   const [newTitle, setNewTitle] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -346,11 +348,23 @@ export function UnscheduledPanel({
           <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">Today</h2>
           <p className="mt-1 text-xs text-muted-foreground/80">Today&apos;s unscheduled tasks</p>
         </div>
-        {tasks.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {completedCount} / {tasks.length}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {tasks.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {completedCount} / {tasks.length}
+            </span>
+          )}
+          {onClosePanel && (
+            <button
+              onClick={onClosePanel}
+              className="flex size-7 cursor-pointer items-center justify-center rounded-lg border border-white/12 bg-white/5 text-muted-foreground/80 transition-colors hover:border-white/25 hover:bg-white/10 hover:text-foreground"
+              aria-label="Close unscheduled tasks drawer"
+              title="Close"
+            >
+              <ChevronDown className="size-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Task rows */}
@@ -407,13 +421,13 @@ export function UnscheduledPanel({
           <button
             onClick={handleAddSubmit}
             disabled={!newTitle.trim()}
-            className="text-xs font-semibold text-accent hover:text-accent/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-1 shrink-0"
+            className="cursor-pointer text-xs font-semibold text-accent hover:text-accent/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-1 shrink-0"
           >
             Add
           </button>
           <button
             onClick={() => { setShowAdd(false); setNewTitle(""); }}
-            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             <X className="size-3.5" />
           </button>
@@ -421,7 +435,7 @@ export function UnscheduledPanel({
       ) : (
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 px-1 py-1.5 text-xs text-muted-foreground/45 hover:text-muted-foreground transition-colors rounded-lg w-full"
+          className="flex cursor-pointer items-center gap-2 px-1 py-1.5 text-xs text-muted-foreground/45 hover:text-muted-foreground transition-colors rounded-lg w-full"
         >
           <Plus className="size-3.5" />
           Add a task for today

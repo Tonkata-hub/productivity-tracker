@@ -220,7 +220,7 @@ export default function GymPage() {
   // ── Loading ───────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background md:flex md:items-center md:justify-center">
+      <div className="min-h-screen md:flex md:items-center md:justify-center">
         <div className="w-full max-w-lg px-4 pt-6 md:pt-0">
           <div className="glass rounded-2xl flex items-center justify-center gap-3 p-10">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -251,7 +251,7 @@ export default function GymPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-background md:flex md:items-center md:justify-center">
+      <div className="min-h-screen md:flex md:items-center md:justify-center">
         <div className="w-full max-w-lg px-4 pt-6 pb-10 md:pt-0 md:pb-0 space-y-5 md:overflow-y-auto">
           {/* Header */}
           <div className="calendar-animate-slide-in-up">

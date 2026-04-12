@@ -318,7 +318,7 @@ export function StatsView() {
   const hasOneTimeTasks = oneTimeTasks.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-24 space-y-6">
         {/* ── Page header ─────────────────────────────────────── */}
         <div

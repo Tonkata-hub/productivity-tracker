@@ -55,7 +55,7 @@ export default function AddTaskPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background md:flex md:items-center md:justify-center">
+    <div className="min-h-screen md:flex md:items-center md:justify-center">
       <div className="w-full max-w-lg px-4 pt-6 pb-24 md:pt-0 md:pb-0 space-y-5">
         {/* Header */}
         <div className="calendar-animate-slide-in-up">

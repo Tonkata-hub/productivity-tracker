@@ -202,7 +202,7 @@ export function WorkoutSession({ workout, onEndWorkout, onRefresh, onAbortWorkou
 
   return (
     <>
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen pb-24">
         {/* Sticky header */}
         <div className="sticky top-0 z-10 glass-strong border-b border-white/5">
           {/* ① Workout name — the identity, at the top */}

@@ -33,25 +33,39 @@ export function TimeBlock({ block, onComplete, onDelete }: Props) {
         )}
       >
         <div className={cn("min-w-0 overflow-hidden", isShort ? "flex-1" : "flex-1 flex flex-col justify-center")}>
-          <p
-            className={cn(
-              "text-sm font-medium text-foreground",
-              isShort ? "truncate" : "leading-snug",
-              block.is_completed && "line-through text-muted-foreground"
-            )}
-            style={
-              isShort
-                ? undefined
-                : {
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }
-            }
-          >
-            {block.title}
-          </p>
+          {isShort ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p
+                className={cn(
+                  "text-sm font-medium text-foreground truncate",
+                  block.is_completed && "line-through text-muted-foreground"
+                )}
+              >
+                {block.title}
+              </p>
+              <span
+                className="inline-flex shrink-0 items-center rounded-md border border-white/15 bg-white/8 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-foreground/90"
+                style={{ letterSpacing: "0.01em" }}
+              >
+                {timeRange}
+              </span>
+            </div>
+          ) : (
+            <p
+              className={cn(
+                "text-sm font-medium text-foreground leading-snug",
+                block.is_completed && "line-through text-muted-foreground"
+              )}
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {block.title}
+            </p>
+          )}
           {!isShort && (
             <div className="mt-1 shrink-0">
               <span

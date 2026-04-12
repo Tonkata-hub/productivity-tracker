@@ -108,7 +108,7 @@ export function AddBlockPicker({
           </div>
           <button
             onClick={onClose}
-            className="flex items-center justify-center size-8 rounded-xl hover:bg-white/8 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            className="flex cursor-pointer items-center justify-center size-8 rounded-xl hover:bg-white/8 text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             <X className="size-4" />
           </button>
@@ -129,7 +129,7 @@ export function AddBlockPicker({
                   key={task.id}
                   onClick={() => selectTask(task)}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150",
+                    "flex cursor-pointer items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150",
                     selectedTask?.id === task.id
                       ? "bg-accent/15 text-accent border border-accent/30"
                       : "glass-subtle text-muted-foreground hover:text-foreground border border-white/8 hover:border-white/20"
@@ -184,7 +184,7 @@ export function AddBlockPicker({
                 disabled={isDurationDisabled(opt.value)}
                 onClick={() => setDuration(opt.value)}
                 className={cn(
-                  "flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-150",
+                  "flex-1 cursor-pointer py-2 rounded-xl text-sm font-semibold transition-all duration-150",
                   duration === opt.value
                     ? "bg-accent/15 text-accent border border-accent/30"
                     : "glass-subtle text-muted-foreground border border-white/8 hover:text-foreground hover:border-white/20",
@@ -206,7 +206,7 @@ export function AddBlockPicker({
         <div className="flex gap-2 pt-1">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold glass-subtle text-muted-foreground border border-white/8 hover:text-foreground hover:border-white/20 transition-all"
+            className="flex-1 cursor-pointer py-2.5 rounded-xl text-sm font-semibold glass-subtle text-muted-foreground border border-white/8 hover:text-foreground hover:border-white/20 transition-all"
           >
             Cancel
           </button>

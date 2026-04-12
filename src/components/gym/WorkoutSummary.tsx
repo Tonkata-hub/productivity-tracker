@@ -23,7 +23,7 @@ export function WorkoutSummary({
   onCancel,
 }: WorkoutSummaryProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-lg px-4 pt-6 pb-10">
         {/* Back */}
         <button

@@ -100,7 +100,7 @@ export default function ManageTasksPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-lg px-4 pt-6 pb-10 space-y-5">
         {/* Header */}
         <div className="calendar-animate-slide-in-up">

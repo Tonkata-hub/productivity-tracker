@@ -353,7 +353,7 @@ export function CalendarView() {
   const activeDayIndex = highlightedDayIndex >= 0 ? highlightedDayIndex : currentDayIndex;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       {/* Subtle background gradient */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-white/2 blur-[120px]" />

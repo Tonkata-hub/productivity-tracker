@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useSyncExternalStore } from "react";
+import { ChevronUp } from "lucide-react";
 import { formatDateISO, getTasksForDate } from "@/lib/calendar-utils";
 import { supabase } from "@/lib/supabase";
 import { Task, TaskWithStatus, PlannerBlock } from "@/lib/types";
@@ -8,10 +9,12 @@ import { mockTasks, mockTaskCompletions, mockPlannerBlocks } from "@/lib/mock-da
 import { DayTimeline } from "@/components/day-planner/DayTimeline";
 import { UnscheduledPanel } from "@/components/day-planner/UnscheduledPanel";
 import { AddBlockPicker } from "@/components/day-planner/AddBlockPicker";
+import { cn } from "@/lib/utils";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 const DAY_END_MINUTES = 24 * 60;
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
+const TEMP_TASK_ID_PREFIX = "temp-task-";
 
 type RawCompletion = {
   id?: string;
@@ -66,7 +69,9 @@ export default function DayPlannerPage() {
   const todayISO = formatDateISO(now);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [pendingTask, setPendingTask] = useState<TaskWithStatus | null>(null);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(true);
   const [loading, setLoading] = useState(!useMock);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isDesktop = useSyncExternalStore(subscribeDesktopQuery, getDesktopSnapshot, () => false);
 
   // Task interaction state (mirrors homepage)
@@ -87,6 +92,18 @@ export default function DayPlannerPage() {
     const interval = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (isDesktop) setIsMobileDrawerOpen(true);
+  }, [isDesktop]);
+
+  const formatPersistenceError = (prefix: string, error: unknown) => {
+    const details =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message ?? "")
+        : "";
+    return details ? `${prefix}: ${details}` : prefix;
+  };
 
   // Data load for current date
   useEffect(() => {
@@ -238,18 +255,25 @@ export default function DayPlannerPage() {
     taskType: string | null,
     durationMinutes: number
   ) => {
+    setErrorMessage(null);
     if (activeSlot === null) return;
     if (hasOverlap(activeSlot, durationMinutes, blocks)) return;
+    const slotStart = activeSlot;
+
+    // Newly created tasks use temporary client-only IDs until Supabase returns the real row.
+    // Persist block as unlinked instead of failing the entire insert.
+    const normalizedTaskId = taskId?.startsWith(TEMP_TASK_ID_PREFIX) ? null : taskId;
+    const normalizedTaskType = normalizedTaskId ? taskType : null;
 
     const tempId = `temp-${Date.now()}`;
     const newBlock: PlannerBlock = {
       id: tempId,
       date: todayISO,
-      start_minutes: activeSlot,
+      start_minutes: slotStart,
       duration_minutes: durationMinutes,
       title,
-      task_id: taskId,
-      task_type: taskType,
+      task_id: normalizedTaskId,
+      task_type: normalizedTaskType,
       completion_entry_id: null,
       is_completed: false,
       created_at: new Date().toISOString(),
@@ -260,33 +284,42 @@ export default function DayPlannerPage() {
     setPendingTask(null);
 
     if (!useMock) {
+      const baseInsert = {
+        date: todayISO,
+        start_minutes: slotStart,
+        duration_minutes: durationMinutes,
+        title,
+        is_completed: false,
+      };
+
+      const preferredInsert = normalizedTaskId
+        ? { ...baseInsert, task_id: normalizedTaskId, task_type: normalizedTaskType }
+        : baseInsert;
+
       const { data, error } = await supabase
         .from("planner_blocks")
-        .insert({
-          date: todayISO,
-          start_minutes: activeSlot,
-          duration_minutes: durationMinutes,
-          title,
-          task_id: taskId,
-          task_type: taskType,
-          completion_entry_id: null,
-          is_completed: false,
-        })
+        .insert(preferredInsert)
         .select()
         .single();
 
       if (data && !error) {
         setBlocks((prev) => prev.map((b) => (b.id === tempId ? (data as PlannerBlock) : b)));
       } else {
+        console.error("[day-planner] Failed to persist planner block.", error);
         setBlocks((prev) => prev.filter((b) => b.id !== tempId));
+        setErrorMessage(formatPersistenceError("Could not save planner block", error));
       }
     }
   };
 
   const handleCompleteBlock = async (blockId: string) => {
+    setErrorMessage(null);
     const block = blocks.find((b) => b.id === blockId);
     if (!block) return;
     const nextCompleted = !block.is_completed;
+    const previousBlocks = blocks;
+    const previousTasks = tasks;
+    const previousRawCompletions = rawCompletions;
 
     setBlocks((prev) =>
       prev.map((b) =>
@@ -296,34 +329,35 @@ export default function DayPlannerPage() {
       )
     );
 
-    if (block.task_id) {
-      const taskType = block.task_type ?? tasks.find((t) => t.id === block.task_id)?.type;
-      if (taskType === "daily") {
-        const key = `${block.task_id}:${todayISO}`;
-        if (nextCompleted) {
-          let completionEntryId: string | null = null;
-          if (!completionSet.has(key)) {
-            const optimisticId = `planner-marker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            setRawCompletions((prev) => [
-              ...prev,
-              { id: optimisticId, task_id: block.task_id!, date: todayISO, value: null, optimistic_id: optimisticId },
-            ]);
+    try {
+      if (block.task_id) {
+        const taskType = block.task_type ?? tasks.find((t) => t.id === block.task_id)?.type;
+        if (taskType === "daily") {
+          const key = `${block.task_id}:${todayISO}`;
+          if (nextCompleted) {
+            let completionEntryId: string | null = null;
+            if (!completionSet.has(key)) {
+              const optimisticId = `planner-marker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+              setRawCompletions((prev) => [
+                ...prev,
+                { id: optimisticId, task_id: block.task_id!, date: todayISO, value: null, optimistic_id: optimisticId },
+              ]);
 
-            if (!useMock) {
-              const { data, error } = await supabase
-                .from("task_completions")
-                .insert({
-                  task_id: block.task_id,
-                  date: todayISO,
-                  completed_at: new Date().toISOString(),
-                  value: null,
-                })
-                .select("id")
-                .single();
+              if (!useMock) {
+                const { data, error } = await supabase
+                  .from("task_completions")
+                  .insert({
+                    task_id: block.task_id,
+                    date: todayISO,
+                    completed_at: new Date().toISOString(),
+                    value: null,
+                  })
+                  .select("id")
+                  .single();
 
-              if (error || !data) {
-                setRawCompletions((prev) => prev.filter((c) => c.id !== optimisticId));
-              } else {
+                if (error || !data) {
+                  throw error ?? new Error("Failed to insert completion marker");
+                }
                 const insertedCompletionId = data.id as string;
                 completionEntryId = insertedCompletionId;
                 setRawCompletions((prev) =>
@@ -331,58 +365,82 @@ export default function DayPlannerPage() {
                     c.id === optimisticId ? { ...c, id: insertedCompletionId, optimistic_id: undefined } : c
                   )
                 );
+              } else {
+                completionEntryId = optimisticId;
               }
-            } else {
-              completionEntryId = optimisticId;
+            }
+
+            setBlocks((prev) =>
+              prev.map((b) => (b.id === blockId ? { ...b, completion_entry_id: completionEntryId } : b))
+            );
+            if (!useMock) {
+              const { error } = await supabase
+                .from("planner_blocks")
+                .update({ is_completed: true, completion_entry_id: completionEntryId })
+                .eq("id", blockId);
+              if (error) throw error;
+            }
+          } else {
+            if (block.completion_entry_id) {
+              setRawCompletions((prev) => prev.filter((c) => c.id !== block.completion_entry_id));
+              if (!useMock) {
+                const { error } = await supabase
+                  .from("task_completions")
+                  .delete()
+                  .eq("id", block.completion_entry_id)
+                  .is("value", null);
+                if (error) throw error;
+              }
+            }
+            if (!useMock) {
+              const { error } = await supabase
+                .from("planner_blocks")
+                .update({ is_completed: false, completion_entry_id: null })
+                .eq("id", blockId);
+              if (error) throw error;
             }
           }
-
-          setBlocks((prev) =>
-            prev.map((b) => (b.id === blockId ? { ...b, completion_entry_id: completionEntryId } : b))
+        } else if (taskType === "one_time") {
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === block.task_id
+                ? { ...t, is_completed: nextCompleted, completed_at: nextCompleted ? new Date().toISOString() : null }
+                : t
+            )
           );
           if (!useMock) {
-            await supabase
+            const { error: tasksUpdateError } = await supabase
+              .from("tasks")
+              .update({ is_completed: nextCompleted, completed_at: nextCompleted ? new Date().toISOString() : null })
+              .eq("id", block.task_id);
+            if (tasksUpdateError) throw tasksUpdateError;
+
+            const { error: blockUpdateError } = await supabase
               .from("planner_blocks")
-              .update({ is_completed: true, completion_entry_id: completionEntryId })
+              .update({ is_completed: nextCompleted })
               .eq("id", blockId);
+            if (blockUpdateError) throw blockUpdateError;
           }
-        } else {
-          if (block.completion_entry_id) {
-            setRawCompletions((prev) => prev.filter((c) => c.id !== block.completion_entry_id));
-            if (!useMock) {
-              await supabase.from("task_completions").delete().eq("id", block.completion_entry_id).is("value", null);
-            }
-          }
-          if (!useMock) {
-            await supabase
-              .from("planner_blocks")
-              .update({ is_completed: false, completion_entry_id: null })
-              .eq("id", blockId);
-          }
-        }
-      } else if (taskType === "one_time") {
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === block.task_id
-              ? { ...t, is_completed: nextCompleted, completed_at: nextCompleted ? new Date().toISOString() : null }
-              : t
-          )
-        );
-        if (!useMock) {
-          await supabase
-            .from("tasks")
-            .update({ is_completed: nextCompleted, completed_at: nextCompleted ? new Date().toISOString() : null })
-            .eq("id", block.task_id);
-          await supabase
+        } else if (!useMock) {
+          const { error } = await supabase
             .from("planner_blocks")
             .update({ is_completed: nextCompleted })
             .eq("id", blockId);
+          if (error) throw error;
         }
       } else if (!useMock) {
-        await supabase.from("planner_blocks").update({ is_completed: nextCompleted }).eq("id", blockId);
+        const { error } = await supabase
+          .from("planner_blocks")
+          .update({ is_completed: nextCompleted })
+          .eq("id", blockId);
+        if (error) throw error;
       }
-    } else if (!useMock) {
-      await supabase.from("planner_blocks").update({ is_completed: nextCompleted }).eq("id", blockId);
+    } catch (error) {
+      console.error("[day-planner] Failed to persist completion change.", error);
+      setBlocks(previousBlocks);
+      setTasks(previousTasks);
+      setRawCompletions(previousRawCompletions);
+      setErrorMessage(formatPersistenceError("Could not persist completion change", error));
     }
   };
 
@@ -418,7 +476,7 @@ export default function DayPlannerPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh overflow-hidden">
+    <div className="relative flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh overflow-hidden">
       {/* Page header */}
       <header className="shrink-0 px-4 pt-4 pb-3 md:px-6 md:pt-5 border-b border-white/[0.04] flex items-center justify-between gap-4">
         <div>
@@ -431,6 +489,11 @@ export default function DayPlannerPage() {
           <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin shrink-0" />
         )}
       </header>
+      {errorMessage && (
+        <div className="shrink-0 px-4 md:px-6 py-2 border-b border-red-400/20 bg-red-500/10">
+          <p className="text-sm text-red-200">{errorMessage}</p>
+        </div>
+      )}
 
       {/* Main layout */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -456,12 +519,45 @@ export default function DayPlannerPage() {
       </div>
 
       {!isDesktop && (
-        <div
-          className="scrollbar-subtle shrink-0 border-t border-white/[0.04] overflow-y-auto px-4 py-3"
-          style={{ maxHeight: "40vh" }}
-        >
-          <UnscheduledPanel {...panelProps} />
-        </div>
+        <>
+          <div
+            className={cn(
+              "scrollbar-subtle shrink-0 overflow-y-auto px-4 transition-[max-height,opacity,transform,border-color,padding] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-height,transform]",
+              isMobileDrawerOpen
+                ? "max-h-[40vh] border-t border-white/[0.04] py-3 opacity-100 translate-y-0"
+                : "max-h-0 border-t border-transparent py-0 opacity-0 translate-y-2 pointer-events-none"
+            )}
+          >
+            <div
+              className={cn(
+                "transition-opacity duration-150",
+                isMobileDrawerOpen ? "opacity-100 delay-75" : "opacity-0"
+              )}
+            >
+              <UnscheduledPanel
+                {...panelProps}
+                onClosePanel={() => {
+                  setOpenQuantInputTaskId(null);
+                  setQuantInputValue("");
+                  setIsMobileDrawerOpen(false);
+                }}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className={cn(
+              "absolute bottom-3 right-4 z-30 flex items-center gap-2 rounded-full border border-white/15 bg-background/90 px-3 py-2 text-xs font-semibold text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.22)] backdrop-blur-sm transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              isMobileDrawerOpen
+                ? "pointer-events-none opacity-0 translate-y-2"
+                : "cursor-pointer opacity-100 translate-y-0 hover:bg-background"
+            )}
+          >
+            <ChevronUp className="size-3.5" />
+            Show today&apos;s tasks
+          </button>
+        </>
       )}
 
       {/* Add block modal */}

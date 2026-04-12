@@ -28,6 +28,9 @@ export function CalendarRedesign() {
   const [tasks, setTasks] = useState<Task[]>(useMock ? mockTasks : []);
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [quantValues, setQuantValues] = useState<Map<string, number>>(new Map());
+  const [isInitialLoading, setIsInitialLoading] = useState(!useMock);
+  const [hasLoadedTasks, setHasLoadedTasks] = useState(useMock);
+  const [hasLoadedCompletions, setHasLoadedCompletions] = useState(useMock);
 
   // ── Navigation state ───────────────────────────────────
   const [weekOffset, setWeekOffset] = useState(0);
@@ -55,9 +58,11 @@ export function CalendarRedesign() {
       const { data, error } = await supabase.from("tasks").select("*");
       if (error) {
         console.error("Failed to fetch tasks:", error);
+        setHasLoadedTasks(true);
         return;
       }
       setTasks(data as Task[]);
+      setHasLoadedTasks(true);
     }
     fetchTasks();
   }, []);
@@ -74,6 +79,12 @@ export function CalendarRedesign() {
     d.setMonth(d.getMonth() + monthOffset);
     return d;
   }, [monthOffset]);
+
+  const tomorrowISO = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return formatDateISO(d);
+  }, []);
 
   // ── Fetch completions ──────────────────────────────────
   useEffect(() => {
@@ -96,6 +107,7 @@ export function CalendarRedesign() {
         .lte("date", to);
       if (error) {
         console.error("Failed to fetch completions:", error);
+        setHasLoadedCompletions(true);
         return;
       }
       const set = new Set<string>();
@@ -110,9 +122,17 @@ export function CalendarRedesign() {
       }
       setCompletions(set);
       setQuantValues(qmap);
+      setHasLoadedCompletions(true);
     }
     fetchCompletions();
   }, [weekDates, monthBaseDate]);
+
+  useEffect(() => {
+    if (useMock) return;
+    if (hasLoadedTasks && hasLoadedCompletions) {
+      setIsInitialLoading(false);
+    }
+  }, [hasLoadedTasks, hasLoadedCompletions]);
 
   // ── Week data ──────────────────────────────────────────
   const weekData = useMemo(() => {
@@ -139,14 +159,13 @@ export function CalendarRedesign() {
       .slice(effectiveDayIndex + 1)
       .map((day) => {
         const upcomingOneTime = day.tasks.filter((task) => task.type === "one_time" && !task.isCompleted);
-        const fallbackIncomplete = day.tasks.filter((task) => !task.isCompleted);
-        const items = (upcomingOneTime.length > 0 ? upcomingOneTime : fallbackIncomplete).slice(0, 3);
+        const items = upcomingOneTime.slice(0, 3);
         return {
           date: day.date,
           dayName: day.dayName,
           dayNumber: day.dayNumber,
           items,
-          remainingCount: Math.max((upcomingOneTime.length > 0 ? upcomingOneTime : fallbackIncomplete).length - 3, 0),
+          remainingCount: Math.max(upcomingOneTime.length - 3, 0),
         };
       })
       .filter((entry) => entry.items.length > 0)
@@ -415,9 +434,20 @@ export function CalendarRedesign() {
   const activeDayIndex =
     highlightedDayIndex >= 0 ? highlightedDayIndex : selectedDayIndex >= 0 ? selectedDayIndex : currentDayIndex;
 
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center min-h-[80vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Render ─────────────────────────────────────────────
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       {/* Subtle background glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-white/1.5 blur-[120px]" />
@@ -493,9 +523,11 @@ export function CalendarRedesign() {
             <div
               key={weekAnimKey}
               className={cn(
+                weekDirection === "none" && "calendar-animate-slide-in-up",
                 weekDirection === "left" && "calendar-animate-slide-in-left",
                 weekDirection === "right" && "calendar-animate-slide-in-right"
               )}
+              style={weekDirection === "none" ? { animationDelay: "80ms" } : undefined}
             >
               {/* ── Mobile: snap scroll ──────────────────── */}
               <MobileWeekScroll
@@ -555,7 +587,7 @@ export function CalendarRedesign() {
                             {upcomingByDay.map((day) => (
                               <div key={day.date} className="rounded-xl border border-white/8 bg-white/3 p-3">
                                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                  {day.dayName} {day.dayNumber}
+                                  {day.date === tomorrowISO ? "Tomorrow" : `${day.dayName} ${day.dayNumber}`}
                                 </p>
                                 <ul className="mt-2 space-y-1.5">
                                   {day.items.map((task) => (

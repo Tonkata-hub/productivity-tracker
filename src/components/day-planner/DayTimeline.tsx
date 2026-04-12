@@ -71,7 +71,7 @@ export function DayTimeline({
           </p>
           <button
             onClick={onCancelPending}
-            className="shrink-0 flex items-center justify-center size-5 rounded hover:bg-accent/20 text-accent/70 hover:text-accent transition-colors"
+            className="shrink-0 flex cursor-pointer items-center justify-center size-5 rounded hover:bg-accent/20 text-accent/70 hover:text-accent transition-colors"
           >
             <X className="size-3" />
           </button>
@@ -117,7 +117,7 @@ export function DayTimeline({
                 className={cn(
                   "h-10 border-t transition-colors duration-100",
                   isHour ? "border-white/[0.06]" : "border-white/[0.025]",
-                  !occupied && pendingTask && "hover:bg-accent/[0.06] cursor-crosshair",
+                  !occupied && pendingTask && "hover:bg-accent/[0.06] cursor-pointer",
                   !occupied && !pendingTask && "hover:bg-white/[0.02] cursor-pointer",
                   occupied && "cursor-default",
                   isActive && "bg-accent/[0.04]"
