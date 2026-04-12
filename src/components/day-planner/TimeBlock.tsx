@@ -3,17 +3,18 @@
 import { Check, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlannerBlock } from "@/lib/types";
-import { minutesToTimeStr } from "@/lib/planner-utils";
+import { minutesToClockTimeStr } from "@/lib/planner-utils";
 
 interface Props {
   block: PlannerBlock;
+  displayTitle: string;
   onComplete: () => void;
   onDelete: () => void;
 }
 
-export function TimeBlock({ block, onComplete, onDelete }: Props) {
+export function TimeBlock({ block, displayTitle, onComplete, onDelete }: Props) {
   const endMinutes = block.start_minutes + block.duration_minutes;
-  const timeRange = `${minutesToTimeStr(block.start_minutes)} - ${minutesToTimeStr(endMinutes)}`;
+  const timeRange = `${minutesToClockTimeStr(block.start_minutes)} - ${minutesToClockTimeStr(endMinutes)}`;
   const isTaskLinked = block.task_id != null;
   const isShort = block.duration_minutes <= 30;
 
@@ -41,7 +42,7 @@ export function TimeBlock({ block, onComplete, onDelete }: Props) {
                   block.is_completed && "line-through text-muted-foreground"
                 )}
               >
-                {block.title}
+                {displayTitle}
               </p>
               <span
                 className="inline-flex shrink-0 items-center rounded-md border border-white/15 bg-white/8 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-foreground/90"
@@ -63,7 +64,7 @@ export function TimeBlock({ block, onComplete, onDelete }: Props) {
                 overflow: "hidden",
               }}
             >
-              {block.title}
+              {displayTitle}
             </p>
           )}
           {!isShort && (

@@ -12,7 +12,6 @@ import { AddBlockPicker } from "@/components/day-planner/AddBlockPicker";
 import { cn } from "@/lib/utils";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
-const DAY_END_MINUTES = 24 * 60;
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
 const TEMP_TASK_ID_PREFIX = "temp-task-";
 
@@ -26,7 +25,6 @@ type RawCompletion = {
 
 function hasOverlap(startMinutes: number, durationMinutes: number, existingBlocks: PlannerBlock[]) {
   const candidateEnd = startMinutes + durationMinutes;
-  if (candidateEnd > DAY_END_MINUTES) return true;
   return existingBlocks.some((block) => {
     const blockStart = block.start_minutes;
     const blockEnd = block.start_minutes + block.duration_minutes;
@@ -489,6 +487,7 @@ export default function DayPlannerPage() {
         <div className="flex-1 min-h-0 overflow-hidden">
           <DayTimeline
             blocks={blocks}
+            tasks={tasks}
             now={now}
             activeSlot={activeSlot}
             pendingTask={pendingTask}
@@ -500,7 +499,7 @@ export default function DayPlannerPage() {
         </div>
 
         {isDesktop && (
-          <div className="scrollbar-subtle w-80 shrink-0 flex flex-col overflow-y-auto border-l border-white/[0.04] px-4 py-4">
+          <div className="scrollbar-subtle w-[30rem] shrink-0 flex flex-col overflow-y-auto border-l border-white/[0.04] px-4 py-4">
             <UnscheduledPanel {...panelProps} />
           </div>
         )}

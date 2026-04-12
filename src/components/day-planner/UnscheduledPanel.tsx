@@ -11,7 +11,7 @@ function getQuantOptions(target: number): number[] {
   const half = target / 2;
   if (!Number.isFinite(target) || target <= 0) return [];
   if (!Number.isFinite(half) || half <= 0) return [target];
-  return [target, half];
+  return Array.from(new Set([half, target])).sort((a, b) => a - b);
 }
 
 function getOverdueDayCount(dueDateISO: string): number | null {
@@ -112,25 +112,7 @@ function TaskRowWithSchedule({
       onPointerLeave={() => setIsPressed(false)}
     >
       <div className="flex items-center gap-3">
-        {isQuantitative ? (
-          <div className="flex shrink-0 items-center gap-1.5">
-            {quantOptions.map((amount, index) => (
-              <button
-                key={`${task.id}-${amount}-${index}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLogValue(amount);
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                disabled={isToggling}
-                className="h-7 cursor-pointer rounded-md border border-white/10 bg-white/5 px-2 text-[10px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/10 hover:text-foreground disabled:cursor-default disabled:opacity-60"
-                title={task.unit ? `Log ${amount} ${task.unit}` : `Log ${amount}`}
-              >
-                +{amount}
-              </button>
-            ))}
-          </div>
-        ) : (
+        {!isQuantitative && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -192,6 +174,26 @@ function TaskRowWithSchedule({
             </p>
           )}
         </div>
+
+        {isQuantitative && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            {quantOptions.map((amount, index) => (
+              <button
+                key={`${task.id}-${amount}-${index}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLogValue(amount);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={isToggling}
+                className="h-7 cursor-pointer rounded-md border border-white/10 bg-white/5 px-2 text-[10px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/10 hover:text-foreground disabled:cursor-default disabled:opacity-60"
+                title={task.unit ? `Log ${amount} ${task.unit}` : `Log ${amount}`}
+              >
+                +{amount}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Priority dot + Schedule button */}
         <div className="relative flex items-center gap-2.5 shrink-0 pr-[2.375rem]">

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlannerBlock, TaskWithStatus } from "@/lib/types";
-import { minutesToTimeStr } from "@/lib/planner-utils";
+import { minutesToClockTimeStr } from "@/lib/planner-utils";
 
 interface Props {
   startMinutes: number;
@@ -16,7 +16,9 @@ interface Props {
 }
 
 const DURATIONS = [
+  { label: "15m", value: 15 },
   { label: "30m", value: 30 },
+  { label: "45m", value: 45 },
   { label: "1h", value: 60 },
   { label: "1.5h", value: 90 },
   { label: "2h", value: 120 },
@@ -27,11 +29,9 @@ const PRIORITY_DOT: Record<string, string> = {
   medium: "bg-yellow-400",
   low: "bg-zinc-500",
 };
-const DAY_END_MINUTES = 24 * 60;
 
 function hasOverlap(startMinutes: number, durationMinutes: number, blocks: PlannerBlock[]) {
   const candidateEnd = startMinutes + durationMinutes;
-  if (candidateEnd > DAY_END_MINUTES) return true;
   return blocks.some((block) => {
     const blockStart = block.start_minutes;
     const blockEnd = block.start_minutes + block.duration_minutes;
@@ -50,9 +50,17 @@ export function AddBlockPicker({
   const [title, setTitle] = useState(initialTask?.title ?? "");
   const [selectedTask, setSelectedTask] = useState<TaskWithStatus | null>(initialTask ?? null);
   const [duration, setDuration] = useState(30);
+  const [customDurationInput, setCustomDurationInput] = useState("");
   const isDurationDisabled = (durationMinutes: number) =>
     hasOverlap(startMinutes, durationMinutes, blocks);
   const hasValidDuration = DURATIONS.some((opt) => !isDurationDisabled(opt.value));
+  const parsedCustomDuration = Number.parseInt(customDurationInput, 10);
+  const hasCustomInput = customDurationInput.trim().length > 0;
+  const isCustomDurationValid = Number.isFinite(parsedCustomDuration) && parsedCustomDuration > 0;
+  const selectedDurationMinutes =
+    hasCustomInput && isCustomDurationValid ? parsedCustomDuration : duration;
+  const hasBlockingCustomDuration =
+    hasCustomInput && (!isCustomDurationValid || isDurationDisabled(parsedCustomDuration));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -80,12 +88,17 @@ export function AddBlockPicker({
   };
 
   const handleAdd = () => {
-    if (!title.trim() || isDurationDisabled(duration)) return;
-    onAdd(title.trim(), selectedTask?.id ?? null, selectedTask?.type ?? null, duration);
+    if (!title.trim() || hasBlockingCustomDuration || isDurationDisabled(selectedDurationMinutes)) return;
+    onAdd(title.trim(), selectedTask?.id ?? null, selectedTask?.type ?? null, selectedDurationMinutes);
   };
 
-  const endMinutes = startMinutes + duration;
-  const timeLabel = `${minutesToTimeStr(startMinutes)} – ${minutesToTimeStr(endMinutes)}`;
+  const handlePresetDurationClick = (minutes: number) => {
+    setCustomDurationInput("");
+    setDuration(minutes);
+  };
+
+  const endMinutes = startMinutes + selectedDurationMinutes;
+  const timeLabel = `${minutesToClockTimeStr(startMinutes)} – ${minutesToClockTimeStr(endMinutes)}`;
 
   return (
     <div
@@ -177,24 +190,54 @@ export function AddBlockPicker({
           >
             Duration
           </p>
-          <div className="flex gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {DURATIONS.map((opt) => (
               <button
                 key={opt.value}
                 disabled={isDurationDisabled(opt.value)}
-                onClick={() => setDuration(opt.value)}
+                onClick={() => handlePresetDurationClick(opt.value)}
                 className={cn(
-                  "flex-1 cursor-pointer py-2 rounded-xl text-sm font-semibold transition-all duration-150",
-                  duration === opt.value
+                  "cursor-pointer py-2 rounded-xl text-sm font-semibold transition-all duration-150",
+                  !hasCustomInput && duration === opt.value
                     ? "bg-accent/15 text-accent border border-accent/30"
                     : "glass-subtle text-muted-foreground border border-white/8 hover:text-foreground hover:border-white/20",
-                  isDurationDisabled(opt.value) && "opacity-40 cursor-not-allowed hover:text-muted-foreground hover:border-white/8"
+                  isDurationDisabled(opt.value) &&
+                    "opacity-40 cursor-not-allowed hover:text-muted-foreground hover:border-white/8"
                 )}
               >
                 {opt.label}
               </button>
             ))}
+            <input
+              type="number"
+              id="custom-duration-minutes"
+              name="custom-duration-minutes"
+              min={1}
+              inputMode="numeric"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="done"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              className={cn(
+                "no-spinner col-span-2 px-3 py-2.5 text-base rounded-xl text-foreground placeholder:text-muted-foreground/35 focus:outline-none transition-colors border",
+                hasCustomInput
+                  ? "bg-accent/15 text-accent border-accent/30 focus:border-accent/50"
+                  : "glass-subtle border-white/10 focus:border-accent/50"
+              )}
+              value={customDurationInput}
+              onChange={(e) => setCustomDurationInput(e.target.value.replace(/\D/g, ""))}
+              placeholder="Custom minutes"
+            />
           </div>
+          {hasCustomInput && !isCustomDurationValid && (
+            <p className="text-xs text-red-300/85">Enter a valid number of minutes.</p>
+          )}
+          {hasCustomInput && isCustomDurationValid && isDurationDisabled(parsedCustomDuration) && (
+            <p className="text-xs text-red-300/85">This custom duration overlaps another block at this time.</p>
+          )}
           {!hasValidDuration && (
             <p className="text-xs text-red-300/85">
               No available duration at this start time. Pick another slot.
@@ -212,7 +255,7 @@ export function AddBlockPicker({
           </button>
           <button
             onClick={handleAdd}
-            disabled={!title.trim() || !hasValidDuration || isDurationDisabled(duration)}
+            disabled={!title.trim() || (!hasCustomInput && !hasValidDuration) || hasBlockingCustomDuration || isDurationDisabled(selectedDurationMinutes)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-accent/15 text-accent border border-accent/30 hover:bg-accent/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           >
             <Plus className="size-3.5" />
