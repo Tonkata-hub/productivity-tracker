@@ -156,20 +156,20 @@ function TaskRowWithSchedule({
             {task.title}
           </p>
           {task.isOverdue && (
-            <p className={cn("text-[10px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
+            <p className={cn("text-[11px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
               {overdueLabel}
             </p>
           )}
           {task.isDueToday && (
-            <p className={cn("text-[10px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
+            <p className={cn("text-[11px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
               Due Today
             </p>
           )}
           {futureDueLabel && !task.isDueToday && !task.isOverdue && (
-            <p className="text-[10px] text-muted-foreground">{futureDueLabel}</p>
+            <p className="text-[11px] text-muted-foreground">{futureDueLabel}</p>
           )}
           {isQuantitative && (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {task.currentValue} / {task.target_value} {task.unit}
             </p>
           )}
@@ -186,7 +186,7 @@ function TaskRowWithSchedule({
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 disabled={isToggling}
-                className="h-7 cursor-pointer rounded-md border border-white/10 bg-white/5 px-2 text-[10px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/10 hover:text-foreground disabled:cursor-default disabled:opacity-60"
+                className="h-7 cursor-pointer rounded-md border border-white/10 bg-white/5 px-2 text-[11px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/10 hover:text-foreground disabled:cursor-default disabled:opacity-60"
                 title={task.unit ? `Log ${amount} ${task.unit}` : `Log ${amount}`}
               >
                 +{amount}

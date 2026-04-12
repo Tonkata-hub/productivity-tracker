@@ -36,7 +36,7 @@ export function WeekSummaryBar({ weekData, selectedIndex, onSelectDay }: WeekSum
           >
             <span
               className={cn(
-                "text-[10px] font-semibold uppercase tracking-wider",
+                "text-[11px] font-semibold uppercase tracking-wider",
                 day.isToday ? "text-accent" : "text-muted-foreground"
               )}
             >
@@ -45,7 +45,7 @@ export function WeekSummaryBar({ weekData, selectedIndex, onSelectDay }: WeekSum
 
             {totalCount > 0 ? (
               <>
-                <span className="text-xs font-medium tabular-nums text-foreground">
+                <span className="text-[11px] font-medium tabular-nums text-foreground">
                   {completedCount}/{totalCount}
                 </span>
                 {/* Progress bar */}
@@ -60,7 +60,7 @@ export function WeekSummaryBar({ weekData, selectedIndex, onSelectDay }: WeekSum
                 </div>
               </>
             ) : (
-              <span className="text-[10px] text-muted-foreground/40">—</span>
+              <span className="text-[11px] text-muted-foreground/40">—</span>
             )}
           </button>
         );

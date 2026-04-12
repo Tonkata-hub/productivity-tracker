@@ -78,14 +78,14 @@ export function TrackedGoalChart({ task, points }: TrackedGoalChartProps) {
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground">{task.title}</h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             Target: {task.target_value} {task.unit}
           </p>
         </div>
         {loggedCount > 0 && (
           <div className="text-right">
             <p className="text-sm font-bold text-accent tabular-nums">{hitRate}%</p>
-            <p className="text-[10px] text-muted-foreground">hit rate</p>
+            <p className="text-[11px] text-muted-foreground">hit rate</p>
           </div>
         )}
       </div>

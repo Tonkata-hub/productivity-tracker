@@ -358,7 +358,7 @@ export default function HomePage() {
           <div className="space-y-5">
             {/* Header */}
             <div className="calendar-animate-slide-in-up">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">{formattedDate}</p>
+              <p className="text-[14px] text-muted-foreground uppercase tracking-widest">{formattedDate}</p>
               <h1 className="text-3xl font-bold text-foreground mt-1 tracking-tight">{getGreeting()}</h1>
             </div>
 
@@ -383,8 +383,8 @@ export default function HomePage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">This Week</h2>
-                  <p className="text-[10px] text-muted-foreground">Daily tasks only</p>
+                  <h2 className="text-[13px] font-semibold uppercase tracking-widest text-foreground">This Week</h2>
+                  <p className="text-[11px] text-muted-foreground">Daily tasks only</p>
                 </div>
                 <ListChecks className="w-4 h-4 text-muted-foreground mt-0.5" />
               </div>
@@ -436,7 +436,7 @@ export default function HomePage() {
                       </div>
                       <span
                         className={cn(
-                          "text-[10px] font-medium transition-colors",
+                          "text-[12px] font-medium transition-colors",
                           isFuture
                             ? "text-muted-foreground/30"
                             : hasNoTasks
@@ -457,8 +457,8 @@ export default function HomePage() {
             {/* Quick actions */}
             <div className="space-y-3 calendar-animate-slide-in-up" style={{ animationDelay: "210ms" }}>
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">Quick Actions</h2>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40">Coming soon</span>
+                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-foreground">Quick Actions</h2>
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground/40">Coming soon</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {QUICK_ACTIONS.map(({ icon: Icon, label, color }) => (
@@ -468,7 +468,7 @@ export default function HomePage() {
                     className="glass rounded-xl py-3.5 px-2 flex flex-col items-center gap-2 opacity-50 cursor-not-allowed"
                   >
                     <Icon className="w-5 h-5 shrink-0" style={{ color }} />
-                    <span className="text-[10px] text-muted-foreground text-center leading-tight">{label}</span>
+                    <span className="text-[11px] text-muted-foreground text-center leading-tight">{label}</span>
                   </button>
                 ))}
               </div>
@@ -478,8 +478,8 @@ export default function HomePage() {
           {/* Right column: Today's tasks */}
           <div className="space-y-2 calendar-animate-slide-in-up md:pt-1" style={{ animationDelay: "160ms" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">Today</h2>
-              <span className="text-xs text-muted-foreground">
+              <h2 className="text-[13px] font-semibold uppercase tracking-widest text-foreground">Today</h2>
+              <span className="text-[13px] text-muted-foreground">
                 {completedCount} / {todayTasks.length}
               </span>
             </div>
@@ -548,7 +548,7 @@ function StatCard({
         success && "border-completed-green/25"
       )}
     >
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <p
         className={cn(
           "text-2xl font-bold tracking-tight",
@@ -557,7 +557,7 @@ function StatCard({
       >
         {value}
       </p>
-      <p className="text-[10px] text-muted-foreground">{sub}</p>
+      <p className="text-[11px] text-muted-foreground">{sub}</p>
     </div>
   );
 }
@@ -720,20 +720,20 @@ function TaskRow({
             {task.title}
           </p>
           {task.isOverdue && (
-            <p className={cn("text-[10px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
+            <p className={cn("text-[11px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
               {overdueLabel}
             </p>
           )}
           {task.isDueToday && (
-            <p className={cn("text-[10px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
+            <p className={cn("text-[11px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
               Due Today
             </p>
           )}
           {futureDueLabel && !task.isDueToday && !task.isOverdue && (
-            <p className="text-[10px] text-muted-foreground">{futureDueLabel}</p>
+            <p className="text-[11px] text-muted-foreground">{futureDueLabel}</p>
           )}
           {isQuantitative && (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {task.currentValue} / {task.target_value} {task.unit}
             </p>
           )}
@@ -785,7 +785,7 @@ function TaskRow({
                 aria-label={`Amount for ${task.title}`}
               />
               {task.unit && (
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
                   {task.unit}
                 </span>
               )}

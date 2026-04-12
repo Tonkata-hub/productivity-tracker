@@ -39,21 +39,21 @@ export function OneTimeTasksChart({ stats }: OneTimeTasksChartProps) {
             <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
             <span className="text-xl font-bold text-accent tabular-nums stat-num">{stats.completed}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground">Completed</p>
+          <p className="text-[11px] text-muted-foreground">Completed</p>
         </div>
         <div className="w-1/3 flex flex-col gap-1 items-center text-center">
           <div className="flex items-center justify-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
             <span className="text-xl font-bold text-yellow-500 tabular-nums stat-num">{stats.overdue}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground">Overdue</p>
+          <p className="text-[11px] text-muted-foreground">Overdue</p>
         </div>
         <div className="w-1/3 flex flex-col gap-1 items-end text-right">
           <div className="flex items-center justify-end gap-1.5">
             <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="text-xl font-bold text-foreground tabular-nums stat-num">{stats.pending}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground">Pending</p>
+          <p className="text-[11px] text-muted-foreground">Pending</p>
         </div>
       </div>
 
@@ -81,12 +81,12 @@ export function OneTimeTasksChart({ stats }: OneTimeTasksChartProps) {
 
       {/* Task lists */}
       <div className="space-y-2 pt-1 border-t border-white/5">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
           Task lists
         </p>
         <div className="space-y-3 sm:space-y-0 sm:flex sm:items-start sm:justify-between sm:gap-3">
           <div className="space-y-1.5 sm:w-1/3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-accent/70">Completed</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-accent/70">Completed</p>
             {stats.recentTitles.length === 0 ? (
               <p className="text-xs text-muted-foreground/50">None</p>
             ) : (
@@ -100,7 +100,7 @@ export function OneTimeTasksChart({ stats }: OneTimeTasksChartProps) {
           </div>
 
           <div className="space-y-1.5 sm:w-1/3 sm:text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-yellow-500/80">Overdue</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-yellow-500/80">Overdue</p>
             {stats.overdueTitles.length === 0 ? (
               <p className="text-xs text-muted-foreground/50">None</p>
             ) : (
@@ -114,7 +114,7 @@ export function OneTimeTasksChart({ stats }: OneTimeTasksChartProps) {
           </div>
 
           <div className="space-y-1.5 sm:w-1/3 sm:text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/70">Pending</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-foreground/70">Pending</p>
             {stats.pendingTitles.length === 0 ? (
               <p className="text-xs text-muted-foreground/50">None</p>
             ) : (

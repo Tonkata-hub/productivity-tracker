@@ -177,20 +177,20 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
           </p>
 
           {task.isOverdue && (
-            <p className={cn("text-[10px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
+            <p className={cn("text-[11px]", task.isCompleted ? "text-muted-foreground" : "text-red-400 font-medium")}>
               {overdueLabel}
             </p>
           )}
           {task.isDueToday && (
-            <p className={cn("text-[10px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
+            <p className={cn("text-[11px] font-medium", task.isCompleted ? "text-muted-foreground" : "text-red-400")}>
               Due Today
             </p>
           )}
-          {futureDueLabel && <p className="text-[10px] text-muted-foreground">{futureDueLabel}</p>}
+          {futureDueLabel && <p className="text-[11px] text-muted-foreground">{futureDueLabel}</p>}
 
           {isQuantitative && (
             <>
-              <p className="text-[10px] text-muted-foreground tabular-nums">
+              <p className="text-[11px] text-muted-foreground tabular-nums">
                 {task.currentValue} / {task.target_value} {task.unit}
               </p>
               <div className="mt-1 h-[2px] overflow-hidden rounded-full bg-white/10">
@@ -249,7 +249,7 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
                 aria-label={`Amount for ${task.title}`}
               />
               {task.unit && (
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
                   {task.unit}
                 </span>
               )}

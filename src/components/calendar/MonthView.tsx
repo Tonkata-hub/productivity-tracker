@@ -97,7 +97,7 @@ export function MonthView({
       </div>
 
       {/* Month legend */}
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-wider text-muted-foreground/65">
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-wider text-muted-foreground/65">
         <div className="flex items-center gap-1.5">
           <span className="inline-block size-2 rounded-full bg-completed-green" />
           <span>Completed</span>
@@ -178,7 +178,7 @@ export function MonthView({
                   )}
 
                   {dayTaskData.hasOverflow && (
-                    <span className="text-[10px] leading-none text-muted-foreground/60">+{dayTaskData.totalCount - MAX_DOTS}</span>
+                    <span className="text-[11px] leading-none text-muted-foreground/60">+{dayTaskData.totalCount - MAX_DOTS}</span>
                   )}
                 </button>
               );

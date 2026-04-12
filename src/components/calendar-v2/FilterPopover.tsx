@@ -53,7 +53,7 @@ export function FilterPopover({ activeFilter, onFilterChange }: FilterPopoverPro
           )}
         >
           <div className="px-2 pt-1.5 pb-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <p className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
               Filter tasks
             </p>
           </div>
@@ -66,7 +66,7 @@ export function FilterPopover({ activeFilter, onFilterChange }: FilterPopoverPro
                   <button
                     onClick={() => onFilterChange(option.value)}
                     className={cn(
-                      "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150",
+                      "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] font-medium transition-all duration-150",
                       isActive
                         ? "bg-accent/15 text-accent"
                         : "text-muted-foreground hover:bg-white/5 hover:text-foreground"

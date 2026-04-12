@@ -58,9 +58,9 @@ function HeroChip({
 }) {
   return (
     <div className={cn("glass rounded-2xl p-4 flex flex-col gap-1.5", accent && "border-accent/25 glow-accent")}>
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
       <div className="flex-1 flex items-center min-h-[2rem]">{children}</div>
-      <p className="text-[10px] text-muted-foreground/60">{sub}</p>
+      <p className="text-[11px] text-muted-foreground/60">{sub}</p>
     </div>
   );
 }

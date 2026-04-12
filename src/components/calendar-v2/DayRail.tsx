@@ -62,7 +62,7 @@ export function DayRail({ weekData, selectedIndex, onSelectDay }: DayRailProps) 
             {/* Day abbreviation */}
             <span
               className={cn(
-                "text-[10px] font-semibold uppercase leading-none tracking-wide",
+                "text-[12px] font-semibold uppercase leading-none tracking-wide",
                 day.isToday ? "text-accent" : isSelected ? "text-foreground" : "text-muted-foreground"
               )}
             >
@@ -72,7 +72,7 @@ export function DayRail({ weekData, selectedIndex, onSelectDay }: DayRailProps) 
             {/* Date number */}
             <span
               className={cn(
-                "text-xs font-medium leading-none tabular-nums",
+                "text-[13px] font-medium leading-none tabular-nums",
                 day.isToday ? "text-accent font-bold" : "text-muted-foreground"
               )}
             >

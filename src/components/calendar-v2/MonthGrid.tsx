@@ -74,8 +74,8 @@ export function MonthGrid({
     <div className={animClass}>
       <div className="mb-3 flex items-start justify-between">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground">Habit Overview</h2>
-          <p className="text-[10px] text-muted-foreground">Daily completions</p>
+          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-foreground">Habit Overview</h2>
+          <p className="text-[11px] text-muted-foreground">Daily completions</p>
         </div>
         <ListChecks className="mt-0.5 size-4 text-muted-foreground" />
       </div>
@@ -86,7 +86,7 @@ export function MonthGrid({
           <div
             key={index}
             className={cn(
-              "py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest",
+              "py-1.5 text-center text-[12px] font-semibold uppercase tracking-widest",
               index >= 5 ? "text-muted-foreground/45" : "text-muted-foreground/35"
             )}
           >
@@ -134,7 +134,7 @@ export function MonthGrid({
                   {/* Date number */}
                   <span
                     className={cn(
-                      "text-xs font-semibold tabular-nums leading-none select-none",
+                      "text-[13px] font-semibold tabular-nums leading-none select-none",
                       isCurrentMonth ? "text-foreground/85" : "text-muted-foreground/20"
                     )}
                   >
@@ -177,7 +177,7 @@ export function MonthGrid({
                       {!allDone && stats.totalCount > 0 && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           {!isFuture && (
-                            <span className="text-[9px] font-semibold tabular-nums text-muted-foreground/75">
+                            <span className="text-[11px] font-semibold tabular-nums text-muted-foreground/75">
                               {stats.completedCount}/{stats.totalCount}
                             </span>
                           )}
@@ -186,7 +186,7 @@ export function MonthGrid({
                     </div>
                   ) : (
                     <div className="flex size-9 items-center justify-center">
-                      <span className="text-[10px] font-medium tabular-nums leading-none text-muted-foreground/35" />
+                      <span className="text-[11px] font-medium tabular-nums leading-none text-muted-foreground/35" />
                     </div>
                   )}
                 </button>

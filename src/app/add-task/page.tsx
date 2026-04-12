@@ -86,7 +86,7 @@ export default function AddTaskPage() {
 
             {/* Type — sliding pill toggle */}
             <div className="px-5 py-3.5 flex items-center justify-between gap-4">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Type</span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Type</span>
               <div className="relative grid grid-cols-2 rounded-lg bg-white/5 p-0.5">
                 {/* sliding background */}
                 <div
@@ -116,7 +116,7 @@ export default function AddTaskPage() {
 
             {/* Priority */}
             <div className="px-5 py-3.5 flex items-center justify-between gap-4">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Priority
               </span>
               <div className="flex gap-1.5">
@@ -143,10 +143,10 @@ export default function AddTaskPage() {
             {/* Target amount */}
             <div className="px-5 py-3.5 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Target
                 </span>
-                <span className="text-[10px] text-muted-foreground/50">optional</span>
+                <span className="text-[11px] text-muted-foreground/50">optional</span>
               </div>
               <div className="flex gap-2">
                 <input
@@ -187,10 +187,10 @@ export default function AddTaskPage() {
                   <div className="border-t border-border" />
                   <div className="px-5 py-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Due date
                       </span>
-                      <span className="text-[10px] text-muted-foreground/50">optional</span>
+                      <span className="text-[11px] text-muted-foreground/50">optional</span>
                     </div>
                     <input
                       type="date"

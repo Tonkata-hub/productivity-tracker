@@ -30,7 +30,7 @@ const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">{children}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground px-1">{children}</p>
   );
 }
 
@@ -194,7 +194,16 @@ export function StatsView() {
   // ── Tracked goal data ───────────────────────────────────────────────────
   const trackedGoalData = useMemo(() => {
     return trackedTasks.map((task) => {
+      const taskCreatedDateISO = formatDateISO(parseISO(task.created_at));
       const points: TrackedDataPoint[] = pastDatesInRange.map((date) => {
+        if (date < taskCreatedDateISO) {
+          return {
+            date,
+            label: format(parseISO(date), datesInRange.length <= 14 ? "EEE d" : "MMM d"),
+            value: null,
+          };
+        }
+
         const key = `${task.id}:${date}`;
         const value = valuesByKey.get(key) ?? 0;
         return {

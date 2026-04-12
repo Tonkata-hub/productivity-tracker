@@ -466,10 +466,8 @@ export default function DayPlannerPage() {
       {/* Page header */}
       <header className="shrink-0 px-4 pt-4 pb-3 md:px-6 md:pt-5 border-b border-white/[0.04] flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Day Planner</h1>
-          <p className="text-base font-medium mt-0.5" style={{ color: "rgba(244,244,245,0.92)" }}>
-            {formattedDate}
-          </p>
+          <p className="text-[14px] text-muted-foreground uppercase tracking-widest">{formattedDate}</p>
+          <h1 className="text-[28px] font-bold text-foreground mt-1 tracking-tight">Day Planner</h1>
         </div>
         {loading && (
           <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin shrink-0" />

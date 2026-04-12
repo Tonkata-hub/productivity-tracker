@@ -575,7 +575,7 @@ export function CalendarRedesign() {
                       <aside className="glass mt-4 rounded-2xl p-4 lg:mt-0">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xs font-semibold uppercase tracking-widest text-foreground">Upcoming</h3>
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                          <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
                             Next days
                           </span>
                         </div>
@@ -591,13 +591,13 @@ export function CalendarRedesign() {
                                 </p>
                                 <ul className="mt-2 space-y-1.5">
                                   {day.items.map((task) => (
-                                    <li key={task.id} className="truncate text-xs text-foreground">
+                                    <li key={task.id} className="truncate text-[13px] text-foreground">
                                       {task.title}
                                     </li>
                                   ))}
                                 </ul>
                                 {day.remainingCount > 0 && (
-                                  <p className="mt-2 text-[10px] text-muted-foreground">
+                                  <p className="mt-2 text-[11px] text-muted-foreground">
                                     +{day.remainingCount} more task{day.remainingCount === 1 ? "" : "s"}
                                   </p>
                                 )}

@@ -22,7 +22,7 @@ export function HabitLeaderboard({ best, worst }: HabitLeaderboardProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {best.length > 0 && (
         <div className="glass rounded-2xl p-4 space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Top habits
           </p>
           <div className="space-y-2.5">
@@ -35,7 +35,7 @@ export function HabitLeaderboard({ best, worst }: HabitLeaderboardProps) {
 
       {worst.length > 0 && (
         <div className="glass rounded-2xl p-4 space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Needs work
           </p>
           <div className="space-y-2.5">
@@ -75,7 +75,7 @@ function HabitBar({ habit, variant }: { habit: HabitStat; variant: "best" | "wor
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] text-muted-foreground/40">
+      <p className="text-[11px] text-muted-foreground/40">
         {habit.completedDays} / {habit.totalDays} days
       </p>
     </div>

@@ -77,7 +77,7 @@ export function DayPanel({
               {dayName}
             </span>
             {totalCount > 0 && (
-              <span className="text-xs tabular-nums text-muted-foreground">
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 {completedCount}/{totalCount} done
               </span>
             )}

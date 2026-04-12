@@ -156,7 +156,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           {/* Quantitative progress */}
           {isQuantitative && (
             <>
-              <p className="text-[10px] text-muted-foreground tabular-nums">
+              <p className="text-[11px] text-muted-foreground tabular-nums">
                 {task.currentValue} / {task.target_value} {task.unit}
               </p>
               <div className="mt-1 h-[2px] overflow-hidden rounded-full bg-white/10">
@@ -175,16 +175,16 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           {hasMeta && !isQuantitative && (
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               {task.isOverdue && !task.isCompleted && task.due_date && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-400">
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-red-400">
                   <AlertCircle className="size-2.5 shrink-0" />
                   Overdue {overdueDayCount(task.due_date)}d
                 </span>
               )}
               {task.isDueToday && !task.isCompleted && !task.isOverdue && (
-                <span className="text-[10px] font-medium text-red-400">Due Today</span>
+                <span className="text-[11px] font-medium text-red-400">Due Today</span>
               )}
               {task.due_date && task.type === "one_time" && !task.isOverdue && !task.isDueToday && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                <span className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground">
                   <Calendar className="size-2.5 shrink-0" />
                   {format(parseISO(task.due_date), "MMM d")}
                 </span>
@@ -196,13 +196,13 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
           {hasMeta && isQuantitative && (
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               {task.isOverdue && !task.isCompleted && task.due_date && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-400">
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-red-400">
                   <AlertCircle className="size-2.5 shrink-0" />
                   Overdue {overdueDayCount(task.due_date)}d
                 </span>
               )}
               {task.isDueToday && !task.isCompleted && !task.isOverdue && (
-                <span className="text-[10px] font-medium text-red-400">Due Today</span>
+                <span className="text-[11px] font-medium text-red-400">Due Today</span>
               )}
             </div>
           )}
@@ -260,7 +260,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
                 aria-label={`Amount for ${task.title}`}
               />
               {task.unit && (
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
                   {task.unit}
                 </span>
               )}

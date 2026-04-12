@@ -50,7 +50,7 @@ function WeeklyDotGrid({ habitRows, datesInRange }: { habitRows: HabitRow[]; dat
         {/* Header row: day labels */}
         <div className="flex items-center mb-3" style={{ paddingLeft: "120px" }}>
           {dayLabels.map((label, i) => (
-            <div key={i} className="w-8 text-center text-[10px] font-medium text-muted-foreground/60 uppercase">
+            <div key={i} className="w-8 text-center text-[11px] font-medium text-muted-foreground/60 uppercase">
               {label}
             </div>
           ))}
@@ -158,7 +158,7 @@ function HeatmapGrid({ habitRows, datesInRange }: { habitRows: HabitRow[]; dates
             <div className="pl-2 shrink-0">
               <span
                 className={cn(
-                  "text-[10px] font-semibold tabular-nums",
+                  "text-[11px] font-semibold tabular-nums",
                   (dots.filter((d) => d.completed).length / Math.max(1, dots.filter((d) => !d.isFuture).length)) >= 0.8
                     ? "text-accent"
                     : "text-muted-foreground/50"
