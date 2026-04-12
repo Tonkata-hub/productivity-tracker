@@ -1,4 +1,4 @@
-import { ExerciseSet, Task, Workout, WorkoutWithExercises } from "./types";
+import { ExerciseSet, PlannerBlock, Task, Workout, WorkoutWithExercises } from "./types";
 
 const getDateOffset = (days: number): string => {
   const date = new Date();
@@ -417,6 +417,64 @@ export const mockWorkoutsWithExercises: WorkoutWithExercises[] = [
     { name: "Dips (Assisted)", sets: [{ reps: 10, weight_kg: 20 }, { reps: 9, weight_kg: 18 }, { reps: 8, weight_kg: 16 }] },
     { name: "Skull Crushers", sets: [{ reps: 12, weight_kg: 25 }, { reps: 11, weight_kg: 27.5 }, { reps: 10, weight_kg: 27.5 }] },
   ]),
+];
+
+export const mockPlannerBlocks: PlannerBlock[] = [
+  {
+    id: "mock-pb-1",
+    date: today,
+    start_minutes: 480, // 8:00
+    duration_minutes: 30,
+    title: "Morning coffee & news",
+    task_id: null,
+    task_type: null,
+    is_completed: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "mock-pb-2",
+    date: today,
+    start_minutes: 540, // 9:00
+    duration_minutes: 60,
+    title: "Review daily goals",
+    task_id: "mock-4",
+    task_type: "daily",
+    is_completed: false,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "mock-pb-3",
+    date: today,
+    start_minutes: 630, // 10:30
+    duration_minutes: 90,
+    title: "Deep work session",
+    task_id: null,
+    task_type: null,
+    is_completed: false,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "mock-pb-4",
+    date: today,
+    start_minutes: 840, // 14:00
+    duration_minutes: 30,
+    title: "Team standup",
+    task_id: null,
+    task_type: null,
+    is_completed: false,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "mock-pb-5",
+    date: today,
+    start_minutes: 1020, // 17:00
+    duration_minutes: 60,
+    title: "Exercise",
+    task_id: "mock-2",
+    task_type: "daily",
+    is_completed: false,
+    created_at: new Date().toISOString(),
+  },
 ];
 
 export const filterOptions = [

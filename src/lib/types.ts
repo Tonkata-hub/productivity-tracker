@@ -97,3 +97,15 @@ export interface LastExercisePerformance {
     weight_kg: number;
   }[];
 }
+
+export interface PlannerBlock {
+  id: string;
+  date: string;               // ISO date "YYYY-MM-DD"
+  start_minutes: number;      // minutes from midnight (e.g. 480 = 8:00 AM)
+  duration_minutes: number;
+  title: string;
+  task_id: string | null;
+  task_type: string | null;   // cached 'daily' | 'one_time'
+  is_completed: boolean;
+  created_at: string;
+}

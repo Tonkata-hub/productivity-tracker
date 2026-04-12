@@ -254,6 +254,120 @@
   animation: slide-out-down 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Homepage multi-circle gradient background */
+.homepage-gradient {
+  position: relative;
+  background-color: var(--color-background);
+}
+
+.homepage-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 360ms ease;
+  background-image:
+    radial-gradient(circle at 12% 12%, color-mix(in oklab, #ff4d6d 24%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 86% 16%, color-mix(in oklab, #22d3ee 19%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 22% 82%, color-mix(in oklab, #a78bfa 16%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 76% 72%, color-mix(in oklab, #60a5fa 14%, transparent) 0%, transparent 50%),
+    linear-gradient(165deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+  z-index: 0;
+}
+
+.homepage-gradient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 360ms ease;
+  z-index: 0;
+}
+
+body[data-home-gradient-variant="1"] .homepage-gradient::before {
+  background-image:
+    radial-gradient(circle at 14% 18%, color-mix(in oklab, #f97316 22%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 88% 18%, color-mix(in oklab, #60a5fa 20%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 20% 84%, color-mix(in oklab, #f472b6 16%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 74% 68%, color-mix(in oklab, #4ade80 14%, transparent) 0%, transparent 50%),
+    linear-gradient(160deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+body[data-home-gradient-variant="2"] .homepage-gradient::before {
+  background-image:
+    radial-gradient(circle at 10% 12%, color-mix(in oklab, #22d3ee 21%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 84% 14%, color-mix(in oklab, #818cf8 20%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 18% 78%, color-mix(in oklab, #fb7185 15%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 78%, color-mix(in oklab, #facc15 15%, transparent) 0%, transparent 50%),
+    linear-gradient(170deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+body[data-home-gradient-variant="3"] .homepage-gradient::before {
+  background-image:
+    radial-gradient(circle at 8% 20%, color-mix(in oklab, #34d399 21%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 90% 20%, color-mix(in oklab, #f59e0b 19%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 26% 80%, color-mix(in oklab, #c084fc 15%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 72% 74%, color-mix(in oklab, #38bdf8 15%, transparent) 0%, transparent 50%),
+    linear-gradient(168deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+body[data-home-gradient-prev-variant="0"] .homepage-gradient::after {
+  background-image:
+    radial-gradient(circle at 12% 12%, color-mix(in oklab, #ff4d6d 24%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 86% 16%, color-mix(in oklab, #22d3ee 19%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 22% 82%, color-mix(in oklab, #a78bfa 16%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 76% 72%, color-mix(in oklab, #60a5fa 14%, transparent) 0%, transparent 50%),
+    linear-gradient(165deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+body[data-home-gradient-prev-variant="1"] .homepage-gradient::after {
+  background-image:
+    radial-gradient(circle at 14% 18%, color-mix(in oklab, #f97316 22%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 88% 18%, color-mix(in oklab, #60a5fa 20%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 20% 84%, color-mix(in oklab, #f472b6 16%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 74% 68%, color-mix(in oklab, #4ade80 14%, transparent) 0%, transparent 50%),
+    linear-gradient(160deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+body[data-home-gradient-prev-variant="2"] .homepage-gradient::after {
+  background-image:
+    radial-gradient(circle at 10% 12%, color-mix(in oklab, #22d3ee 21%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 84% 14%, color-mix(in oklab, #818cf8 20%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 18% 78%, color-mix(in oklab, #fb7185 15%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 78%, color-mix(in oklab, #facc15 15%, transparent) 0%, transparent 50%),
+    linear-gradient(170deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+body[data-home-gradient-prev-variant="3"] .homepage-gradient::after {
+  background-image:
+    radial-gradient(circle at 8% 20%, color-mix(in oklab, #34d399 21%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 90% 20%, color-mix(in oklab, #f59e0b 19%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 26% 80%, color-mix(in oklab, #c084fc 15%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 72% 74%, color-mix(in oklab, #38bdf8 15%, transparent) 0%, transparent 50%),
+    linear-gradient(168deg, color-mix(in oklab, var(--color-background) 93%, black), var(--color-background));
+}
+
+.homepage-gradient > * {
+  position: relative;
+  z-index: 1;
+}
+
+.home-gradient-enabled .homepage-gradient::before {
+  opacity: 1;
+}
+
+body.home-gradient-enabled.home-gradient-crossfade-start .homepage-gradient::after {
+  opacity: 1;
+  transition: none;
+}
+
+body.home-gradient-enabled.home-gradient-crossfade-active .homepage-gradient::after {
+  transition: opacity 420ms ease;
+  opacity: 0;
+}
+
 @keyframes task-row-marked {
   0% {
     box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
@@ -310,6 +424,32 @@
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.42) transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.35);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollbar-subtle:hover::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.55);
+  background-clip: padding-box;
 }
 
 /* Hide native spinner arrows on selected numeric inputs */

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, PlusCircle, ListChecks, Dumbbell, Home, Menu, X, BarChart2 } from "lucide-react";
+import { CalendarDays, PlusCircle, ListChecks, Dumbbell, Home, Menu, X, BarChart2, Sparkles, Shuffle, LayoutList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  icon: typeof Home | typeof CalendarDays | typeof PlusCircle | typeof Dumbbell | typeof ListChecks | typeof BarChart2;
+  icon: typeof Home | typeof CalendarDays | typeof PlusCircle | typeof Dumbbell | typeof ListChecks | typeof BarChart2 | typeof LayoutList;
   label: string;
   href: string;
 };
@@ -15,16 +15,59 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: "Home", href: "/" },
   { icon: CalendarDays, label: "Calendar", href: "/calendar" },
+  { icon: LayoutList, label: "Day Planner", href: "/day-planner" },
   { icon: Dumbbell, label: "Gym", href: "/gym" },
   { icon: PlusCircle, label: "Add Task", href: "/add-task" },
   { icon: ListChecks, label: "Manage Tasks", href: "/manage-tasks" },
   { icon: BarChart2, label: "Stats", href: "/stats" },
 ];
 
+const GRADIENT_VARIANT_COUNT = 4;
+const SHUFFLE_FADE_MS = 420;
+
 export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const shuffleTimeoutRef = useRef<number | null>(null);
+  const shuffleFrameRef = useRef<number | null>(null);
   const close = () => setOpen(false);
+
+  const gradientEnabled = useSyncExternalStore(
+    (notify) => {
+      if (typeof window === "undefined") return () => {};
+      const onPreferenceChange = () => notify();
+      window.addEventListener("storage", onPreferenceChange);
+      window.addEventListener("homepage-gradient-preference-change", onPreferenceChange);
+      return () => {
+        window.removeEventListener("storage", onPreferenceChange);
+        window.removeEventListener("homepage-gradient-preference-change", onPreferenceChange);
+      };
+    },
+    () => {
+      const saved = window.localStorage.getItem("homepage-gradient-enabled");
+      return saved == null ? true : saved === "true";
+    },
+    () => true
+  );
+  const gradientVariant = useSyncExternalStore(
+    (notify) => {
+      if (typeof window === "undefined") return () => {};
+      const onPreferenceChange = () => notify();
+      window.addEventListener("storage", onPreferenceChange);
+      window.addEventListener("homepage-gradient-preference-change", onPreferenceChange);
+      return () => {
+        window.removeEventListener("storage", onPreferenceChange);
+        window.removeEventListener("homepage-gradient-preference-change", onPreferenceChange);
+      };
+    },
+    () => {
+      const raw = window.localStorage.getItem("homepage-gradient-variant");
+      const parsed = Number(raw);
+      if (!Number.isInteger(parsed) || parsed < 0 || parsed >= GRADIENT_VARIANT_COUNT) return 0;
+      return parsed;
+    },
+    () => 0
+  );
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
@@ -35,6 +78,64 @@ export function Navbar() {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  useEffect(() => {
+    document.body.classList.toggle("home-gradient-enabled", gradientEnabled);
+    document.body.dataset.homeGradientVariant = String(gradientVariant);
+  }, [gradientEnabled, gradientVariant]);
+
+  const toggleHomepageGradient = () => {
+    const next = !gradientEnabled;
+    window.localStorage.setItem("homepage-gradient-enabled", String(next));
+    window.dispatchEvent(new Event("homepage-gradient-preference-change"));
+  };
+  const shuffleHomepageGradient = () => {
+    const choices = Array.from({ length: GRADIENT_VARIANT_COUNT }, (_, i) => i).filter((i) => i !== gradientVariant);
+    const next = choices[Math.floor(Math.random() * choices.length)] ?? 0;
+
+    if (shuffleTimeoutRef.current != null) {
+      window.clearTimeout(shuffleTimeoutRef.current);
+      shuffleTimeoutRef.current = null;
+    }
+    if (shuffleFrameRef.current != null) {
+      window.cancelAnimationFrame(shuffleFrameRef.current);
+      shuffleFrameRef.current = null;
+    }
+
+    document.body.dataset.homeGradientPrevVariant = String(gradientVariant);
+    document.body.classList.remove("home-gradient-crossfade-active");
+    document.body.classList.add("home-gradient-crossfade-start");
+    window.localStorage.setItem("homepage-gradient-variant", String(next));
+    window.dispatchEvent(new Event("homepage-gradient-preference-change"));
+
+    shuffleFrameRef.current = window.requestAnimationFrame(() => {
+      shuffleFrameRef.current = window.requestAnimationFrame(() => {
+        document.body.classList.remove("home-gradient-crossfade-start");
+        document.body.classList.add("home-gradient-crossfade-active");
+        shuffleFrameRef.current = null;
+      });
+    });
+    shuffleTimeoutRef.current = window.setTimeout(() => {
+      document.body.classList.remove("home-gradient-crossfade-active");
+      delete document.body.dataset.homeGradientPrevVariant;
+      shuffleTimeoutRef.current = null;
+    }, SHUFFLE_FADE_MS);
+  };
+
+  useEffect(
+    () => () => {
+      if (shuffleTimeoutRef.current != null) {
+        window.clearTimeout(shuffleTimeoutRef.current);
+      }
+      if (shuffleFrameRef.current != null) {
+        window.cancelAnimationFrame(shuffleFrameRef.current);
+      }
+      document.body.classList.remove("home-gradient-crossfade-start");
+      document.body.classList.remove("home-gradient-crossfade-active");
+      delete document.body.dataset.homeGradientPrevVariant;
+    },
+    []
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +185,28 @@ export function Navbar() {
           })}
         </nav>
 
+        <div className="px-3 py-3 border-t border-white/5 shrink-0">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={toggleHomepageGradient}
+              className="flex h-10 w-24 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:bg-white/6 hover:text-foreground"
+              aria-pressed={gradientEnabled}
+              type="button"
+            >
+              <Sparkles className={cn("size-4 shrink-0", gradientEnabled && "text-accent")} />
+              Gradient
+            </button>
+            <button
+              onClick={shuffleHomepageGradient}
+              className="flex h-10 w-24 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:bg-white/6 hover:text-foreground"
+              type="button"
+            >
+              <Shuffle className="size-4 shrink-0" />
+              Shuffle
+            </button>
+          </div>
+        </div>
+
         {/* Sign out
         <div className="px-3 py-4 border-t border-white/5 shrink-0">
           <Link
@@ -125,8 +248,8 @@ export function Navbar() {
         {/* Slide-down drawer */}
         <div
           id="mobile-nav-drawer"
-          className="overflow-hidden transition-all duration-300 ease-in-out"
-          style={{ maxHeight: open ? "400px" : "0px" }}
+          className="overflow-x-hidden overflow-y-auto transition-[max-height] duration-300 ease-in-out"
+          style={{ maxHeight: open ? "calc(100dvh - 3.5rem)" : "0px" }}
           aria-hidden={!open}
           {...(!open ? { inert: true } : {})}
         >
@@ -149,6 +272,30 @@ export function Navbar() {
               );
             })}
           </nav>
+
+          <div className="border-t border-white/5 mx-3" />
+
+          <div className="px-3 pt-2 pb-5" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={toggleHomepageGradient}
+                className="flex h-12 w-28 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
+                aria-pressed={gradientEnabled}
+                type="button"
+              >
+                <Sparkles className={cn("size-4 shrink-0", gradientEnabled && "text-accent")} />
+                Gradient
+              </button>
+              <button
+                onClick={shuffleHomepageGradient}
+                className="flex h-12 w-28 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
+                type="button"
+              >
+                <Shuffle className="size-4 shrink-0" />
+                Shuffle
+              </button>
+            </div>
+          </div>
 
           {/* <div className="border-t border-white/5 mx-3" />
 

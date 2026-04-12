@@ -308,7 +308,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="homepage-gradient min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 pt-6 pb-24">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
           <div className="space-y-5">
