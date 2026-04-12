@@ -10,8 +10,25 @@ import { UnscheduledPanel } from "@/components/day-planner/UnscheduledPanel";
 import { AddBlockPicker } from "@/components/day-planner/AddBlockPicker";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+const DAY_END_MINUTES = 24 * 60;
 
-type RawCompletion = { task_id: string; date: string; value: number | null };
+type RawCompletion = {
+  id?: string;
+  task_id: string;
+  date: string;
+  value: number | null;
+  optimistic_id?: string;
+};
+
+function hasOverlap(startMinutes: number, durationMinutes: number, existingBlocks: PlannerBlock[]) {
+  const candidateEnd = startMinutes + durationMinutes;
+  if (candidateEnd > DAY_END_MINUTES) return true;
+  return existingBlocks.some((block) => {
+    const blockStart = block.start_minutes;
+    const blockEnd = block.start_minutes + block.duration_minutes;
+    return startMinutes < blockEnd && candidateEnd > blockStart;
+  });
+}
 
 function buildSets(completions: RawCompletion[], dateISO: string) {
   const completionSet = new Set<string>();
@@ -27,14 +44,13 @@ function buildSets(completions: RawCompletion[], dateISO: string) {
 }
 
 export default function DayPlannerPage() {
-  const todayISO = formatDateISO(new Date());
-
   const [tasks, setTasks] = useState<Task[]>(useMock ? mockTasks : []);
   const [rawCompletions, setRawCompletions] = useState<RawCompletion[]>(
     useMock ? mockTaskCompletions : []
   );
   const [blocks, setBlocks] = useState<PlannerBlock[]>(useMock ? mockPlannerBlocks : []);
   const [now, setNow] = useState(new Date());
+  const todayISO = formatDateISO(now);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [pendingTask, setPendingTask] = useState<TaskWithStatus | null>(null);
   const [loading, setLoading] = useState(!useMock);
@@ -58,18 +74,20 @@ export default function DayPlannerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initial data load
+  // Data load for current date
   useEffect(() => {
     if (useMock) return;
+    let isCancelled = false;
 
     async function load() {
       setLoading(true);
       const [tasksRes, completionsRes, blocksRes] = await Promise.all([
         supabase.from("tasks").select("*"),
-        supabase.from("task_completions").select("task_id, date, value").eq("date", todayISO),
+        supabase.from("task_completions").select("id, task_id, date, value").eq("date", todayISO),
         supabase.from("planner_blocks").select("*").eq("date", todayISO),
       ]);
 
+      if (isCancelled) return;
       if (tasksRes.data) setTasks(tasksRes.data as Task[]);
       if (completionsRes.data) setRawCompletions(completionsRes.data as RawCompletion[]);
       if (blocksRes.data) setBlocks(blocksRes.data as PlannerBlock[]);
@@ -77,8 +95,10 @@ export default function DayPlannerPage() {
     }
 
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      isCancelled = true;
+    };
+  }, [todayISO]);
 
   // ── Task interactions (same logic as homepage) ──────────────────────────
 
@@ -129,8 +149,12 @@ export default function DayPlannerPage() {
   const logTaskValue = async (task: TaskWithStatus, amount: number) => {
     if (task.target_value == null || !Number.isFinite(amount) || amount === 0) return;
     setToggling((prev) => new Set([...prev, task.id]));
+    const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    setRawCompletions((prev) => [...prev, { task_id: task.id, date: todayISO, value: amount }]);
+    setRawCompletions((prev) => [
+      ...prev,
+      { task_id: task.id, date: todayISO, value: amount, optimistic_id: optimisticId },
+    ]);
 
     if (!useMock) {
       const { error } = await supabase
@@ -139,10 +163,7 @@ export default function DayPlannerPage() {
 
       if (error) {
         setRawCompletions((prev) => {
-          const idx = [...prev].reverse().findIndex((c) => c.task_id === task.id && c.value === amount);
-          if (idx < 0) return prev;
-          const realIdx = prev.length - 1 - idx;
-          return prev.filter((_, i) => i !== realIdx);
+          return prev.filter((c) => c.optimistic_id !== optimisticId);
         });
       }
     }
@@ -204,6 +225,7 @@ export default function DayPlannerPage() {
     durationMinutes: number
   ) => {
     if (activeSlot === null) return;
+    if (hasOverlap(activeSlot, durationMinutes, blocks)) return;
 
     const tempId = `temp-${Date.now()}`;
     const newBlock: PlannerBlock = {
@@ -214,6 +236,7 @@ export default function DayPlannerPage() {
       title,
       task_id: taskId,
       task_type: taskType,
+      completion_entry_id: null,
       is_completed: false,
       created_at: new Date().toISOString(),
     };
@@ -225,7 +248,16 @@ export default function DayPlannerPage() {
     if (!useMock) {
       const { data, error } = await supabase
         .from("planner_blocks")
-        .insert({ date: todayISO, start_minutes: activeSlot, duration_minutes: durationMinutes, title, task_id: taskId, task_type: taskType, is_completed: false })
+        .insert({
+          date: todayISO,
+          start_minutes: activeSlot,
+          duration_minutes: durationMinutes,
+          title,
+          task_id: taskId,
+          task_type: taskType,
+          completion_entry_id: null,
+          is_completed: false,
+        })
         .select()
         .single();
 
@@ -242,33 +274,76 @@ export default function DayPlannerPage() {
     if (!block) return;
     const nextCompleted = !block.is_completed;
 
-    setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, is_completed: nextCompleted } : b)));
-    if (!useMock) {
-      await supabase.from("planner_blocks").update({ is_completed: nextCompleted }).eq("id", blockId);
-    }
+    setBlocks((prev) =>
+      prev.map((b) =>
+        b.id === blockId
+          ? { ...b, is_completed: nextCompleted, completion_entry_id: nextCompleted ? b.completion_entry_id : null }
+          : b
+      )
+    );
 
     if (block.task_id) {
-      const linkedTask = tasks.find((t) => t.id === block.task_id);
       const taskType = block.task_type ?? tasks.find((t) => t.id === block.task_id)?.type;
       if (taskType === "daily") {
         const key = `${block.task_id}:${todayISO}`;
-        if (nextCompleted && !completionSet.has(key)) {
-          setRawCompletions((prev) => [...prev, { task_id: block.task_id!, date: todayISO, value: null }]);
-          if (!useMock) {
-            await supabase.from("task_completions").insert({ task_id: block.task_id, date: todayISO, completed_at: new Date().toISOString(), value: null });
+        if (nextCompleted) {
+          let completionEntryId: string | null = null;
+          if (!completionSet.has(key)) {
+            const optimisticId = `planner-marker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            setRawCompletions((prev) => [
+              ...prev,
+              { id: optimisticId, task_id: block.task_id!, date: todayISO, value: null, optimistic_id: optimisticId },
+            ]);
+
+            if (!useMock) {
+              const { data, error } = await supabase
+                .from("task_completions")
+                .insert({
+                  task_id: block.task_id,
+                  date: todayISO,
+                  completed_at: new Date().toISOString(),
+                  value: null,
+                })
+                .select("id")
+                .single();
+
+              if (error || !data) {
+                setRawCompletions((prev) => prev.filter((c) => c.id !== optimisticId));
+              } else {
+                const insertedCompletionId = data.id as string;
+                completionEntryId = insertedCompletionId;
+                setRawCompletions((prev) =>
+                  prev.map((c) =>
+                    c.id === optimisticId ? { ...c, id: insertedCompletionId, optimistic_id: undefined } : c
+                  )
+                );
+              }
+            } else {
+              completionEntryId = optimisticId;
+            }
           }
-        } else if (!nextCompleted) {
-          // Remove only null markers so quantitative logs remain intact.
-          setRawCompletions((prev) =>
-            prev.filter((c) => !(c.task_id === block.task_id && c.date === todayISO && c.value == null))
+
+          setBlocks((prev) =>
+            prev.map((b) => (b.id === blockId ? { ...b, completion_entry_id: completionEntryId } : b))
           );
-          if (!useMock && linkedTask?.target_value == null) {
+          if (!useMock) {
             await supabase
-              .from("task_completions")
-              .delete()
-              .eq("task_id", block.task_id)
-              .eq("date", todayISO)
-              .is("value", null);
+              .from("planner_blocks")
+              .update({ is_completed: true, completion_entry_id: completionEntryId })
+              .eq("id", blockId);
+          }
+        } else {
+          if (block.completion_entry_id) {
+            setRawCompletions((prev) => prev.filter((c) => c.id !== block.completion_entry_id));
+            if (!useMock) {
+              await supabase.from("task_completions").delete().eq("id", block.completion_entry_id).is("value", null);
+            }
+          }
+          if (!useMock) {
+            await supabase
+              .from("planner_blocks")
+              .update({ is_completed: false, completion_entry_id: null })
+              .eq("id", blockId);
           }
         }
       } else if (taskType === "one_time") {
@@ -284,8 +359,16 @@ export default function DayPlannerPage() {
             .from("tasks")
             .update({ is_completed: nextCompleted, completed_at: nextCompleted ? new Date().toISOString() : null })
             .eq("id", block.task_id);
+          await supabase
+            .from("planner_blocks")
+            .update({ is_completed: nextCompleted })
+            .eq("id", blockId);
         }
+      } else if (!useMock) {
+        await supabase.from("planner_blocks").update({ is_completed: nextCompleted }).eq("id", blockId);
       }
+    } else if (!useMock) {
+      await supabase.from("planner_blocks").update({ is_completed: nextCompleted }).eq("id", blockId);
     }
   };
 
@@ -296,7 +379,7 @@ export default function DayPlannerPage() {
     }
   };
 
-  const formattedDate = new Date().toLocaleDateString("en-US", {
+  const formattedDate = now.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -321,7 +404,7 @@ export default function DayPlannerPage() {
   };
 
   return (
-    <div className="homepage-gradient bg-background flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh overflow-hidden">
       {/* Page header */}
       <header className="shrink-0 px-4 pt-4 pb-3 md:px-6 md:pt-5 border-b border-white/[0.04] flex items-center justify-between gap-4">
         <div>
@@ -369,6 +452,7 @@ export default function DayPlannerPage() {
       {activeSlot !== null && (
         <AddBlockPicker
           startMinutes={activeSlot}
+          blocks={blocks}
           unscheduledTasks={unscheduledTasks}
           initialTask={pendingTask}
           onAdd={handleAddBlock}

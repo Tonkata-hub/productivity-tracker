@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TaskWithStatus } from "@/lib/types";
+import { PlannerBlock, TaskWithStatus } from "@/lib/types";
 
 interface Props {
   startMinutes: number;
+  blocks: PlannerBlock[];
   unscheduledTasks: TaskWithStatus[];
   initialTask?: TaskWithStatus | null;
   onAdd: (title: string, taskId: string | null, taskType: string | null, durationMinutes: number) => void;
@@ -25,6 +26,7 @@ const PRIORITY_DOT: Record<string, string> = {
   medium: "bg-yellow-400",
   low: "bg-zinc-500",
 };
+const DAY_END_MINUTES = 24 * 60;
 
 function minutesToTimeStr(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -32,11 +34,31 @@ function minutesToTimeStr(minutes: number): string {
   return `${h}:${String(m).padStart(2, "0")}`;
 }
 
-export function AddBlockPicker({ startMinutes, unscheduledTasks, initialTask, onAdd, onClose }: Props) {
+function hasOverlap(startMinutes: number, durationMinutes: number, blocks: PlannerBlock[]) {
+  const candidateEnd = startMinutes + durationMinutes;
+  if (candidateEnd > DAY_END_MINUTES) return true;
+  return blocks.some((block) => {
+    const blockStart = block.start_minutes;
+    const blockEnd = block.start_minutes + block.duration_minutes;
+    return startMinutes < blockEnd && candidateEnd > blockStart;
+  });
+}
+
+export function AddBlockPicker({
+  startMinutes,
+  blocks,
+  unscheduledTasks,
+  initialTask,
+  onAdd,
+  onClose,
+}: Props) {
   const [title, setTitle] = useState(initialTask?.title ?? "");
   const [selectedTask, setSelectedTask] = useState<TaskWithStatus | null>(initialTask ?? null);
   const [duration, setDuration] = useState(30);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isDurationDisabled = (durationMinutes: number) =>
+    hasOverlap(startMinutes, durationMinutes, blocks);
+  const hasValidDuration = DURATIONS.some((opt) => !isDurationDisabled(opt.value));
 
   useEffect(() => {
     if (!initialTask) {
@@ -70,7 +92,7 @@ export function AddBlockPicker({ startMinutes, unscheduledTasks, initialTask, on
   };
 
   const handleAdd = () => {
-    if (!title.trim()) return;
+    if (!title.trim() || isDurationDisabled(duration)) return;
     onAdd(title.trim(), selectedTask?.id ?? null, selectedTask?.type ?? null, duration);
   };
 
@@ -171,18 +193,25 @@ export function AddBlockPicker({ startMinutes, unscheduledTasks, initialTask, on
             {DURATIONS.map((opt) => (
               <button
                 key={opt.value}
+                disabled={isDurationDisabled(opt.value)}
                 onClick={() => setDuration(opt.value)}
                 className={cn(
                   "flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-150",
                   duration === opt.value
                     ? "bg-accent/15 text-accent border border-accent/30"
-                    : "glass-subtle text-muted-foreground border border-white/8 hover:text-foreground hover:border-white/20"
+                    : "glass-subtle text-muted-foreground border border-white/8 hover:text-foreground hover:border-white/20",
+                  isDurationDisabled(opt.value) && "opacity-40 cursor-not-allowed hover:text-muted-foreground hover:border-white/8"
                 )}
               >
                 {opt.label}
               </button>
             ))}
           </div>
+          {!hasValidDuration && (
+            <p className="text-xs text-red-300/85">
+              No available duration at this start time. Pick another slot.
+            </p>
+          )}
         </div>
 
         {/* Actions */}
@@ -195,7 +224,7 @@ export function AddBlockPicker({ startMinutes, unscheduledTasks, initialTask, on
           </button>
           <button
             onClick={handleAdd}
-            disabled={!title.trim()}
+            disabled={!title.trim() || !hasValidDuration || isDurationDisabled(duration)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-accent/15 text-accent border border-accent/30 hover:bg-accent/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           >
             <Plus className="size-3.5" />

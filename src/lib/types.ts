@@ -106,6 +106,7 @@ export interface PlannerBlock {
   title: string;
   task_id: string | null;
   task_type: string | null;   // cached 'daily' | 'one_time'
+  completion_entry_id: string | null; // marker created by planner block completion (daily tasks)
   is_completed: boolean;
   created_at: string;
 }

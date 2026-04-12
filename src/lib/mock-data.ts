@@ -233,6 +233,7 @@ export const mockTasks: Task[] = [
 ];
 
 type MockTaskCompletion = {
+  id?: string;
   task_id: string;
   date: string;
   value: number | null;
@@ -428,6 +429,7 @@ export const mockPlannerBlocks: PlannerBlock[] = [
     title: "Morning coffee & news",
     task_id: null,
     task_type: null,
+    completion_entry_id: null,
     is_completed: true,
     created_at: new Date().toISOString(),
   },
@@ -439,6 +441,7 @@ export const mockPlannerBlocks: PlannerBlock[] = [
     title: "Review daily goals",
     task_id: "mock-4",
     task_type: "daily",
+    completion_entry_id: null,
     is_completed: false,
     created_at: new Date().toISOString(),
   },
@@ -450,6 +453,7 @@ export const mockPlannerBlocks: PlannerBlock[] = [
     title: "Deep work session",
     task_id: null,
     task_type: null,
+    completion_entry_id: null,
     is_completed: false,
     created_at: new Date().toISOString(),
   },
@@ -461,6 +465,7 @@ export const mockPlannerBlocks: PlannerBlock[] = [
     title: "Team standup",
     task_id: null,
     task_type: null,
+    completion_entry_id: null,
     is_completed: false,
     created_at: new Date().toISOString(),
   },
@@ -472,6 +477,7 @@ export const mockPlannerBlocks: PlannerBlock[] = [
     title: "Exercise",
     task_id: "mock-2",
     task_type: "daily",
+    completion_entry_id: null,
     is_completed: false,
     created_at: new Date().toISOString(),
   },
