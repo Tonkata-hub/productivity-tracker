@@ -24,6 +24,61 @@ const NAV_ITEMS: NavItem[] = [
 
 const GRADIENT_VARIANT_COUNT = 4;
 const SHUFFLE_FADE_MS = 420;
+const GRADIENT_PREFERENCE_EVENT = "homepage-gradient-preference-change";
+
+function subscribeGradientPreference(notify: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onPreferenceChange = () => notify();
+  window.addEventListener("storage", onPreferenceChange);
+  window.addEventListener(GRADIENT_PREFERENCE_EVENT, onPreferenceChange);
+  return () => {
+    window.removeEventListener("storage", onPreferenceChange);
+    window.removeEventListener(GRADIENT_PREFERENCE_EVENT, onPreferenceChange);
+  };
+}
+
+function useGradientPreference<T>(getSnapshot: () => T, getServerSnapshot: () => T) {
+  return useSyncExternalStore(subscribeGradientPreference, getSnapshot, getServerSnapshot);
+}
+
+function GradientButtons({
+  gradientEnabled,
+  onToggle,
+  onShuffle,
+  size,
+}: {
+  gradientEnabled: boolean;
+  onToggle: () => void;
+  onShuffle: () => void;
+  size: "desktop" | "mobile";
+}) {
+  const buttonClass =
+    size === "desktop"
+      ? "flex h-10 w-24 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:bg-white/6 hover:text-foreground"
+      : "flex h-12 w-28 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6";
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <button
+        onClick={onToggle}
+        className={buttonClass}
+        aria-pressed={gradientEnabled}
+        type="button"
+      >
+        <Sparkles className={cn("size-4 shrink-0", gradientEnabled && "text-accent")} />
+        Gradient
+      </button>
+      <button
+        onClick={onShuffle}
+        className={buttonClass}
+        type="button"
+      >
+        <Shuffle className="size-4 shrink-0" />
+        Shuffle
+      </button>
+    </div>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -32,34 +87,14 @@ export function Navbar() {
   const shuffleFrameRef = useRef<number | null>(null);
   const close = () => setOpen(false);
 
-  const gradientEnabled = useSyncExternalStore(
-    (notify) => {
-      if (typeof window === "undefined") return () => {};
-      const onPreferenceChange = () => notify();
-      window.addEventListener("storage", onPreferenceChange);
-      window.addEventListener("homepage-gradient-preference-change", onPreferenceChange);
-      return () => {
-        window.removeEventListener("storage", onPreferenceChange);
-        window.removeEventListener("homepage-gradient-preference-change", onPreferenceChange);
-      };
-    },
+  const gradientEnabled = useGradientPreference(
     () => {
       const saved = window.localStorage.getItem("homepage-gradient-enabled");
       return saved == null ? true : saved === "true";
     },
     () => true
   );
-  const gradientVariant = useSyncExternalStore(
-    (notify) => {
-      if (typeof window === "undefined") return () => {};
-      const onPreferenceChange = () => notify();
-      window.addEventListener("storage", onPreferenceChange);
-      window.addEventListener("homepage-gradient-preference-change", onPreferenceChange);
-      return () => {
-        window.removeEventListener("storage", onPreferenceChange);
-        window.removeEventListener("homepage-gradient-preference-change", onPreferenceChange);
-      };
-    },
+  const gradientVariant = useGradientPreference(
     () => {
       const raw = window.localStorage.getItem("homepage-gradient-variant");
       const parsed = Number(raw);
@@ -87,7 +122,7 @@ export function Navbar() {
   const toggleHomepageGradient = () => {
     const next = !gradientEnabled;
     window.localStorage.setItem("homepage-gradient-enabled", String(next));
-    window.dispatchEvent(new Event("homepage-gradient-preference-change"));
+    window.dispatchEvent(new Event(GRADIENT_PREFERENCE_EVENT));
   };
   const shuffleHomepageGradient = () => {
     const choices = Array.from({ length: GRADIENT_VARIANT_COUNT }, (_, i) => i).filter((i) => i !== gradientVariant);
@@ -106,7 +141,7 @@ export function Navbar() {
     document.body.classList.remove("home-gradient-crossfade-active");
     document.body.classList.add("home-gradient-crossfade-start");
     window.localStorage.setItem("homepage-gradient-variant", String(next));
-    window.dispatchEvent(new Event("homepage-gradient-preference-change"));
+    window.dispatchEvent(new Event(GRADIENT_PREFERENCE_EVENT));
 
     shuffleFrameRef.current = window.requestAnimationFrame(() => {
       shuffleFrameRef.current = window.requestAnimationFrame(() => {
@@ -186,25 +221,12 @@ export function Navbar() {
         </nav>
 
         <div className="px-3 py-3 border-t border-white/5 shrink-0">
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={toggleHomepageGradient}
-              className="flex h-10 w-24 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:bg-white/6 hover:text-foreground"
-              aria-pressed={gradientEnabled}
-              type="button"
-            >
-              <Sparkles className={cn("size-4 shrink-0", gradientEnabled && "text-accent")} />
-              Gradient
-            </button>
-            <button
-              onClick={shuffleHomepageGradient}
-              className="flex h-10 w-24 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:bg-white/6 hover:text-foreground"
-              type="button"
-            >
-              <Shuffle className="size-4 shrink-0" />
-              Shuffle
-            </button>
-          </div>
+          <GradientButtons
+            gradientEnabled={gradientEnabled}
+            onToggle={toggleHomepageGradient}
+            onShuffle={shuffleHomepageGradient}
+            size="desktop"
+          />
         </div>
 
         {/* Sign out
@@ -276,25 +298,12 @@ export function Navbar() {
           <div className="border-t border-white/5 mx-3" />
 
           <div className="px-3 pt-2 pb-5" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={toggleHomepageGradient}
-                className="flex h-12 w-28 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
-                aria-pressed={gradientEnabled}
-                type="button"
-              >
-                <Sparkles className={cn("size-4 shrink-0", gradientEnabled && "text-accent")} />
-                Gradient
-              </button>
-              <button
-                onClick={shuffleHomepageGradient}
-                className="flex h-12 w-28 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-white/6"
-                type="button"
-              >
-                <Shuffle className="size-4 shrink-0" />
-                Shuffle
-              </button>
-            </div>
+            <GradientButtons
+              gradientEnabled={gradientEnabled}
+              onToggle={toggleHomepageGradient}
+              onShuffle={shuffleHomepageGradient}
+              size="mobile"
+            />
           </div>
 
           {/* <div className="border-t border-white/5 mx-3" />
