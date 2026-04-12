@@ -220,12 +220,10 @@ export default function GymPage() {
   // ── Loading ───────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen md:flex md:items-center md:justify-center">
-        <div className="w-full max-w-lg px-4 pt-6 md:pt-0">
-          <div className="glass rounded-2xl flex items-center justify-center gap-3 p-10">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Loading gym…</span>
-          </div>
+      <div className="flex flex-1 items-center justify-center min-h-[80vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       </div>
     );

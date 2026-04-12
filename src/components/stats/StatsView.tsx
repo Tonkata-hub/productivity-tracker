@@ -196,7 +196,7 @@ export function StatsView() {
     return trackedTasks.map((task) => {
       const points: TrackedDataPoint[] = pastDatesInRange.map((date) => {
         const key = `${task.id}:${date}`;
-        const value = valuesByKey.has(key) ? valuesByKey.get(key)! : null;
+        const value = valuesByKey.get(key) ?? 0;
         return {
           date,
           label: format(parseISO(date), datesInRange.length <= 14 ? "EEE d" : "MMM d"),

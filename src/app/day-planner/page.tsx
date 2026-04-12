@@ -76,8 +76,6 @@ export default function DayPlannerPage() {
 
   // Task interaction state (mirrors homepage)
   const [toggling, setToggling] = useState<Set<string>>(new Set());
-  const [openQuantInputTaskId, setOpenQuantInputTaskId] = useState<string | null>(null);
-  const [quantInputValue, setQuantInputValue] = useState("");
 
   // Derive today's tasks with completion status
   const { completionSet, quantMap } = buildSets(rawCompletions, todayISO);
@@ -173,8 +171,6 @@ export default function DayPlannerPage() {
     }
 
     setToggling((prev) => { const n = new Set(prev); n.delete(task.id); return n; });
-    // Close quant input if open for this task
-    if (openQuantInputTaskId === task.id) setOpenQuantInputTaskId(null);
   };
 
   const logTaskValue = async (task: TaskWithStatus, amount: number) => {
@@ -461,17 +457,9 @@ export default function DayPlannerPage() {
     tasks: unscheduledTasks,
     today: todayISO,
     toggling,
-    openQuantInputTaskId,
-    quantInputValue,
     onSchedule: handleScheduleTask,
     onToggle: toggleTask,
     onLogValue: logTaskValue,
-    onToggleQuantInput: (taskId: string) => {
-      setOpenQuantInputTaskId((prev) => (prev === taskId ? null : taskId));
-      setQuantInputValue("");
-    },
-    onQuantInputChange: setQuantInputValue,
-    onCloseQuantInput: () => { setOpenQuantInputTaskId(null); setQuantInputValue(""); },
     onAddTask: addTask,
   };
 
@@ -537,8 +525,6 @@ export default function DayPlannerPage() {
               <UnscheduledPanel
                 {...panelProps}
                 onClosePanel={() => {
-                  setOpenQuantInputTaskId(null);
-                  setQuantInputValue("");
                   setIsMobileDrawerOpen(false);
                 }}
               />

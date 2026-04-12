@@ -193,6 +193,7 @@ export default function HomePage() {
     if (task.target_value != null) return;
     const key = `${task.id}:${today}`;
     const wasCompleted = task.isCompleted;
+    const nowIso = new Date().toISOString();
     setToggling((prev) => new Set([...prev, task.id]));
 
     // Optimistic
@@ -214,38 +215,81 @@ export default function HomePage() {
       }
       return n;
     });
-
-    if (task.type === "daily") {
-      if (wasCompleted) {
-        await supabase.from("task_completions").delete().eq("task_id", task.id).eq("date", today);
-      } else {
-        await supabase
-          .from("task_completions")
-          .insert({ task_id: task.id, date: today, completed_at: new Date().toISOString() });
-      }
-    } else {
-      await supabase
-        .from("tasks")
-        .update({ is_completed: !wasCompleted, completed_at: wasCompleted ? null : new Date().toISOString() })
-        .eq("id", task.id);
+    if (task.type === "one_time") {
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
             ? {
                 ...t,
                 is_completed: !wasCompleted,
-                completed_at: wasCompleted ? null : new Date().toISOString(),
+                completed_at: wasCompleted ? null : nowIso,
               }
             : t
         )
       );
     }
 
-    setToggling((prev) => {
-      const n = new Set(prev);
-      n.delete(task.id);
-      return n;
-    });
+    try {
+      if (task.type === "daily") {
+        if (wasCompleted) {
+          const { error } = await supabase.from("task_completions").delete().eq("task_id", task.id).eq("date", today);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("task_completions")
+            .insert({ task_id: task.id, date: today, completed_at: nowIso });
+          if (error) throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from("tasks")
+          .update({ is_completed: !wasCompleted, completed_at: wasCompleted ? null : nowIso })
+          .eq("id", task.id);
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error("[home] Failed to persist task completion toggle.", error);
+
+      // Roll back optimistic completion sets for both today's list and weekly streak.
+      setTodayCompletions((prev) => {
+        const n = new Set(prev);
+        if (wasCompleted) {
+          n.add(key);
+        } else {
+          n.delete(key);
+        }
+        return n;
+      });
+      setWeekCompletions((prev) => {
+        const n = new Set(prev);
+        if (wasCompleted) {
+          n.add(key);
+        } else {
+          n.delete(key);
+        }
+        return n;
+      });
+
+      if (task.type === "one_time") {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id
+              ? {
+                  ...t,
+                  is_completed: wasCompleted,
+                  completed_at: task.completed_at,
+                }
+              : t
+          )
+        );
+      }
+    } finally {
+      setToggling((prev) => {
+        const n = new Set(prev);
+        n.delete(task.id);
+        return n;
+      });
+    }
   };
 
   const logTaskValue = async (task: TaskWithStatus, amount: number) => {
@@ -348,7 +392,6 @@ export default function HomePage() {
                 {weekStreak.map(({ day, fraction, isFuture, hasNoTasks }) => {
                   const circumference = 2 * Math.PI * 11;
                   const dash = fraction * circumference;
-                  const emptyDayColor = "#23252c";
                   return (
                     <div
                       key={day}
@@ -380,7 +423,7 @@ export default function HomePage() {
                         {hasNoTasks && !isFuture ? (
                           <div
                             className="absolute inset-0 flex items-center justify-center"
-                            style={{ color: emptyDayColor }}
+                            style={{ color: "#ffffff", opacity: 0.07 }}
                           >
                             <X className="w-4.5 h-4.5" strokeWidth={4} />
                           </div>

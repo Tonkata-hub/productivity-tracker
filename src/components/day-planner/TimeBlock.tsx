@@ -21,7 +21,7 @@ export function TimeBlock({ block, onComplete, onDelete }: Props) {
     <div
       className={cn(
         "h-full w-full rounded-lg glass overflow-hidden border-l-2 flex",
-        isShort ? "items-center px-2 py-1 gap-1" : "items-start px-2 py-1.5",
+        isShort ? "items-center px-2 py-1 gap-1" : "items-center px-2 py-1.5",
         isTaskLinked ? "border-accent" : "border-white/20",
         block.is_completed && "opacity-50"
       )}
@@ -29,7 +29,7 @@ export function TimeBlock({ block, onComplete, onDelete }: Props) {
       <div
         className={cn(
           "flex flex-1 min-h-0 min-w-0",
-          isShort ? "items-center justify-between gap-1" : "items-start justify-between gap-1"
+          isShort ? "items-center justify-between gap-1" : "items-center justify-between gap-1"
         )}
       >
         <div className={cn("min-w-0 overflow-hidden", isShort ? "flex-1" : "flex-1 flex flex-col justify-center")}>
@@ -78,7 +78,7 @@ export function TimeBlock({ block, onComplete, onDelete }: Props) {
           )}
         </div>
 
-        <div className={cn("flex shrink-0", isShort ? "items-center gap-1" : "flex-col gap-1")}>
+        <div className={cn("flex shrink-0", isShort ? "items-center gap-1" : "flex-col justify-center gap-1")}>
           <button
             onClick={(e) => {
               e.stopPropagation();

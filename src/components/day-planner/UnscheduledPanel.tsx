@@ -1,21 +1,17 @@
 "use client";
 
-import { Fragment, useState, useEffect, useRef } from "react";
+import { Fragment, useState } from "react";
 import { CheckCircle2, ChevronDown, Circle, Clock, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskWithStatus } from "@/lib/types";
 
 // ── Utilities (mirrored from page.tsx) ───────────────────────────────────────
 
-function getQuickIncrements(unit: string | null, target: number): number[] {
-  const u = unit?.toLowerCase() ?? "";
-  if (u === "ml") return [250, 500];
-  if (u === "steps") return [1000, 2000];
-  if (u === "l" || u === "liters" || u === "litres") return [0.25, 0.5];
-  if (u === "min" || u === "minutes") return [15, 30];
-  if (u === "pages") return [5, 10];
-  const half = Math.ceil(target / 2);
-  return [1, 2, half].filter((v, i, arr) => arr.indexOf(v) === i && v > 0);
+function getQuantOptions(target: number): number[] {
+  const half = target / 2;
+  if (!Number.isFinite(target) || target <= 0) return [];
+  if (!Number.isFinite(half) || half <= 0) return [target];
+  return [target, half];
 }
 
 function getOverdueDayCount(dueDateISO: string): number | null {
@@ -56,13 +52,8 @@ interface RowProps {
   task: TaskWithStatus;
   today: string;
   isToggling: boolean;
-  showQuantInput: boolean;
-  quantInputValue: string;
   onToggle: () => void;
   onLogValue: (amount: number) => void;
-  onToggleQuantInput: () => void;
-  onQuantInputChange: (v: string) => void;
-  onCloseQuantInput: () => void;
   onSchedule: () => void;
 }
 
@@ -70,16 +61,10 @@ function TaskRowWithSchedule({
   task,
   today,
   isToggling,
-  showQuantInput,
-  quantInputValue,
   onToggle,
   onLogValue,
-  onToggleQuantInput,
-  onQuantInputChange,
-  onCloseQuantInput,
   onSchedule,
 }: RowProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [isPressed, setIsPressed] = useState(false);
 
   const priorityDot: Record<string, string> = {
@@ -92,48 +77,18 @@ function TaskRowWithSchedule({
 
   const handleCardClick = () => {
     setIsPressed(false);
-    if (isQuantitative) {
-      if (showQuantInput) {
-        onCloseQuantInput();
-      } else {
-        onToggleQuantInput();
-      }
-      return;
-    }
+    if (isQuantitative) return;
     onToggle();
   };
-
-  const handleSubmit = () => {
-    const amount = Number(quantInputValue);
-    if (!Number.isFinite(amount) || amount === 0) return;
-    onLogValue(amount);
-    onCloseQuantInput();
-  };
-
-  const quickIncrements = isQuantitative ? getQuickIncrements(task.unit, task.target_value ?? 1) : [];
+  const quantOptions = isQuantitative ? getQuantOptions(task.target_value ?? 0) : [];
   const overdueDays = task.due_date ? getOverdueDayCount(task.due_date) : null;
   const overdueSuffix = overdueDays ? ` by ${overdueDays} day${overdueDays === 1 ? "" : "s"}` : "";
   const overdueLabel = task.isCompleted ? `Was overdue${overdueSuffix}` : `Overdue${overdueSuffix}`;
   const futureDueLabel =
     task.due_date && task.due_date > today ? `Due ${formatDueDateLabel(task.due_date)}` : null;
 
-  useEffect(() => {
-    if (!showQuantInput) return;
-    const handle = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) return;
-      onCloseQuantInput();
-    };
-    document.addEventListener("mousedown", handle);
-    document.addEventListener("touchstart", handle, { passive: true });
-    return () => {
-      document.removeEventListener("mousedown", handle);
-      document.removeEventListener("touchstart", handle);
-    };
-  }, [showQuantInput, onCloseQuantInput]);
-
   return (
     <div
-      ref={containerRef}
       className={cn(
         "glass cursor-pointer rounded-xl px-4 py-3 select-none transition-all duration-150 ease-out hover:bg-white/[0.07]! will-change-transform",
         task.isCompleted && "opacity-40",
@@ -157,30 +112,56 @@ function TaskRowWithSchedule({
       onPointerLeave={() => setIsPressed(false)}
     >
       <div className="flex items-center gap-3">
-        {/* Completion toggle */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
-          onPointerDown={(e) => { e.stopPropagation(); if (!isToggling) setIsPressed(true); }}
-          onPointerUp={(e) => { e.stopPropagation(); setIsPressed(false); }}
-          onPointerCancel={(e) => { e.stopPropagation(); setIsPressed(false); }}
-          onPointerLeave={(e) => { e.stopPropagation(); setIsPressed(false); }}
-          disabled={isToggling}
-          className="shrink-0 cursor-pointer transition-transform duration-150 active:scale-90 disabled:cursor-default"
-        >
-          {isQuantitative ? (
-            task.isCompleted ? (
+        {isQuantitative ? (
+          <div className="flex shrink-0 items-center gap-1.5">
+            {quantOptions.map((amount, index) => (
+              <button
+                key={`${task.id}-${amount}-${index}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLogValue(amount);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={isToggling}
+                className="h-7 cursor-pointer rounded-md border border-white/10 bg-white/5 px-2 text-[10px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/10 hover:text-foreground disabled:cursor-default disabled:opacity-60"
+                title={task.unit ? `Log ${amount} ${task.unit}` : `Log ${amount}`}
+              >
+                +{amount}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCardClick();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              if (!isToggling) setIsPressed(true);
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              setIsPressed(false);
+            }}
+            onPointerCancel={(e) => {
+              e.stopPropagation();
+              setIsPressed(false);
+            }}
+            onPointerLeave={(e) => {
+              e.stopPropagation();
+              setIsPressed(false);
+            }}
+            disabled={isToggling}
+            className="shrink-0 cursor-pointer transition-transform duration-150 active:scale-90 disabled:cursor-default"
+          >
+            {task.isCompleted ? (
               <CheckCircle2 className="w-5 h-5 text-accent animate-task-check-pop" />
             ) : (
-              <div className="flex size-5 items-center justify-center rounded-full border border-white/20 text-muted-foreground">
-                <Plus className="w-3 h-3" />
-              </div>
-            )
-          ) : task.isCompleted ? (
-            <CheckCircle2 className="w-5 h-5 text-accent animate-task-check-pop" />
-          ) : (
-            <Circle className="w-5 h-5 text-muted-foreground" />
-          )}
-        </button>
+              <Circle className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+        )}
 
         {/* Task info */}
         <div className="flex-1 min-w-0">
@@ -213,7 +194,7 @@ function TaskRowWithSchedule({
         </div>
 
         {/* Priority dot + Schedule button */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="relative flex items-center gap-2.5 shrink-0 pr-[2.375rem]">
           {task.priority && (
             <div
               className={cn("w-1.5 h-1.5 rounded-full", priorityDot[task.priority] ?? "")}
@@ -225,7 +206,7 @@ function TaskRowWithSchedule({
               onClick={(e) => { e.stopPropagation(); onSchedule(); }}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={`Schedule ${task.title}`}
-              className="flex cursor-pointer items-center justify-center size-7 rounded-lg border border-white/15 bg-white/6 text-muted-foreground hover:text-foreground hover:bg-white/12 hover:border-white/30 transition-colors"
+              className="absolute right-0 top-1/2 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-white/6 text-muted-foreground transition-colors hover:border-white/30 hover:bg-white/12 hover:text-foreground"
               title="Schedule on timeline"
             >
               <Clock className="size-3.5" />
@@ -234,61 +215,6 @@ function TaskRowWithSchedule({
         </div>
       </div>
 
-      {/* Quantitative quick-log panel */}
-      {isQuantitative && showQuantInput && (
-        <div
-          className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/3 p-2.5"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex flex-wrap items-center gap-1.5">
-            {quickIncrements.map((inc) => (
-              <button
-                key={inc}
-                onClick={() => { onLogValue(inc); onCloseQuantInput(); }}
-                disabled={isToggling}
-                className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground transition-all hover:border-white/20 hover:bg-white/8 hover:text-foreground disabled:opacity-60"
-              >
-                +{inc}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                autoFocus
-                type="number"
-                step="any"
-                value={quantInputValue}
-                onChange={(e) => onQuantInputChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSubmit();
-                  if (e.key === "Escape") onCloseQuantInput();
-                }}
-                className="no-spinner h-9 w-full rounded-lg border border-white/20 bg-background/40 px-3 pr-14 text-base text-foreground placeholder-muted-foreground outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20"
-                placeholder="Custom"
-              />
-              {task.unit && (
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                  {task.unit}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={handleSubmit}
-              disabled={isToggling}
-              className="h-9 cursor-pointer rounded-lg bg-accent/15 px-3 text-xs font-semibold text-accent transition-colors hover:bg-accent/20 disabled:cursor-default disabled:opacity-60"
-            >
-              Log
-            </button>
-            <button
-              onClick={onCloseQuantInput}
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -299,14 +225,9 @@ export interface UnscheduledPanelProps {
   tasks: TaskWithStatus[];
   today: string;
   toggling: Set<string>;
-  openQuantInputTaskId: string | null;
-  quantInputValue: string;
   onSchedule: (task: TaskWithStatus) => void;
   onToggle: (task: TaskWithStatus) => void;
   onLogValue: (task: TaskWithStatus, amount: number) => void;
-  onToggleQuantInput: (taskId: string) => void;
-  onQuantInputChange: (v: string) => void;
-  onCloseQuantInput: () => void;
   onAddTask: (title: string) => void;
   onClosePanel?: () => void;
 }
@@ -315,14 +236,9 @@ export function UnscheduledPanel({
   tasks,
   today,
   toggling,
-  openQuantInputTaskId,
-  quantInputValue,
   onSchedule,
   onToggle,
   onLogValue,
-  onToggleQuantInput,
-  onQuantInputChange,
-  onCloseQuantInput,
   onAddTask,
   onClosePanel,
 }: UnscheduledPanelProps) {
@@ -389,13 +305,8 @@ export function UnscheduledPanel({
                 task={task}
                 today={today}
                 isToggling={toggling.has(task.id)}
-                showQuantInput={openQuantInputTaskId === task.id}
-                quantInputValue={quantInputValue}
                 onToggle={() => onToggle(task)}
                 onLogValue={(amount) => onLogValue(task, amount)}
-                onToggleQuantInput={() => onToggleQuantInput(task.id)}
-                onQuantInputChange={onQuantInputChange}
-                onCloseQuantInput={onCloseQuantInput}
                 onSchedule={() => onSchedule(task)}
               />
             </Fragment>
