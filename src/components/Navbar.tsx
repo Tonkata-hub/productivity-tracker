@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, PlusCircle, ListChecks, Dumbbell, Home, Menu, X, BarChart2, Sparkles, Shuffle, LayoutList } from "lucide-react";
+import { CalendarDays, ListChecks, Dumbbell, Home, Menu, X, BarChart2, Sparkles, Shuffle, LayoutList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  icon: typeof Home | typeof CalendarDays | typeof PlusCircle | typeof Dumbbell | typeof ListChecks | typeof BarChart2 | typeof LayoutList;
+  icon: typeof Home | typeof CalendarDays | typeof Dumbbell | typeof ListChecks | typeof BarChart2 | typeof LayoutList;
   label: string;
   href: string;
 };
@@ -17,8 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: CalendarDays, label: "Calendar", href: "/calendar" },
   { icon: LayoutList, label: "Day Planner", href: "/day-planner" },
   { icon: Dumbbell, label: "Gym", href: "/gym" },
-  { icon: PlusCircle, label: "Add Task", href: "/add-task" },
-  { icon: ListChecks, label: "Manage Tasks", href: "/manage-tasks" },
+  { icon: ListChecks, label: "Tasks", href: "/tasks" },
   { icon: BarChart2, label: "Stats", href: "/stats" },
 ];
 
