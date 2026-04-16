@@ -66,6 +66,7 @@ export default function DayPlannerPage() {
   const [now, setNow] = useState(new Date());
   const todayISO = formatDateISO(now);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [pendingTask, setPendingTask] = useState<TaskWithStatus | null>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(true);
   const [loading, setLoading] = useState(!useMock);
@@ -232,7 +233,24 @@ export default function DayPlannerPage() {
   // ── Block interactions ───────────────────────────────────────────────────
 
   const handleSlotClick = (startMinutes: number) => {
-    setActiveSlot(startMinutes);
+    if (isDesktop) {
+      setActiveSlot(startMinutes);
+      setPickerSlot(startMinutes);
+      return;
+    }
+
+    if (activeSlot !== startMinutes) {
+      setActiveSlot(startMinutes);
+      return;
+    }
+
+    setPickerSlot(startMinutes);
+  };
+
+  const handleClosePicker = () => {
+    setActiveSlot(null);
+    setPickerSlot(null);
+    setPendingTask(null);
   };
 
   const handleScheduleTask = (task: TaskWithStatus) => {
@@ -250,9 +268,9 @@ export default function DayPlannerPage() {
     durationMinutes: number
   ) => {
     setErrorMessage(null);
-    if (activeSlot === null) return;
-    if (hasOverlap(activeSlot, durationMinutes, blocks)) return;
-    const slotStart = activeSlot;
+    if (pickerSlot === null) return;
+    if (hasOverlap(pickerSlot, durationMinutes, blocks)) return;
+    const slotStart = pickerSlot;
 
     // Newly created tasks use temporary client-only IDs until Supabase returns the real row.
     // Persist block as unlinked instead of failing the entire insert.
@@ -275,6 +293,7 @@ export default function DayPlannerPage() {
 
     setBlocks((prev) => [...prev, newBlock]);
     setActiveSlot(null);
+    setPickerSlot(null);
     setPendingTask(null);
 
     if (!useMock) {
@@ -544,14 +563,14 @@ export default function DayPlannerPage() {
       )}
 
       {/* Add block modal */}
-      {activeSlot !== null && (
+      {pickerSlot !== null && (
         <AddBlockPicker
-          startMinutes={activeSlot}
+          startMinutes={pickerSlot}
           blocks={blocks}
           unscheduledTasks={unscheduledTasks}
           initialTask={pendingTask}
           onAdd={handleAddBlock}
-          onClose={() => { setActiveSlot(null); setPendingTask(null); }}
+          onClose={handleClosePicker}
         />
       )}
     </div>
