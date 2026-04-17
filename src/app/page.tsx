@@ -166,7 +166,7 @@ export default function HomePage() {
     return end;
   })();
   const firstFutureOneTimeTaskIndex = todayTasks.findIndex(
-    (task) => task.type === "one_time" && !!task.due_date && task.due_date > today
+    (task) => task.type === "one_time" && (!task.due_date || task.due_date > today)
   );
   const hasDailyBeforeFutureOneTime =
     firstFutureOneTimeTaskIndex > 0 &&
