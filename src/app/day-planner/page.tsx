@@ -526,9 +526,17 @@ export default function DayPlannerPage() {
         <>
           <div
             className={cn(
-              "scrollbar-subtle shrink-0 overflow-y-auto px-4 transition-[max-height,opacity,transform,border-color,padding] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-height,transform]",
+              "absolute inset-0 z-10 bg-black/55 transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              isMobileDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+            )}
+            onClick={() => setIsMobileDrawerOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className={cn(
+              "scrollbar-subtle relative z-20 shrink-0 overflow-y-auto px-4 transition-[max-height,opacity,transform,border-color,padding] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-height,transform]",
               isMobileDrawerOpen
-                ? "max-h-[40vh] border-t border-white/[0.04] py-3 opacity-100 translate-y-0"
+                ? "max-h-[80vh] border-t border-white/[0.04] py-3 opacity-100 translate-y-0"
                 : "max-h-0 border-t border-transparent py-0 opacity-0 translate-y-2 pointer-events-none"
             )}
           >
