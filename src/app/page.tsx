@@ -19,6 +19,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildCompletionState, cloneCompletionOptionMap } from "@/lib/task-completion-utils";
+import { completionOptionKey, isMultiOptionDailyTask, normalizeTasks } from "@/lib/task-utils";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -90,8 +92,10 @@ export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [todayCompletions, setTodayCompletions] = useState<Set<string>>(new Set());
   const [todayQuantValues, setTodayQuantValues] = useState<Map<string, number>>(new Map());
+  const [todayOptionCompletions, setTodayOptionCompletions] = useState<Map<string, Set<number>>>(new Map());
   const [weekCompletions, setWeekCompletions] = useState<Set<string>>(new Set());
   const [weekQuantValues, setWeekQuantValues] = useState<Map<string, number>>(new Map());
+  const [weekOptionCompletions, setWeekOptionCompletions] = useState<Map<string, Set<number>>>(new Map());
   const [gymSessions, setGymSessions] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [toggling, setToggling] = useState<Set<string>>(new Set());
@@ -116,7 +120,11 @@ export default function HomePage() {
 
       const [tasksRes, completionsRes, workoutsRes] = await Promise.all([
         supabase.from("tasks").select("*"),
-        supabase.from("task_completions").select("task_id, date, value").gte("date", from).lte("date", to),
+        supabase
+          .from("task_completions")
+          .select("task_id, date, value, daily_option_index")
+          .gte("date", from)
+          .lte("date", to),
         supabase
           .from("workouts")
           .select("id")
@@ -125,28 +133,24 @@ export default function HomePage() {
           .lte("started_at", `${to}T23:59:59`),
       ]);
 
-      if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+      if (tasksRes.data) setTasks(normalizeTasks(tasksRes.data as Task[]));
 
       if (completionsRes.data) {
-        const allSet = new Set<string>();
-        const allQmap = new Map<string, number>();
-        const tSet = new Set<string>();
-        const tQmap = new Map<string, number>();
+        const completionRows = completionsRes.data as {
+          task_id: string;
+          date: string;
+          value: number | null;
+          daily_option_index: number | null;
+        }[];
+        const weekState = buildCompletionState(completionRows);
+        const todayState = buildCompletionState(completionRows.filter((row) => row.date === todayISO));
 
-        for (const c of completionsRes.data as { task_id: string; date: string; value: number | null }[]) {
-          const key = `${c.task_id}:${c.date}`;
-          allSet.add(key);
-          if (c.value != null) allQmap.set(key, (allQmap.get(key) ?? 0) + c.value);
-          if (c.date === todayISO) {
-            tSet.add(key);
-            if (c.value != null) tQmap.set(key, (tQmap.get(key) ?? 0) + c.value);
-          }
-        }
-
-        setWeekCompletions(allSet);
-        setWeekQuantValues(allQmap);
-        setTodayCompletions(tSet);
-        setTodayQuantValues(tQmap);
+        setWeekCompletions(weekState.completionSet);
+        setWeekQuantValues(weekState.quantValues);
+        setWeekOptionCompletions(weekState.optionCompletions);
+        setTodayCompletions(todayState.completionSet);
+        setTodayQuantValues(todayState.quantValues);
+        setTodayOptionCompletions(todayState.optionCompletions);
       }
 
       if (workoutsRes.data) setGymSessions(workoutsRes.data.length);
@@ -155,7 +159,7 @@ export default function HomePage() {
     load();
   }, []);
 
-  const todayTasks = getTasksForDate(tasks, today, todayCompletions, todayQuantValues);
+  const todayTasks = getTasksForDate(tasks, today, todayCompletions, todayQuantValues, todayOptionCompletions);
   const firstOneTimeTaskIndex = todayTasks.findIndex((task) => task.type === "one_time");
   const endOfFirstOneTimeBlockIndex = (() => {
     if (firstOneTimeTaskIndex < 0) return -1;
@@ -183,38 +187,81 @@ export default function HomePage() {
     const isFuture = iso > today;
     const isToday = iso === today;
     if (isFuture) return { day: DAY_NAMES[i], fraction: 0, isFuture: true, isToday: false, hasNoTasks: false };
-    const dayTasks = getTasksForDate(tasks, iso, weekCompletions, weekQuantValues).filter((t) => t.type === "daily");
+    const dayTasks = getTasksForDate(tasks, iso, weekCompletions, weekQuantValues, weekOptionCompletions).filter(
+      (t) => t.type === "daily"
+    );
     if (dayTasks.length === 0) return { day: DAY_NAMES[i], fraction: 0, isFuture: false, isToday, hasNoTasks: true };
     const done = dayTasks.filter((t) => t.isCompleted).length;
     return { day: DAY_NAMES[i], fraction: done / dayTasks.length, isFuture: false, isToday, hasNoTasks: false };
   });
 
-  const toggleTask = async (task: TaskWithStatus) => {
+  const toggleTask = async (task: TaskWithStatus, optionIndex?: number) => {
     if (task.target_value != null) return;
-    const key = `${task.id}:${today}`;
+
+    const key = completionOptionKey(task.id, today);
     const wasCompleted = task.isCompleted;
     const nowIso = new Date().toISOString();
+    const isMultiOption = isMultiOptionDailyTask(task);
+    const isValidOptionIndex = Number.isInteger(optionIndex) && (optionIndex as number) >= 0;
+    const wasOptionCompleted = isMultiOption && isValidOptionIndex && task.completed_option_indexes.includes(optionIndex!);
+
+    if (isMultiOption && !isValidOptionIndex) return;
+
     setToggling((prev) => new Set([...prev, task.id]));
 
     // Optimistic
-    setTodayCompletions((prev) => {
-      const n = new Set(prev);
-      if (wasCompleted) {
-        n.delete(key);
-      } else {
-        n.add(key);
-      }
-      return n;
-    });
-    setWeekCompletions((prev) => {
-      const n = new Set(prev);
-      if (wasCompleted) {
-        n.delete(key);
-      } else {
-        n.add(key);
-      }
-      return n;
-    });
+    if (isMultiOption && isValidOptionIndex) {
+      setTodayOptionCompletions((prev) => {
+        const next = cloneCompletionOptionMap(prev);
+        const optionSet = new Set(next.get(key) ?? []);
+        if (optionSet.has(optionIndex!)) optionSet.delete(optionIndex!);
+        else optionSet.add(optionIndex!);
+        if (optionSet.size === 0) next.delete(key);
+        else next.set(key, optionSet);
+        return next;
+      });
+      setWeekOptionCompletions((prev) => {
+        const next = cloneCompletionOptionMap(prev);
+        const optionSet = new Set(next.get(key) ?? []);
+        if (optionSet.has(optionIndex!)) optionSet.delete(optionIndex!);
+        else optionSet.add(optionIndex!);
+        if (optionSet.size === 0) next.delete(key);
+        else next.set(key, optionSet);
+        return next;
+      });
+      setTodayCompletions((prev) => {
+        const next = new Set(prev);
+        const optionSet = new Set(todayOptionCompletions.get(key) ?? []);
+        if (optionSet.has(optionIndex!)) optionSet.delete(optionIndex!);
+        else optionSet.add(optionIndex!);
+        if (optionSet.size === 0) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+      setWeekCompletions((prev) => {
+        const next = new Set(prev);
+        const optionSet = new Set(weekOptionCompletions.get(key) ?? []);
+        if (optionSet.has(optionIndex!)) optionSet.delete(optionIndex!);
+        else optionSet.add(optionIndex!);
+        if (optionSet.size === 0) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    } else {
+      setTodayCompletions((prev) => {
+        const n = new Set(prev);
+        if (wasCompleted) n.delete(key);
+        else n.add(key);
+        return n;
+      });
+      setWeekCompletions((prev) => {
+        const n = new Set(prev);
+        if (wasCompleted) n.delete(key);
+        else n.add(key);
+        return n;
+      });
+    }
+
     if (task.type === "one_time") {
       setTasks((prev) =>
         prev.map((t) =>
@@ -231,7 +278,26 @@ export default function HomePage() {
 
     try {
       if (task.type === "daily") {
-        if (wasCompleted) {
+        if (isMultiOption && isValidOptionIndex) {
+          if (wasOptionCompleted) {
+            const { error } = await supabase
+              .from("task_completions")
+              .delete()
+              .eq("task_id", task.id)
+              .eq("date", today)
+              .eq("daily_option_index", optionIndex!)
+              .is("value", null);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("task_completions").insert({
+              task_id: task.id,
+              date: today,
+              completed_at: nowIso,
+              daily_option_index: optionIndex!,
+            });
+            if (error) throw error;
+          }
+        } else if (wasCompleted) {
           const { error } = await supabase.from("task_completions").delete().eq("task_id", task.id).eq("date", today);
           if (error) throw error;
         } else {
@@ -251,24 +317,57 @@ export default function HomePage() {
       console.error("[home] Failed to persist task completion toggle.", error);
 
       // Roll back optimistic completion sets for both today's list and weekly streak.
-      setTodayCompletions((prev) => {
-        const n = new Set(prev);
-        if (wasCompleted) {
-          n.add(key);
-        } else {
-          n.delete(key);
-        }
-        return n;
-      });
-      setWeekCompletions((prev) => {
-        const n = new Set(prev);
-        if (wasCompleted) {
-          n.add(key);
-        } else {
-          n.delete(key);
-        }
-        return n;
-      });
+      if (isMultiOption && isValidOptionIndex) {
+        setTodayOptionCompletions((prev) => {
+          const next = cloneCompletionOptionMap(prev);
+          const optionSet = new Set(next.get(key) ?? []);
+          if (wasOptionCompleted) optionSet.add(optionIndex!);
+          else optionSet.delete(optionIndex!);
+          if (optionSet.size === 0) next.delete(key);
+          else next.set(key, optionSet);
+          return next;
+        });
+        setWeekOptionCompletions((prev) => {
+          const next = cloneCompletionOptionMap(prev);
+          const optionSet = new Set(next.get(key) ?? []);
+          if (wasOptionCompleted) optionSet.add(optionIndex!);
+          else optionSet.delete(optionIndex!);
+          if (optionSet.size === 0) next.delete(key);
+          else next.set(key, optionSet);
+          return next;
+        });
+        setTodayCompletions((prev) => {
+          const next = new Set(prev);
+          const optionSet = new Set(todayOptionCompletions.get(key) ?? []);
+          if (wasOptionCompleted) optionSet.add(optionIndex!);
+          else optionSet.delete(optionIndex!);
+          if (optionSet.size === 0) next.delete(key);
+          else next.add(key);
+          return next;
+        });
+        setWeekCompletions((prev) => {
+          const next = new Set(prev);
+          const optionSet = new Set(weekOptionCompletions.get(key) ?? []);
+          if (wasOptionCompleted) optionSet.add(optionIndex!);
+          else optionSet.delete(optionIndex!);
+          if (optionSet.size === 0) next.delete(key);
+          else next.add(key);
+          return next;
+        });
+      } else {
+        setTodayCompletions((prev) => {
+          const n = new Set(prev);
+          if (wasCompleted) n.add(key);
+          else n.delete(key);
+          return n;
+        });
+        setWeekCompletions((prev) => {
+          const n = new Set(prev);
+          if (wasCompleted) n.add(key);
+          else n.delete(key);
+          return n;
+        });
+      }
 
       if (task.type === "one_time") {
         setTasks((prev) =>
@@ -502,6 +601,7 @@ export default function HomePage() {
                     <TaskRow
                       task={task}
                       onToggle={() => toggleTask(task)}
+                      onToggleOption={(optionIndex) => toggleTask(task, optionIndex)}
                       onLogValue={(amount) => logTaskValue(task, amount)}
                       isToggling={toggling.has(task.id)}
                       showQuantInput={openQuantInputTaskId === task.id}
@@ -565,6 +665,7 @@ function StatCard({
 function TaskRow({
   task,
   onToggle,
+  onToggleOption,
   onLogValue,
   isToggling,
   showQuantInput,
@@ -575,6 +676,7 @@ function TaskRow({
 }: {
   task: TaskWithStatus;
   onToggle: () => void;
+  onToggleOption: (optionIndex: number) => void;
   onLogValue: (amount: number) => void;
   isToggling: boolean;
   showQuantInput: boolean;
@@ -585,6 +687,7 @@ function TaskRow({
 }) {
   const quickLogContainerRef = useRef<HTMLDivElement | null>(null);
   const [isPressed, setIsPressed] = useState(false);
+  const [showMultiOptions, setShowMultiOptions] = useState(false);
   const priorityDot: Record<string, string> = {
     high: "bg-red-500",
     medium: "bg-yellow-500",
@@ -592,10 +695,17 @@ function TaskRow({
   };
 
   const isQuantitative = task.target_value != null;
+  const isMultiOptionDaily = isMultiOptionDailyTask(task);
+  const dailyOptions = isMultiOptionDaily ? task.daily_options ?? [] : [];
+  const completedOptionsCount = task.completed_option_indexes.length;
   const handleCardClick = () => {
     setIsPressed(false);
     if (isQuantitative) {
       onToggleQuantInput();
+      return;
+    }
+    if (isMultiOptionDaily) {
+      setShowMultiOptions((prev) => !prev);
       return;
     }
     onToggle();
@@ -629,12 +739,13 @@ function TaskRow({
     task.due_date && task.due_date > formatDateISO(new Date()) ? `Due ${formatDueDateLabel(task.due_date)}` : null;
 
   useEffect(() => {
-    if (!showQuantInput) return;
+    if (!showQuantInput && !showMultiOptions) return;
 
     const handleOutsidePointer = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
       if (quickLogContainerRef.current?.contains(target)) return;
+      setShowMultiOptions(false);
       onCloseQuantInput();
     };
 
@@ -645,7 +756,7 @@ function TaskRow({
       document.removeEventListener("mousedown", handleOutsidePointer);
       document.removeEventListener("touchstart", handleOutsidePointer);
     };
-  }, [showQuantInput, onCloseQuantInput]);
+  }, [showQuantInput, showMultiOptions, onCloseQuantInput]);
 
   return (
     <div
@@ -665,7 +776,7 @@ function TaskRow({
       onPointerCancel={handleCardPointerCancel}
       onPointerLeave={handleCardPointerLeave}
       aria-label={isQuantitative ? `Open quick log for ${task.title}` : `Toggle ${task.title}`}
-      aria-pressed={!isQuantitative ? task.isCompleted : showQuantInput}
+      aria-pressed={!isQuantitative && !isMultiOptionDaily ? task.isCompleted : showQuantInput}
     >
       <div className="flex items-center gap-3">
         <button
@@ -737,6 +848,11 @@ function TaskRow({
               {task.currentValue} / {task.target_value} {task.unit}
             </p>
           )}
+          {isMultiOptionDaily && dailyOptions.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {completedOptionsCount}/{dailyOptions.length} options
+            </p>
+          )}
         </div>
 
         {task.priority && (
@@ -746,6 +862,30 @@ function TaskRow({
           />
         )}
       </div>
+
+      {isMultiOptionDaily && dailyOptions.length > 0 && showMultiOptions && (
+        <div className="mt-2 flex flex-wrap gap-1.5" onClick={(event) => event.stopPropagation()}>
+          {dailyOptions.map((option, idx) => {
+            const isDone = task.completed_option_indexes.includes(idx);
+            return (
+              <button
+                key={`${task.id}-option-${idx}`}
+                onClick={() => onToggleOption(idx)}
+                disabled={isToggling}
+                className={cn(
+                  "cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all",
+                  isDone
+                    ? "border-accent/40 bg-accent/20 text-accent"
+                    : "border-white/12 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground",
+                  isToggling && "cursor-default opacity-60"
+                )}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {isQuantitative && showQuantInput && (
         <div

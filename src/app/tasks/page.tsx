@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
-import { Task, TaskType, TaskPriority } from "@/lib/types";
+import { DailyTaskMode, Task, TaskType, TaskPriority } from "@/lib/types";
 import { formatDateISO } from "@/lib/calendar-utils";
 import {
   Check,
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import { formatDailyOptionsInput, normalizeTask, normalizeTasks, parseDailyOptionsInput } from "@/lib/task-utils";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -47,6 +48,14 @@ const PRIORITY_BADGE: Record<NonNullable<TaskPriority>, { dot: string; label: st
 type Filter = "all" | "daily" | "one_time";
 type FormStatus = "idle" | "submitting" | "success" | "error";
 
+function isMissingDailyModeSchemaError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { code?: string; message?: string };
+  if (maybe.code !== "PGRST204") return false;
+  const message = String(maybe.message ?? "");
+  return message.includes("'daily_mode'") || message.includes("'daily_options'");
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TasksPage() {
@@ -65,6 +74,8 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState("");
   const [targetValue, setTargetValue] = useState("");
   const [unit, setUnit] = useState("");
+  const [dailyMode, setDailyMode] = useState<DailyTaskMode>("single");
+  const [dailyOptionsInput, setDailyOptionsInput] = useState("");
 
   // Delete sheet state
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -92,6 +103,8 @@ export default function TasksPage() {
       setDueDate(editingTask.due_date ?? "");
       setTargetValue(editingTask.target_value != null ? String(editingTask.target_value) : "");
       setUnit(editingTask.unit ?? "");
+      setDailyMode(editingTask.daily_mode === "multi_option" ? "multi_option" : "single");
+      setDailyOptionsInput(formatDailyOptionsInput(editingTask.daily_options));
     }
   }, [editingTask?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -99,7 +112,7 @@ export default function TasksPage() {
   useEffect(() => {
     async function fetchTasks() {
       const { data, error } = await supabase.from("tasks").select("*").order("created_at", { ascending: false });
-      if (!error && data) setTasks(data as Task[]);
+      if (!error && data) setTasks(normalizeTasks(data as Task[]));
       setIsLoading(false);
     }
     fetchTasks();
@@ -146,6 +159,8 @@ export default function TasksPage() {
     firstFutureOneTimeTaskIndex > 0 &&
     filtered.slice(0, firstFutureOneTimeTaskIndex).some((task) => task.type === "daily");
   const pendingTask = tasks.find((t) => t.id === pendingDeleteId) ?? null;
+  const parsedDailyOptions = parseDailyOptionsInput(dailyOptionsInput);
+  const requiresDailyOptions = type === "daily" && dailyMode === "multi_option";
 
   const hasChanges = editingTask
     ? title !== editingTask.title ||
@@ -153,7 +168,10 @@ export default function TasksPage() {
       (priority || null) !== (editingTask.priority ?? null) ||
       (type === "one_time" ? dueDate || null : null) !== (editingTask.due_date ?? null) ||
       (targetValue ? Number(targetValue) : null) !== (editingTask.target_value ?? null) ||
-      (unit || null) !== (editingTask.unit ?? null)
+      (unit || null) !== (editingTask.unit ?? null) ||
+      (type === "daily" ? dailyMode : "single") !== (editingTask.daily_mode === "multi_option" ? "multi_option" : "single") ||
+      (type === "daily" ? parsedDailyOptions.join("\n") : "") !==
+        formatDailyOptionsInput(editingTask.daily_options)
     : true;
 
   // ── Reset form to add mode
@@ -166,6 +184,8 @@ export default function TasksPage() {
     setDueDate("");
     setTargetValue("");
     setUnit("");
+    setDailyMode("single");
+    setDailyOptionsInput("");
   }
 
   // ── Start editing a task (clicking again cancels)
@@ -185,26 +205,54 @@ export default function TasksPage() {
 
   // ── Form save — returns result so TaskForm can drive its own button flash
   async function handleSave(): Promise<"success" | "error"> {
+    if (requiresDailyOptions && parsedDailyOptions.length === 0) {
+      return "error";
+    }
+
+    const normalizedDailyMode: DailyTaskMode = type === "daily" ? dailyMode : "single";
+    const normalizedDailyOptions = type === "daily" && dailyMode === "multi_option" ? parsedDailyOptions : [];
+    const isOptionsMode = type === "daily" && dailyMode === "multi_option";
     const payload = {
       title,
       type,
       priority: priority || null,
       due_date: type === "one_time" ? dueDate || null : null,
-      target_value: targetValue ? Number(targetValue) : null,
-      unit: unit || null,
+      target_value: isOptionsMode ? null : targetValue ? Number(targetValue) : null,
+      unit: isOptionsMode ? null : unit || null,
+      daily_mode: normalizedDailyMode,
+      daily_options: normalizedDailyOptions,
+    };
+    const legacyPayload = {
+      title,
+      type,
+      priority: priority || null,
+      due_date: type === "one_time" ? dueDate || null : null,
+      target_value: isOptionsMode ? null : targetValue ? Number(targetValue) : null,
+      unit: isOptionsMode ? null : unit || null,
     };
 
     if (formMode === "edit" && editingTask) {
-      const { error } = await supabase.from("tasks").update(payload).eq("id", editingTask.id);
-      if (error) return "error";
-      setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? { ...t, ...payload } : t)));
+      let usedPayload: typeof payload | typeof legacyPayload = payload;
+      let result = await supabase.from("tasks").update(payload).eq("id", editingTask.id);
+      if (result.error && isMissingDailyModeSchemaError(result.error)) {
+        if (isOptionsMode) return "error";
+        usedPayload = legacyPayload;
+        result = await supabase.from("tasks").update(legacyPayload).eq("id", editingTask.id);
+      }
+      if (result.error) return "error";
+      setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? normalizeTask({ ...t, ...usedPayload }) : t)));
       resetForm();
       setFormOpen(false);
       return "success";
     } else {
-      const { data, error } = await supabase.from("tasks").insert(payload).select().single();
+      let result = await supabase.from("tasks").insert(payload).select().single();
+      if (result.error && isMissingDailyModeSchemaError(result.error)) {
+        if (isOptionsMode) return "error";
+        result = await supabase.from("tasks").insert(legacyPayload).select().single();
+      }
+      const { data, error } = result;
       if (error) return "error";
-      if (data) setTasks((prev) => [data as Task, ...prev]);
+      if (data) setTasks((prev) => [normalizeTask(data as Task), ...prev]);
       resetForm();
       return "success";
     }
@@ -307,13 +355,18 @@ export default function TasksPage() {
                       dueDate={dueDate}
                       targetValue={targetValue}
                       unit={unit}
+                      dailyMode={dailyMode}
+                      dailyOptionsInput={dailyOptionsInput}
                       hasChanges={hasChanges}
+                      hasValidDailyOptions={!requiresDailyOptions || parsedDailyOptions.length > 0}
                       onTitleChange={setTitle}
                       onTypeChange={setType}
                       onPriorityChange={setPriority}
                       onDueDateChange={setDueDate}
                       onTargetValueChange={setTargetValue}
                       onUnitChange={setUnit}
+                      onDailyModeChange={setDailyMode}
+                      onDailyOptionsInputChange={setDailyOptionsInput}
                       onSave={handleSave}
                       onCancel={formMode === "edit" ? () => { resetForm(); setFormOpen(false); } : undefined}
                     />
@@ -378,13 +431,18 @@ export default function TasksPage() {
                 dueDate={dueDate}
                 targetValue={targetValue}
                 unit={unit}
+                dailyMode={dailyMode}
+                dailyOptionsInput={dailyOptionsInput}
                 hasChanges={hasChanges}
+                hasValidDailyOptions={!requiresDailyOptions || parsedDailyOptions.length > 0}
                 onTitleChange={setTitle}
                 onTypeChange={setType}
                 onPriorityChange={setPriority}
                 onDueDateChange={setDueDate}
                 onTargetValueChange={setTargetValue}
                 onUnitChange={setUnit}
+                onDailyModeChange={setDailyMode}
+                onDailyOptionsInputChange={setDailyOptionsInput}
                 onSave={handleSave}
                 onCancel={formMode === "edit" ? resetForm : undefined}
               />
@@ -526,6 +584,8 @@ function TaskCard({
   const isOverdue = task.type === "one_time" && !!task.due_date && task.due_date < today && !task.is_completed;
   const isDueToday = task.type === "one_time" && task.due_date === today && !task.is_completed;
   const isDaily = task.type === "daily";
+  const optionsCount =
+    task.type === "daily" && task.daily_mode === "multi_option" ? (task.daily_options?.length ?? 0) : 0;
 
   return (
     <div
@@ -564,6 +624,9 @@ function TaskCard({
           <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
             {task.target_value} {task.unit}
           </p>
+        )}
+        {optionsCount > 0 && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{optionsCount} options</p>
         )}
 
         {(isOverdue || isDueToday || (task.due_date && task.type === "one_time" && !isOverdue && !isDueToday)) && (
@@ -629,13 +692,18 @@ function TaskForm({
   dueDate,
   targetValue,
   unit,
+  dailyMode,
+  dailyOptionsInput,
   hasChanges,
+  hasValidDailyOptions,
   onTitleChange,
   onTypeChange,
   onPriorityChange,
   onDueDateChange,
   onTargetValueChange,
   onUnitChange,
+  onDailyModeChange,
+  onDailyOptionsInputChange,
   onSave,
   onCancel,
 }: {
@@ -646,13 +714,18 @@ function TaskForm({
   dueDate: string;
   targetValue: string;
   unit: string;
+  dailyMode: DailyTaskMode;
+  dailyOptionsInput: string;
   hasChanges: boolean;
+  hasValidDailyOptions: boolean;
   onTitleChange: (v: string) => void;
   onTypeChange: (v: TaskType) => void;
   onPriorityChange: (v: TaskPriority | "") => void;
   onDueDateChange: (v: string) => void;
   onTargetValueChange: (v: string) => void;
   onUnitChange: (v: string) => void;
+  onDailyModeChange: (v: DailyTaskMode) => void;
+  onDailyOptionsInputChange: (v: string) => void;
   onSave: () => Promise<"success" | "error">;
   onCancel?: () => void;
 }) {
@@ -730,6 +803,62 @@ function TaskForm({
 
           <div className="border-t border-border" />
 
+          {/* Daily mode */}
+          {type === "daily" && (
+            <>
+              <div className="px-5 py-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Daily mode
+                  </span>
+                  <div className="relative grid grid-cols-2 rounded-lg bg-white/5 p-0.5">
+                    <div
+                      className="absolute top-0.5 bottom-0.5 rounded-md bg-accent transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                      style={{
+                        width: "calc(50% - 2px)",
+                        transform: dailyMode === "single" ? "translateX(2px)" : "translateX(calc(100% + 2px))",
+                      }}
+                    />
+                    {(
+                      [
+                        { value: "single" as const, label: "Single" },
+                        { value: "multi_option" as const, label: "Options" },
+                      ]
+                    ).map((modeOption) => (
+                      <button
+                        key={modeOption.value}
+                        type="button"
+                        onClick={() => onDailyModeChange(modeOption.value)}
+                        className={cn(
+                          "relative z-10 cursor-pointer rounded-md px-4 py-1.5 text-center text-xs font-semibold whitespace-nowrap transition-colors duration-150",
+                          dailyMode === modeOption.value ? "text-white" : "text-muted-foreground"
+                        )}
+                      >
+                        {modeOption.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {dailyMode === "multi_option" && (
+                  <div className="space-y-2">
+                    <textarea
+                      value={dailyOptionsInput}
+                      onChange={(event) => onDailyOptionsInputChange(event.target.value)}
+                      rows={4}
+                      placeholder={"One option per line\nGym\nAbs\nHyoid"}
+                      className="w-full resize-y rounded-lg border border-glass-border bg-white/5 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground/40 outline-none focus:border-accent/50 transition-colors"
+                    />
+                    {!hasValidDailyOptions && (
+                      <p className="text-xs text-red-300/90">Add at least one option for this daily task mode.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-border" />
+            </>
+          )}
+
           {/* Priority */}
           <div className="px-5 py-3.5 flex items-center justify-between gap-4">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Priority</span>
@@ -758,7 +887,9 @@ function TaskForm({
           <div className="px-5 py-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Target</span>
-              <span className="text-[11px] text-muted-foreground/50">optional</span>
+              <span className="text-[11px] text-muted-foreground/50">
+                {type === "daily" && dailyMode === "multi_option" ? "disabled in options mode" : "optional"}
+              </span>
             </div>
             <div className="flex gap-2">
               <input
@@ -769,6 +900,7 @@ function TaskForm({
                 value={targetValue}
                 onChange={(e) => onTargetValueChange(e.target.value)}
                 placeholder="e.g. 2000"
+                disabled={type === "daily" && dailyMode === "multi_option"}
               />
               <input
                 type="text"
@@ -776,6 +908,7 @@ function TaskForm({
                 value={unit}
                 onChange={(e) => onUnitChange(e.target.value)}
                 placeholder="unit (ml, steps…)"
+                disabled={type === "daily" && dailyMode === "multi_option"}
               />
             </div>
           </div>
@@ -814,7 +947,13 @@ function TaskForm({
         {/* Submit */}
         <button
           type="submit"
-          disabled={status === "submitting" || status === "success" || !title.trim() || !hasChanges}
+          disabled={
+            status === "submitting" ||
+            status === "success" ||
+            !title.trim() ||
+            !hasChanges ||
+            !hasValidDailyOptions
+          }
           className={cn(
             "flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300",
             status === "success"
@@ -936,7 +1075,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
       window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("resize", onScroll);
     };
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }

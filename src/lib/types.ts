@@ -1,5 +1,6 @@
 export type TaskType = "daily" | "one_time";
 export type TaskPriority = "low" | "medium" | "high";
+export type DailyTaskMode = "single" | "multi_option";
 
 export interface Task {
   id: string;
@@ -13,6 +14,8 @@ export interface Task {
   updated_at: string;
   target_value: number | null; // only for quantitative tasks
   unit: string | null; // only for quantitative tasks (e.g. 'ml', 'steps')
+  daily_mode?: DailyTaskMode | null;
+  daily_options?: string[] | null;
 }
 
 export interface TaskCompletion {
@@ -22,6 +25,7 @@ export interface TaskCompletion {
   completed_at: string; // ISO timestamp
   created_at: string;
   value: number | null; // only for quantitative tasks (amount logged per entry)
+  daily_option_index?: number | null; // only for daily multi-option tasks
 }
 
 export interface DayTasks {
@@ -39,6 +43,7 @@ export interface TaskWithStatus extends Task {
   isOverdue: boolean;
   isDueToday: boolean;
   currentValue: number; // 0 for daily/one_time; running sum of logs for quantitative
+  completed_option_indexes: number[];
 }
 
 // Gym/Workout Types

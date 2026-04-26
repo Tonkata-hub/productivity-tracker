@@ -5,10 +5,11 @@ import { TaskWithStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle, Plus, X } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
+import { isMultiOptionDailyTask } from "@/lib/task-utils";
 
 interface TaskItemV2Props {
   task: TaskWithStatus;
-  onToggle?: (taskId: string) => void;
+  onToggle?: (taskId: string, optionIndex?: number) => void;
   onLogValue?: (taskId: string, amount: number) => void;
 }
 
@@ -39,10 +40,14 @@ function getQuickIncrements(unit: string | null, target: number): number[] {
 export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
   const [isPressed, setIsPressed] = useState(false);
   const [showQuickLog, setShowQuickLog] = useState(false);
+  const [showMultiOptions, setShowMultiOptions] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const isQuantitative = task.target_value != null;
+  const isMultiOptionDaily = isMultiOptionDailyTask(task);
+  const dailyOptions = isMultiOptionDaily ? task.daily_options ?? [] : [];
+  const completedOptionsCount = task.completed_option_indexes.length;
   const priorityDot: Record<string, string> = {
     high: "bg-red-500",
     medium: "bg-yellow-500",
@@ -55,6 +60,10 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
     if (isQuantitative) {
       setShowQuickLog((prev) => !prev);
       if (!showQuickLog) setInputValue("");
+      return;
+    }
+    if (isMultiOptionDaily) {
+      setShowMultiOptions((prev) => !prev);
       return;
     }
     handleToggle();
@@ -83,12 +92,13 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
   };
 
   useEffect(() => {
-    if (!showQuickLog) return;
+    if (!showQuickLog && !showMultiOptions) return;
     const handleOutsidePointer = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
       if (containerRef.current?.contains(target)) return;
       setShowQuickLog(false);
+      setShowMultiOptions(false);
       setInputValue("");
     };
     document.addEventListener("mousedown", handleOutsidePointer);
@@ -97,7 +107,7 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
       document.removeEventListener("mousedown", handleOutsidePointer);
       document.removeEventListener("touchstart", handleOutsidePointer);
     };
-  }, [showQuickLog]);
+  }, [showQuickLog, showMultiOptions]);
 
   const quickIncrements = isQuantitative ? getQuickIncrements(task.unit, task.target_value ?? 1) : [];
   const progress = isQuantitative ? Math.min((task.currentValue / (task.target_value ?? 1)) * 100, 100) : 0;
@@ -122,7 +132,7 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
       onPointerCancel={handleCardPointerCancel}
       onPointerLeave={handleCardPointerLeave}
       aria-label={isQuantitative ? `Open quick log for ${task.title}` : `Toggle ${task.title}`}
-      aria-pressed={!isQuantitative ? task.isCompleted : showQuickLog}
+      aria-pressed={!isQuantitative && !isMultiOptionDaily ? task.isCompleted : showQuickLog}
     >
       <div className="flex items-center gap-3">
         <button
@@ -201,12 +211,39 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
               </div>
             </>
           )}
+          {isMultiOptionDaily && dailyOptions.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {completedOptionsCount}/{dailyOptions.length} options
+            </p>
+          )}
         </div>
 
         {task.priority && (
           <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", priorityDot[task.priority] ?? "")} title={task.priority} />
         )}
       </div>
+
+      {isMultiOptionDaily && dailyOptions.length > 0 && onToggle && showMultiOptions && (
+        <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {dailyOptions.map((option, idx) => {
+            const isDone = task.completed_option_indexes.includes(idx);
+            return (
+              <button
+                key={`${task.id}-option-${idx}`}
+                onClick={() => onToggle(task.id, idx)}
+                className={cn(
+                  "cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all",
+                  isDone
+                    ? "border-accent/40 bg-accent/20 text-accent"
+                    : "border-white/12 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                )}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {isQuantitative && showQuickLog && onLogValue && (
         <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/3 p-2.5" onClick={(e) => e.stopPropagation()}>

@@ -10,6 +10,8 @@ import { DayTimeline } from "@/components/day-planner/DayTimeline";
 import { UnscheduledPanel } from "@/components/day-planner/UnscheduledPanel";
 import { AddBlockPicker } from "@/components/day-planner/AddBlockPicker";
 import { cn } from "@/lib/utils";
+import { buildCompletionState } from "@/lib/task-completion-utils";
+import { completionOptionKey, isMultiOptionDailyTask, normalizeTasks } from "@/lib/task-utils";
 
 const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
@@ -20,6 +22,7 @@ type RawCompletion = {
   task_id: string;
   date: string;
   value: number | null;
+  daily_option_index?: number | null;
   optimistic_id?: string;
 };
 
@@ -33,16 +36,15 @@ function hasOverlap(startMinutes: number, durationMinutes: number, existingBlock
 }
 
 function buildSets(completions: RawCompletion[], dateISO: string) {
-  const completionSet = new Set<string>();
-  const quantMap = new Map<string, number>();
-  for (const c of completions) {
-    if (c.date === dateISO) {
-      const key = `${c.task_id}:${c.date}`;
-      completionSet.add(key);
-      if (c.value != null) quantMap.set(key, (quantMap.get(key) ?? 0) + c.value);
-    }
-  }
-  return { completionSet, quantMap };
+  const rows = completions
+    .filter((c) => c.date === dateISO)
+    .map((c) => ({
+      task_id: c.task_id,
+      date: c.date,
+      value: c.value,
+      daily_option_index: c.daily_option_index ?? null,
+    }));
+  return buildCompletionState(rows);
 }
 
 function subscribeDesktopQuery(onStoreChange: () => void) {
@@ -77,8 +79,8 @@ export default function DayPlannerPage() {
   const [toggling, setToggling] = useState<Set<string>>(new Set());
 
   // Derive today's tasks with completion status
-  const { completionSet, quantMap } = buildSets(rawCompletions, todayISO);
-  const todayTasks = getTasksForDate(tasks, todayISO, completionSet, quantMap);
+  const { completionSet, quantValues, optionCompletions } = buildSets(rawCompletions, todayISO);
+  const todayTasks = getTasksForDate(tasks, todayISO, completionSet, quantValues, optionCompletions);
 
   // Tasks not yet placed on the timeline
   const scheduledTaskIds = new Set(blocks.map((b) => b.task_id).filter(Boolean));
@@ -111,12 +113,12 @@ export default function DayPlannerPage() {
       setLoading(true);
       const [tasksRes, completionsRes, blocksRes] = await Promise.all([
         supabase.from("tasks").select("*"),
-        supabase.from("task_completions").select("id, task_id, date, value").eq("date", todayISO),
+        supabase.from("task_completions").select("id, task_id, date, value, daily_option_index").eq("date", todayISO),
         supabase.from("planner_blocks").select("*").eq("date", todayISO),
       ]);
 
       if (isCancelled) return;
-      if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+      if (tasksRes.data) setTasks(normalizeTasks(tasksRes.data as Task[]));
       if (completionsRes.data) setRawCompletions(completionsRes.data as RawCompletion[]);
       if (blocksRes.data) setBlocks(blocksRes.data as PlannerBlock[]);
       setLoading(false);
@@ -130,18 +132,35 @@ export default function DayPlannerPage() {
 
   // ── Task interactions (same logic as homepage) ──────────────────────────
 
-  const toggleTask = async (task: TaskWithStatus) => {
+  const toggleTask = async (task: TaskWithStatus, optionIndex?: number) => {
     if (task.target_value != null) return; // quantitative tasks use logTaskValue
     const wasCompleted = task.isCompleted;
+    const isMultiOption = isMultiOptionDailyTask(task);
+    const isValidOptionIndex = Number.isInteger(optionIndex) && (optionIndex as number) >= 0;
+    const mapKey = completionOptionKey(task.id, todayISO);
+    const previousOptionSet = new Set(optionCompletions.get(mapKey) ?? []);
+    const wasOptionCompleted = isMultiOption && isValidOptionIndex && previousOptionSet.has(optionIndex!);
+    if (isMultiOption && !isValidOptionIndex) return;
     setToggling((prev) => new Set([...prev, task.id]));
 
     // Optimistic
     if (task.type === "daily") {
-      setRawCompletions((prev) =>
-        wasCompleted
-          ? prev.filter((c) => !(c.task_id === task.id && c.date === todayISO))
-          : [...prev, { task_id: task.id, date: todayISO, value: null }]
-      );
+      if (isMultiOption && isValidOptionIndex) {
+        setRawCompletions((prev) => {
+          if (wasOptionCompleted) {
+            return prev.filter(
+              (c) => !(c.task_id === task.id && c.date === todayISO && c.daily_option_index === optionIndex)
+            );
+          }
+          return [...prev, { task_id: task.id, date: todayISO, value: null, daily_option_index: optionIndex }];
+        });
+      } else {
+        setRawCompletions((prev) =>
+          wasCompleted
+            ? prev.filter((c) => !(c.task_id === task.id && c.date === todayISO))
+            : [...prev, { task_id: task.id, date: todayISO, value: null }]
+        );
+      }
     } else {
       setTasks((prev) =>
         prev.map((t) =>
@@ -154,7 +173,24 @@ export default function DayPlannerPage() {
 
     if (!useMock) {
       if (task.type === "daily") {
-        if (wasCompleted) {
+        if (isMultiOption && isValidOptionIndex) {
+          if (wasOptionCompleted) {
+            await supabase
+              .from("task_completions")
+              .delete()
+              .eq("task_id", task.id)
+              .eq("date", todayISO)
+              .eq("daily_option_index", optionIndex!)
+              .is("value", null);
+          } else {
+            await supabase.from("task_completions").insert({
+              task_id: task.id,
+              date: todayISO,
+              completed_at: new Date().toISOString(),
+              daily_option_index: optionIndex!,
+            });
+          }
+        } else if (wasCompleted) {
           await supabase.from("task_completions").delete().eq("task_id", task.id).eq("date", todayISO);
         } else {
           await supabase
@@ -347,13 +383,24 @@ export default function DayPlannerPage() {
         const taskType = block.task_type ?? tasks.find((t) => t.id === block.task_id)?.type;
         if (taskType === "daily") {
           const key = `${block.task_id}:${todayISO}`;
+          const task = tasks.find((t) => t.id === block.task_id);
+          const isMultiOption = !!task && isMultiOptionDailyTask(task);
+          const defaultOptionIndex =
+            isMultiOption && (task?.daily_options?.length ?? 0) > 0 ? 0 : null;
           if (nextCompleted) {
             let completionEntryId: string | null = null;
             if (!completionSet.has(key)) {
               const optimisticId = `planner-marker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
               setRawCompletions((prev) => [
                 ...prev,
-                { id: optimisticId, task_id: block.task_id!, date: todayISO, value: null, optimistic_id: optimisticId },
+                {
+                  id: optimisticId,
+                  task_id: block.task_id!,
+                  date: todayISO,
+                  value: null,
+                  daily_option_index: defaultOptionIndex,
+                  optimistic_id: optimisticId,
+                },
               ]);
 
               if (!useMock) {
@@ -364,6 +411,7 @@ export default function DayPlannerPage() {
                     date: todayISO,
                     completed_at: new Date().toISOString(),
                     value: null,
+                    daily_option_index: defaultOptionIndex,
                   })
                   .select("id")
                   .single();

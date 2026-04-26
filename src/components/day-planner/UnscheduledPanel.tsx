@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import { CheckCircle2, ChevronDown, Circle, Clock, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskWithStatus } from "@/lib/types";
+import { isMultiOptionDailyTask } from "@/lib/task-utils";
 
 // ── Utilities (mirrored from page.tsx) ───────────────────────────────────────
 
@@ -53,6 +54,7 @@ interface RowProps {
   today: string;
   isToggling: boolean;
   onToggle: () => void;
+  onToggleOption: (optionIndex: number) => void;
   onLogValue: (amount: number) => void;
   onSchedule: () => void;
 }
@@ -62,10 +64,12 @@ function TaskRowWithSchedule({
   today,
   isToggling,
   onToggle,
+  onToggleOption,
   onLogValue,
   onSchedule,
 }: RowProps) {
   const [isPressed, setIsPressed] = useState(false);
+  const [showMultiOptions, setShowMultiOptions] = useState(false);
 
   const priorityDot: Record<string, string> = {
     high: "bg-red-500",
@@ -74,10 +78,17 @@ function TaskRowWithSchedule({
   };
 
   const isQuantitative = task.target_value != null;
+  const isMultiOptionDaily = isMultiOptionDailyTask(task);
+  const dailyOptions = isMultiOptionDaily ? task.daily_options ?? [] : [];
+  const completedOptionsCount = task.completed_option_indexes.length;
 
   const handleCardClick = () => {
     setIsPressed(false);
     if (isQuantitative) return;
+    if (isMultiOptionDaily) {
+      setShowMultiOptions((prev) => !prev);
+      return;
+    }
     onToggle();
   };
   const quantOptions = isQuantitative ? getQuantOptions(task.target_value ?? 0) : [];
@@ -173,6 +184,11 @@ function TaskRowWithSchedule({
               {task.currentValue} / {task.target_value} {task.unit}
             </p>
           )}
+          {isMultiOptionDaily && dailyOptions.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {completedOptionsCount}/{dailyOptions.length} options
+            </p>
+          )}
         </div>
 
         {isQuantitative && (
@@ -217,6 +233,29 @@ function TaskRowWithSchedule({
         </div>
       </div>
 
+      {isMultiOptionDaily && dailyOptions.length > 0 && showMultiOptions && (
+        <div className="mt-2 flex flex-wrap gap-1.5" onClick={(event) => event.stopPropagation()}>
+          {dailyOptions.map((option, idx) => {
+            const isDone = task.completed_option_indexes.includes(idx);
+            return (
+              <button
+                key={`${task.id}-option-${idx}`}
+                onClick={() => onToggleOption(idx)}
+                disabled={isToggling}
+                className={cn(
+                  "cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all",
+                  isDone
+                    ? "border-accent/40 bg-accent/20 text-accent"
+                    : "border-white/12 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground",
+                  isToggling && "cursor-default opacity-60"
+                )}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -228,7 +267,7 @@ export interface UnscheduledPanelProps {
   today: string;
   toggling: Set<string>;
   onSchedule: (task: TaskWithStatus) => void;
-  onToggle: (task: TaskWithStatus) => void;
+  onToggle: (task: TaskWithStatus, optionIndex?: number) => void;
   onLogValue: (task: TaskWithStatus, amount: number) => void;
   onAddTask: (title: string) => void;
   onClosePanel?: () => void;
@@ -308,6 +347,7 @@ export function UnscheduledPanel({
                 today={today}
                 isToggling={toggling.has(task.id)}
                 onToggle={() => onToggle(task)}
+                onToggleOption={(optionIndex) => onToggle(task, optionIndex)}
                 onLogValue={(amount) => onLogValue(task, amount)}
                 onSchedule={() => onSchedule(task)}
               />

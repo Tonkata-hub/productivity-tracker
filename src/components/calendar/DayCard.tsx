@@ -9,7 +9,7 @@ const ARC_CIRCUMFERENCE = 2 * Math.PI * ARC_RADIUS;
 
 interface DayCardProps {
   dayData: DayTasks;
-  onToggleTask?: (taskId: string, date: string) => void;
+  onToggleTask?: (taskId: string, date: string, optionIndex?: number) => void;
   onLogQuantitative?: (taskId: string, date: string, amount: number) => void;
   index: number;
   totalCards: number;
@@ -39,8 +39,8 @@ export function DayCard({
   }, 0);
   const completionPercentage = totalCount > 0 ? (completionScore / totalCount) * 100 : 0;
 
-  const handleToggle = (taskId: string) => {
-    onToggleTask?.(taskId, date);
+  const handleToggle = (taskId: string, optionIndex?: number) => {
+    onToggleTask?.(taskId, date, optionIndex);
   };
 
   return (

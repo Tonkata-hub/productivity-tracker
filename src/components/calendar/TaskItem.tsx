@@ -5,10 +5,11 @@ import { TaskWithStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle, Plus, X, AlertCircle, Calendar } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
+import { isMultiOptionDailyTask } from "@/lib/task-utils";
 
 interface TaskItemProps {
   task: TaskWithStatus;
-  onToggle?: (taskId: string) => void;
+  onToggle?: (taskId: string, optionIndex?: number) => void;
   onLogValue?: (taskId: string, amount: number) => void;
 }
 
@@ -44,10 +45,14 @@ function overdueDayCount(dueDate: string): number {
 
 export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
   const [showInput, setShowInput] = useState(false);
+  const [showMultiOptions, setShowMultiOptions] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isQuantitative = task.target_value != null;
+  const isMultiOptionDaily = isMultiOptionDailyTask(task);
+  const dailyOptions = isMultiOptionDaily ? task.daily_options ?? [] : [];
+  const completedOptionsCount = task.completed_option_indexes.length;
   const hasMeta = task.due_date || task.isOverdue || task.isDueToday;
 
   const handleToggle = () => {
@@ -59,6 +64,10 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
       setShowInput((prev) => !prev);
       setInputValue("");
     } else {
+      if (isMultiOptionDaily) {
+        setShowMultiOptions((prev) => !prev);
+        return;
+      }
       handleToggle();
     }
   };
@@ -79,9 +88,12 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
 
   // Close on outside click
   useEffect(() => {
-    if (!showInput) return;
+    if (!showInput && !showMultiOptions) return;
     const handleOutside = (e: MouseEvent | TouchEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) closeInput();
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setShowMultiOptions(false);
+        closeInput();
+      }
     };
     document.addEventListener("mousedown", handleOutside);
     document.addEventListener("touchstart", handleOutside, { passive: true });
@@ -89,7 +101,7 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("touchstart", handleOutside);
     };
-  }, [showInput]);
+  }, [showInput, showMultiOptions]);
 
   const quickIncrements = isQuantitative
     ? getQuickIncrements(task.unit, task.target_value ?? 1)
@@ -170,6 +182,11 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
               </div>
             </>
           )}
+          {isMultiOptionDaily && dailyOptions.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {completedOptionsCount}/{dailyOptions.length} options
+            </p>
+          )}
 
           {/* Meta info */}
           {hasMeta && !isQuantitative && (
@@ -218,6 +235,28 @@ export function TaskItem({ task, onToggle, onLogValue }: TaskItemProps) {
       </div>
 
       {/* Quantitative quick-log panel */}
+      {isMultiOptionDaily && dailyOptions.length > 0 && onToggle && showMultiOptions && (
+        <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {dailyOptions.map((option, idx) => {
+            const isDone = task.completed_option_indexes.includes(idx);
+            return (
+              <button
+                key={`${task.id}-option-${idx}`}
+                onClick={() => onToggle(task.id, idx)}
+                className={cn(
+                  "cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all",
+                  isDone
+                    ? "border-accent/40 bg-accent/20 text-accent"
+                    : "border-white/12 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                )}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {isQuantitative && showInput && (
         <div
           className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/3 p-2.5"

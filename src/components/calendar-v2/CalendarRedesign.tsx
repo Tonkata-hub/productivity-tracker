@@ -13,6 +13,8 @@ import {
   getWeekOffsetForDate,
 } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
+import { buildCompletionState, cloneCompletionOptionMap } from "@/lib/task-completion-utils";
+import { completionOptionKey, isMultiOptionDailyTask, normalizeTasks } from "@/lib/task-utils";
 
 import { WeekHeader } from "./WeekHeader";
 import { WeekSummaryBar } from "./WeekSummaryBar";
@@ -28,6 +30,7 @@ export function CalendarRedesign() {
   const [tasks, setTasks] = useState<Task[]>(useMock ? mockTasks : []);
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [quantValues, setQuantValues] = useState<Map<string, number>>(new Map());
+  const [optionCompletions, setOptionCompletions] = useState<Map<string, Set<number>>>(new Map());
   const [isInitialLoading, setIsInitialLoading] = useState(!useMock);
   const [hasLoadedTasks, setHasLoadedTasks] = useState(useMock);
   const [hasLoadedCompletions, setHasLoadedCompletions] = useState(useMock);
@@ -61,7 +64,7 @@ export function CalendarRedesign() {
         setHasLoadedTasks(true);
         return;
       }
-      setTasks(data as Task[]);
+      setTasks(normalizeTasks(data as Task[]));
       setHasLoadedTasks(true);
     }
     fetchTasks();
@@ -102,7 +105,7 @@ export function CalendarRedesign() {
     async function fetchCompletions() {
       const { data, error } = await supabase
         .from("task_completions")
-        .select("task_id, date, value")
+        .select("task_id, date, value, daily_option_index")
         .gte("date", from)
         .lte("date", to);
       if (error) {
@@ -110,18 +113,16 @@ export function CalendarRedesign() {
         setHasLoadedCompletions(true);
         return;
       }
-      const set = new Set<string>();
-      const qmap = new Map<string, number>();
-      for (const c of data as { task_id: string; date: string; value: number | null }[]) {
-        const key = `${c.task_id}:${c.date}`;
-        if (c.value != null) {
-          qmap.set(key, (qmap.get(key) ?? 0) + c.value);
-        } else {
-          set.add(key);
-        }
-      }
-      setCompletions(set);
-      setQuantValues(qmap);
+      const completionRows = data as {
+        task_id: string;
+        date: string;
+        value: number | null;
+        daily_option_index: number | null;
+      }[];
+      const state = buildCompletionState(completionRows);
+      setCompletions(state.completionSet);
+      setQuantValues(state.quantValues);
+      setOptionCompletions(state.optionCompletions);
       setHasLoadedCompletions(true);
     }
     fetchCompletions();
@@ -136,7 +137,7 @@ export function CalendarRedesign() {
 
   // ── Week data ──────────────────────────────────────────
   const weekData = useMemo(() => {
-    const data = generateWeekData(tasks, weekDates, completions, quantValues);
+    const data = generateWeekData(tasks, weekDates, completions, quantValues, optionCompletions);
     if (activeFilter !== "all") {
       return data.map((day) => ({
         ...day,
@@ -144,7 +145,7 @@ export function CalendarRedesign() {
       }));
     }
     return data;
-  }, [tasks, weekDates, activeFilter, completions, quantValues]);
+  }, [tasks, weekDates, activeFilter, completions, quantValues, optionCompletions]);
 
   // ── Today index ────────────────────────────────────────
   const todayIndex = useMemo(() => {
@@ -325,24 +326,85 @@ export function CalendarRedesign() {
 
   // ── Task toggle ────────────────────────────────────────
   const handleToggleTask = useCallback(
-    (taskId: string, date: string) => {
+    (taskId: string, date: string, optionIndex?: number) => {
       const task = tasks.find((t) => t.id === taskId);
       if (!task) return;
 
       if (task.type === "daily") {
-        const key = `${taskId}:${date}`;
+        const key = completionOptionKey(taskId, date);
+        const isMultiOption = isMultiOptionDailyTask(task);
+        const isValidOptionIndex = Number.isInteger(optionIndex) && (optionIndex as number) >= 0;
+        const previousOptionSet = new Set(optionCompletions.get(key) ?? []);
         const wasCompleted = completions.has(key);
 
-        setCompletions((prev) => {
-          const next = new Set(prev);
-          if (wasCompleted) next.delete(key);
-          else next.add(key);
-          return next;
-        });
+        if (isMultiOption && !isValidOptionIndex) return;
+
+        if (isMultiOption && isValidOptionIndex) {
+          setOptionCompletions((prev) => {
+            const next = cloneCompletionOptionMap(prev);
+            const optionSet = new Set(next.get(key) ?? []);
+            if (optionSet.has(optionIndex!)) optionSet.delete(optionIndex!);
+            else optionSet.add(optionIndex!);
+            if (optionSet.size === 0) next.delete(key);
+            else next.set(key, optionSet);
+            return next;
+          });
+
+          setCompletions((prev) => {
+            const next = new Set(prev);
+            const optionSet = new Set(previousOptionSet);
+            if (optionSet.has(optionIndex!)) optionSet.delete(optionIndex!);
+            else optionSet.add(optionIndex!);
+            if (optionSet.size === 0) next.delete(key);
+            else next.add(key);
+            return next;
+          });
+        } else {
+          setCompletions((prev) => {
+            const next = new Set(prev);
+            if (wasCompleted) next.delete(key);
+            else next.add(key);
+            return next;
+          });
+        }
 
         if (useMock) return;
 
-        if (wasCompleted) {
+        if (isMultiOption && isValidOptionIndex) {
+          const wasOptionCompleted = previousOptionSet.has(optionIndex!);
+
+          const query = wasOptionCompleted
+            ? supabase
+                .from("task_completions")
+                .delete()
+                .eq("task_id", taskId)
+                .eq("date", date)
+                .eq("daily_option_index", optionIndex!)
+                .is("value", null)
+            : supabase.from("task_completions").insert({
+                task_id: taskId,
+                date,
+                completed_at: new Date().toISOString(),
+                daily_option_index: optionIndex!,
+              });
+
+          query.then(({ error }) => {
+            if (!error) return;
+
+            setOptionCompletions((prev) => {
+              const next = cloneCompletionOptionMap(prev);
+              if (previousOptionSet.size === 0) next.delete(key);
+              else next.set(key, previousOptionSet);
+              return next;
+            });
+            setCompletions((prev) => {
+              const next = new Set(prev);
+              if (previousOptionSet.size === 0) next.delete(key);
+              else next.add(key);
+              return next;
+            });
+          });
+        } else if (wasCompleted) {
           supabase
             .from("task_completions")
             .delete()
@@ -397,7 +459,7 @@ export function CalendarRedesign() {
           });
       }
     },
-    [tasks, completions]
+    [tasks, completions, optionCompletions]
   );
 
   // ── Log quantitative value ─────────────────────────────

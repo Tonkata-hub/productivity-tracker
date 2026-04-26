@@ -9,7 +9,7 @@ const ARC_CIRCUMFERENCE = 2 * Math.PI * ARC_RADIUS;
 
 interface DayPanelProps {
   dayData: DayTasks;
-  onToggleTask?: (taskId: string, date: string) => void;
+  onToggleTask?: (taskId: string, date: string, optionIndex?: number) => void;
   onLogQuantitative?: (taskId: string, date: string, amount: number) => void;
   isHighlighted?: boolean;
   className?: string;
@@ -134,7 +134,7 @@ export function DayPanel({
               )}
               <TaskItemV2
                 task={task}
-                onToggle={task.target_value == null ? (id) => onToggleTask?.(id, date) : undefined}
+                onToggle={task.target_value == null ? (id, optionIndex) => onToggleTask?.(id, date, optionIndex) : undefined}
                 onLogValue={
                   task.target_value != null
                     ? (id, amount) => onLogQuantitative?.(id, date, amount)

@@ -1,4 +1,5 @@
 import { Task, TaskWithStatus, DayTasks } from "./types";
+import { completionOptionKey } from "./task-utils";
 
 export function getWeekDates(baseDate: Date = new Date()): Date[] {
   const dates: Date[] = [];
@@ -35,7 +36,8 @@ export function getTaskStatusForDate(
   task: Task,
   dateISO: string,
   completions: Set<string> = new Set(),
-  quantValues: Map<string, number> = new Map()
+  quantValues: Map<string, number> = new Map(),
+  optionCompletions: Map<string, Set<number>> = new Map()
 ): TaskWithStatus {
   const today = formatDateISO(new Date());
 
@@ -43,6 +45,7 @@ export function getTaskStatusForDate(
   let isOverdue = false;
   let isDueToday = false;
   let currentValue = 0;
+  let completedOptionIndexes: number[] = [];
 
   if (task.target_value != null) {
     // Tracked task: completion is determined by logged amount vs target
@@ -52,6 +55,9 @@ export function getTaskStatusForDate(
     isCompleted = task.is_completed;
   } else if (task.type === "daily") {
     isCompleted = completions.has(`${task.id}:${dateISO}`);
+    completedOptionIndexes = Array.from(optionCompletions.get(completionOptionKey(task.id, dateISO)) ?? []).sort(
+      (a, b) => a - b
+    );
   }
 
   // Date-based flags for one-time tasks (applies whether tracked or not)
@@ -66,6 +72,7 @@ export function getTaskStatusForDate(
     isOverdue,
     isDueToday,
     currentValue,
+    completed_option_indexes: completedOptionIndexes,
   };
 }
 
@@ -73,7 +80,8 @@ export function getTasksForDate(
   tasks: Task[],
   dateISO: string,
   completions: Set<string> = new Set(),
-  quantValues: Map<string, number> = new Map()
+  quantValues: Map<string, number> = new Map(),
+  optionCompletions: Map<string, Set<number>> = new Map()
 ): TaskWithStatus[] {
   const result: TaskWithStatus[] = [];
   const today = formatDateISO(new Date());
@@ -83,7 +91,7 @@ export function getTasksForDate(
       // Only show daily tasks from the day they were created onwards (local time)
       const createdDate = formatDateISO(new Date(task.created_at));
       if (dateISO < createdDate) continue;
-      result.push(getTaskStatusForDate(task, dateISO, completions, quantValues));
+      result.push(getTaskStatusForDate(task, dateISO, completions, quantValues, optionCompletions));
     } else if (task.type === "one_time") {
       let shouldShow = false;
 
@@ -100,7 +108,7 @@ export function getTasksForDate(
       }
 
       if (shouldShow) {
-        result.push(getTaskStatusForDate(task, dateISO, completions, quantValues));
+        result.push(getTaskStatusForDate(task, dateISO, completions, quantValues, optionCompletions));
       }
     }
   }
@@ -133,7 +141,8 @@ export function generateWeekData(
   tasks: Task[],
   weekDates: Date[],
   completions: Set<string> = new Set(),
-  quantValues: Map<string, number> = new Map()
+  quantValues: Map<string, number> = new Map(),
+  optionCompletions: Map<string, Set<number>> = new Map()
 ): DayTasks[] {
   const today = formatDateISO(new Date());
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -147,7 +156,7 @@ export function generateWeekData(
       isToday: dateISO === today,
       isPast: dateISO < today,
       isFuture: dateISO > today,
-      tasks: getTasksForDate(tasks, dateISO, completions, quantValues),
+      tasks: getTasksForDate(tasks, dateISO, completions, quantValues, optionCompletions),
     };
   });
 }
