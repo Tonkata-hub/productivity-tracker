@@ -70,7 +70,7 @@ export default function DayPlannerPage() {
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [pendingTask, setPendingTask] = useState<TaskWithStatus | null>(null);
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(true);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(!useMock);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isDesktop = useSyncExternalStore(subscribeDesktopQuery, getDesktopSnapshot, () => false);
@@ -574,7 +574,7 @@ export default function DayPlannerPage() {
         <>
           <div
             className={cn(
-              "absolute inset-0 z-10 bg-black/55 transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              "absolute inset-0 z-10 bg-black/55 transition-opacity duration-350 ease-[cubic-bezier(0.16,1,0.3,1)]",
               isMobileDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
             )}
             onClick={() => setIsMobileDrawerOpen(false)}
@@ -582,16 +582,28 @@ export default function DayPlannerPage() {
           />
           <div
             className={cn(
-              "scrollbar-subtle relative z-20 shrink-0 overflow-y-auto px-4 transition-[max-height,opacity,transform,border-color,padding] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-height,transform]",
+              "absolute inset-x-0 bottom-0 z-20 overflow-hidden rounded-t-2xl border-t border-white/[0.08] bg-background/95 shadow-[0_-14px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform motion-reduce:transition-none",
               isMobileDrawerOpen
-                ? "max-h-[80vh] border-t border-white/[0.04] py-3 opacity-100 translate-y-0"
-                : "max-h-0 border-t border-transparent py-0 opacity-0 translate-y-2 pointer-events-none"
+                ? "translate-y-0 opacity-100"
+                : "translate-y-[calc(100%-3.75rem)] opacity-95"
             )}
           >
+            <button
+              onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 border-b border-white/[0.06] px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              <ChevronUp
+                className={cn(
+                  "size-3.5 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+                  isMobileDrawerOpen ? "rotate-180" : "rotate-0"
+                )}
+              />
+              {isMobileDrawerOpen ? "Hide today's tasks" : "Show today's tasks"}
+            </button>
             <div
               className={cn(
-                "transition-opacity duration-150",
-                isMobileDrawerOpen ? "opacity-100 delay-75" : "opacity-0"
+                "scrollbar-subtle max-h-[70vh] overflow-y-auto px-4 pb-4 pt-3 transition-opacity duration-300 ease-out motion-reduce:transition-none",
+                isMobileDrawerOpen ? "opacity-100 delay-150" : "pointer-events-none opacity-0"
               )}
             >
               <UnscheduledPanel
@@ -603,18 +615,6 @@ export default function DayPlannerPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsMobileDrawerOpen(true)}
-            className={cn(
-              "absolute bottom-3 right-4 z-30 flex items-center gap-2 rounded-full border border-white/15 bg-background/90 px-3 py-2 text-xs font-semibold text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.22)] backdrop-blur-sm transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-              isMobileDrawerOpen
-                ? "pointer-events-none opacity-0 translate-y-2"
-                : "cursor-pointer opacity-100 translate-y-0 hover:bg-background"
-            )}
-          >
-            <ChevronUp className="size-3.5" />
-            Show today&apos;s tasks
-          </button>
         </>
       )}
 

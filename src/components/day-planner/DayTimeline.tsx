@@ -246,21 +246,24 @@ export function DayTimeline({
               style={{ top: `${nowTopPx}px` }}
             >
               <div
-                className="w-2 h-2 rounded-full bg-accent shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{
-                  boxShadow:
-                    "0 0 0 2px rgba(255,59,59,0.2), 0 0 10px rgba(255,59,59,0.7)",
+                  backgroundColor: "rgba(255,95,95,0.82)",
+                  boxShadow: "0 0 0 2px rgba(255,59,59,0.12), 0 0 6px rgba(255,59,59,0.25)",
                 }}
               />
               <div
-                className="h-px flex-1 bg-accent/60"
-                style={{ boxShadow: "0 0 6px rgba(255,59,59,0.25)" }}
+                className="h-px flex-1"
+                style={{
+                  backgroundColor: "rgba(255,74,74,0.72)",
+                  boxShadow: "0 0 4px rgba(255,59,59,0.16)",
+                }}
               />
               <span
-                className="text-xs font-bold tracking-wide tabular-nums px-1.5 mr-1"
+                className="text-[11px] font-semibold tracking-wide tabular-nums px-1.5 mr-1"
                 style={{
-                  color: "#ff3b3b",
-                  textShadow: "0 0 8px rgba(255,59,59,0.5)",
+                  color: "rgba(255,120,120,0.9)",
+                  textShadow: "0 0 3px rgba(255,59,59,0.18)",
                 }}
               >
                 {minutesToTimeStr(nowMinutes)}
