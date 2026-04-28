@@ -224,21 +224,27 @@ export function TaskItemV2({ task, onToggle, onLogValue }: TaskItemV2Props) {
       </div>
 
       {isMultiOptionDaily && dailyOptions.length > 0 && onToggle && showMultiOptions && (
-        <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
           {dailyOptions.map((option, idx) => {
             const isDone = task.completed_option_indexes.includes(idx);
             return (
               <button
                 key={`${task.id}-option-${idx}`}
-                onClick={() => onToggle(task.id, idx)}
+                onClick={() => {
+                  onToggle(task.id, idx);
+                  setShowMultiOptions(false);
+                }}
                 className={cn(
-                  "cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all",
+                  "flex w-full items-center justify-between cursor-pointer rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all",
                   isDone
-                    ? "border-accent/40 bg-accent/20 text-accent"
-                    : "border-white/12 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                    ? "border-accent/50 bg-accent/18 text-accent shadow-[0_0_0_1px_rgba(34,197,94,0.2)]"
+                    : "border-white/15 bg-white/8 text-foreground/90 hover:border-white/30 hover:bg-white/12"
                 )}
               >
-                {option}
+                <span className="truncate">{option}</span>
+                <span className={cn("ml-3 text-[10px] uppercase tracking-wide", isDone ? "text-accent" : "text-muted-foreground")}>
+                  {isDone ? "Done" : "Tap"}
+                </span>
               </button>
             );
           })}
