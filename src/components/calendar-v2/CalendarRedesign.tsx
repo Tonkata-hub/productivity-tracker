@@ -54,6 +54,22 @@ export function CalendarRedesign() {
   const hasInitialScrollRun = useRef(false);
   const headerSelectResetTimeoutRef = useRef<number | null>(null);
 
+  const getMobileDayCards = useCallback((container: HTMLDivElement) => {
+    return Array.from(container.children) as HTMLDivElement[];
+  }, []);
+
+  const scrollMobileToIndex = useCallback(
+    (container: HTMLDivElement, index: number, behavior: ScrollBehavior = "smooth") => {
+      const cards = getMobileDayCards(container);
+      const clamped = Math.max(0, Math.min(index, cards.length - 1));
+      const target = cards[clamped];
+      if (!target) return;
+      container.scrollTo({ left: target.offsetLeft, behavior });
+      setCurrentDayIndex(clamped);
+    },
+    [getMobileDayCards]
+  );
+
   // ── Fetch tasks ────────────────────────────────────────
   useEffect(() => {
     if (useMock) return;
@@ -188,12 +204,30 @@ export function CalendarRedesign() {
 
   // ── Mobile scroll management ───────────────────────────
   useEffect(() => {
-    if (hasInitialScrollRun.current || !scrollContainerRef.current || highlightedDate) return;
+    if (hasInitialScrollRun.current || !scrollContainerRef.current || highlightedDate || isMonthView) return;
     const container = scrollContainerRef.current;
-    const cardWidth = container.offsetWidth;
-    container.scrollTo({ left: todayIndex * cardWidth, behavior: "smooth" });
-    hasInitialScrollRun.current = true;
-  }, [todayIndex, highlightedDate]);
+    if (weekData.length === 0) return;
+
+    let attempts = 0;
+    let rafId = 0;
+
+    const scrollWhenReady = () => {
+      const width = container.offsetWidth;
+      const canScroll = container.scrollWidth > width;
+      if (width > 0 && canScroll) {
+        scrollMobileToIndex(container, todayIndex, "smooth");
+        hasInitialScrollRun.current = true;
+        return;
+      }
+      attempts += 1;
+      if (attempts < 10) {
+        rafId = window.requestAnimationFrame(scrollWhenReady);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(scrollWhenReady);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [todayIndex, highlightedDate, isMonthView, weekData.length, scrollMobileToIndex]);
 
   // Explicit mobile "Today" scroll trigger (used by header Today button)
   useEffect(() => {
@@ -207,8 +241,7 @@ export function CalendarRedesign() {
     const scrollWhenReady = () => {
       const width = container.offsetWidth;
       if (width > 0) {
-        container.scrollTo({ left: targetIndex * width, behavior: "smooth" });
-        setCurrentDayIndex(targetIndex);
+        scrollMobileToIndex(container, targetIndex, "smooth");
         return;
       }
       attempts += 1;
@@ -219,22 +252,29 @@ export function CalendarRedesign() {
 
     rafId = window.requestAnimationFrame(scrollWhenReady);
     return () => window.cancelAnimationFrame(rafId);
-  }, [scrollToTodaySignal, isMonthView, weekData]);
+  }, [scrollToTodaySignal, isMonthView, weekData, scrollMobileToIndex]);
 
   useEffect(() => {
     if (!scrollContainerRef.current || !highlightedDate) return;
     const idx = weekData.findIndex((d) => d.date === highlightedDate);
     if (idx >= 0) {
       const container = scrollContainerRef.current;
-      container.scrollTo({ left: idx * container.offsetWidth, behavior: "smooth" });
+      scrollMobileToIndex(container, idx, "smooth");
     }
-  }, [highlightedDate, weekData]);
+  }, [highlightedDate, weekData, scrollMobileToIndex]);
 
   const handleScroll = useCallback(() => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
-    const newIndex = Math.round(container.scrollLeft / container.offsetWidth);
-    setCurrentDayIndex(newIndex);
+    const cards = getMobileDayCards(container);
+    if (cards.length > 0) {
+      const newIndex = cards.reduce((closestIdx, card, idx) => {
+        const currentDistance = Math.abs(card.offsetLeft - container.scrollLeft);
+        const closestDistance = Math.abs(cards[closestIdx].offsetLeft - container.scrollLeft);
+        return currentDistance < closestDistance ? idx : closestIdx;
+      }, 0);
+      setCurrentDayIndex(newIndex);
+    }
 
     // Keep header selection pinned during animated scroll.
     // Release only after scroll events settle.
@@ -247,15 +287,14 @@ export function CalendarRedesign() {
         headerSelectResetTimeoutRef.current = null;
       }, 140);
     }
-  }, [selectedDayIndex]);
+  }, [selectedDayIndex, getMobileDayCards]);
 
   const scrollToDay = useCallback((index: number) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      container.scrollTo({ left: index * container.offsetWidth, behavior: "smooth" });
-      setCurrentDayIndex(index);
+      scrollMobileToIndex(container, index, "smooth");
     }
-  }, []);
+  }, [scrollMobileToIndex]);
 
   const handleHeaderDaySelect = useCallback(
     (index: number) => {
